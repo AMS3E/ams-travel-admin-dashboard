@@ -1,0 +1,105 @@
+import type { BadgePeriodResponse, MediaItemResponse } from "@/features/catalog/api/contracts";
+
+/**
+ * The JSON the back-office endpoints return — everything under `/admin`, plus
+ * review moderation. The catalogue's own shapes live in
+ * `features/catalog/api/contracts.ts`; these are the reads no public page makes.
+ */
+
+export interface ReviewOverview {
+  readonly total: number;
+  readonly visible: number;
+  readonly hidden: number;
+  /** Null rather than zero when no badge period is running — a gap is not a drought. */
+  readonly thisPeriod: number | null;
+  readonly averageRating: number | null;
+}
+
+/** What a review is about. */
+export type ReviewTarget = "DESTINATION" | "FOOD" | "STAY";
+
+export type ReviewStatus = "VISIBLE" | "HIDDEN";
+
+/** A review's photo: a media item whose owner is the review. */
+export type ReviewPhoto = MediaItemResponse;
+
+export interface ReviewResponse {
+  readonly id: string;
+  readonly userId: string | null;
+  readonly authorName: string | null;
+  readonly authorAvatarUrl: string | null;
+  readonly targetType: ReviewTarget;
+  readonly targetId: string;
+  readonly rating: number;
+  readonly title: string | null;
+  readonly content: string | null;
+  readonly status: ReviewStatus;
+  readonly photos: readonly ReviewPhoto[] | null;
+  readonly createdAt: string;
+  readonly updatedAt: string | null;
+}
+
+/** The tables the overview counts, keyed as the API names them. */
+export type OverviewCountKey =
+  | "destinations"
+  | "regions"
+  | "provinces"
+  | "categories"
+  | "tags"
+  | "interests"
+  | "corridors"
+  | "stays"
+  | "foods"
+  | "partners"
+  | "users"
+  | "reviews"
+  | "favorites"
+  | "badgeDefinitions";
+
+/**
+ * `GET /admin/overview` — every tile on every dashboard, in one request. A
+ * moderator reads it too; `counts` is full control's alone and left out for
+ * anyone else.
+ */
+export interface AdminOverviewResponse {
+  readonly counts?: Readonly<Partial<Record<OverviewCountKey, number>>>;
+  readonly reviews: ReviewOverview;
+  /** The badge period running today, standing for the season, or null between periods. */
+  readonly currentPeriod: BadgePeriodResponse | null;
+  readonly recentReviews: readonly ReviewResponse[];
+}
+
+/** PURGE is the log recording that it was cleared; it describes no row. */
+export type AuditAction = "CREATE" | "UPDATE" | "DELETE" | "PURGE";
+
+/**
+ * One snapshot of a row, keyed by property name. Values are what the API's
+ * listener made plain: a string, a number, a boolean, null, or — for a JSON
+ * column such as opening hours — an object.
+ */
+export type AuditData = Readonly<Record<string, unknown>>;
+
+export interface AuditLogResponse {
+  /** The one numeric id left in the API: the log is an identity column. */
+  readonly id: number;
+  /** The `users` id of whoever made the change; null for a system write or a deleted account. */
+  readonly userId: string | null;
+  readonly userName: string | null;
+  readonly userEmail: string | null;
+  readonly action: AuditAction;
+  readonly entityType: string;
+  readonly entityId: string | null;
+  /**
+   * Before the write. On UPDATE only the fields that changed; on DELETE every
+   * field; null on CREATE and PURGE.
+   */
+  readonly oldData: AuditData | null;
+  /**
+   * After the write. On UPDATE only the fields that changed; on CREATE every
+   * field; on PURGE `{ removed }`; null on DELETE.
+   */
+  readonly newData: AuditData | null;
+  readonly ipAddress: string | null;
+  readonly userAgent: string | null;
+  readonly createdAt: string;
+}
