@@ -13,8 +13,6 @@ import {
   type Resolver,
 } from "react-hook-form";
 import {
-  ArrowLeft,
-  ArrowRight,
   Check,
   CircleAlert,
   CircleCheck,
@@ -57,6 +55,7 @@ import {
   stepFields,
   type ListingKey,
   type ListingStep,
+  type ReadinessCheck,
 } from "@/features/catalog/components/listing-form/steps";
 import { listPageOf } from "@/features/catalog/all-destinations";
 import { derivedRegions } from "@/features/catalog/narrowing";
@@ -89,7 +88,7 @@ interface ListingFormProps {
   readonly canDelete?: boolean;
   readonly canEdit?: boolean;
   readonly canSetStatus?: boolean;
-  /** Creating: the new listing may go live at once, and the last step offers Published or Draft. */
+  /** Creating: the new listing may go live at once, and the last section offers Published or Draft. */
   readonly canPublishOnCreate?: boolean;
   readonly afterSaveHref?: string;
   readonly presets?: Readonly<FormValues>;
@@ -98,7 +97,7 @@ interface ListingFormProps {
   readonly gallery?: { readonly canAdd: boolean; readonly canDelete: boolean };
   /**
    * Who decides this person's destinations — "a BDO", "an editor" — when they
-   * cannot publish themselves. The last step then sends it for review.
+   * cannot publish themselves. The last section then sends it for review.
    */
   readonly reviewer?: string;
   /**
@@ -109,24 +108,39 @@ interface ListingFormProps {
   readonly reviewHref?: string;
 }
 
-type StepState = "done" | "error" | "todo";
+/** One line of the checklist as the form stands: whether it is met, and the section it belongs to. */
+type CheckRow = ReadinessCheck & { readonly done: boolean; readonly at: number };
 
-/** Fields that say little about how finished a listing is. */
-const NOT_COUNTED = new Set(["slug", "ownerUserId"]);
+/** A section as the checklist beside the form shows it. */
+interface SectionInfo {
+  readonly id: string;
+  readonly title: string;
+  /** `done` once every check of its own is met; a section with none stays `todo`. */
+  readonly state: "done" | "error" | "todo";
+  /** Its checks still to do, listed under it. */
+  readonly missing: readonly CheckRow[];
+  /** Not on the page yet: a new listing's kind is still to be chosen. */
+  readonly locked: boolean;
+}
+
+/** Where a section sits in the page, for the checklist to scroll to. */
+const sectionDomId = (id: string) => `listing-section-${id}`;
 
 /**
- * A destination, a stay or a food listing, written one step at a time.
+ * A destination, a stay or a food listing, written on one page.
  *
- * One form surface holds the current step — its heading, its sections divided
- * by hairlines, and the actions at its foot — with a quiet step list beside it
- * and the live preview and the step's tip set back on the right. Underneath it
- * is the catalogue form it replaces: the same registry fields, Zod schema,
- * server action and request body, so what gets saved does not change.
+ * Every section is on the page at once — its heading and its groups of fields
+ * divided by hairlines — with the checklist beside it: each section, and under
+ * it what is still missing. Selecting either scrolls to the section. A
+ * destination also has its live preview and the tip for the section in view
+ * set back on the right. Underneath it is the catalogue form it replaces: the
+ * same registry fields, Zod schema, server action and request body, so what
+ * gets saved does not change.
  *
- * Creating walks forward: Continue checks the step before moving on. Editing
- * opens with every step reachable and Save changes always at hand. Either way
- * any step can be opened from the list, and a save that finds a problem opens
- * the step it is on.
+ * Creating and editing are the same page, saved by the button at its foot. A
+ * new listing shows its first section alone until its kind is chosen — a
+ * destination's theme, a food listing's type — because every section after it
+ * is written for that kind. A save that finds a problem scrolls to it.
  */
 export function ListingForm({
   definition,
@@ -154,7 +168,6 @@ export function ListingForm({
   const listHref = listPageOf(definition.key);
   const noun = definition.label.toLowerCase();
 
-  const stepCount = useMemo(() => listingSteps(definition).length, [definition]);
   const fieldsByName = useMemo(() => new Map(definition.fields.map((field) => [field.name, field])), [definition]);
   const schema = useMemo(() => resourceSchema(definition), [definition]);
 
@@ -165,23 +178,11 @@ export function ListingForm({
     return followed?.ref ? (options[followed.ref] ?? []) : undefined;
   }
 
-  /*
-   * A type chosen before the form — on Create New — needs no step of its own:
-   * a food listing's Type step asks nothing else, so the form opens on About.
-   * A stay's Type step also asks its stars, so it opens there, type chosen.
-   */
-  const [step, setStep] = useState(() => {
-    const chosen = typeof presets?.type === "string" ? presets.type : null;
-    const first = chosen && !editing ? listingSteps(definition, chosen)[0] : undefined;
-    return first && stepFields(first).every((name) => name === "type") ? 1 : 0;
-  });
-  const [visited, setVisited] = useState<ReadonlySet<number>>(
-    () => new Set(editing ? Array.from({ length: stepCount }, (_, index) => index) : [0, step]),
-  );
+  /* The section in view, once the page has been scrolled; the first until then. */
+  const [inView, setInView] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, startDelete] = useTransition();
-  const top = useRef<HTMLDivElement>(null);
   const galleryHandle = useRef<GalleryHandle>(null);
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [saveProgress, setSaveProgress] = useState<UploadProgress | null>(null);
@@ -298,25 +299,75 @@ export function ListingForm({
     [form, record],
   );
 
-  const current = steps[step];
-  const last = step === steps.length - 1;
-  /* Rooms and dishes need the room: the preview column steps aside, and the tip comes inline. */
-  const wide = current.id === "rooms" || current.id === "menu";
+  /*
+   * A new listing's first section stands alone until its kind is chosen: every
+   * section after it is written for that kind, and would change under the
+   * reader's hands.
+   */
+  const gateAt = !editing && !kind ? steps.findIndex((each) => stepFields(each).includes(kindField)) : -1;
+  const gated = gateAt >= 0;
+  const open = gated ? steps.slice(0, gateAt + 1) : steps;
+  /* Rooms and dishes need the room: a stay or a food listing has no preview column, and its tips come inline. */
+  const wide = hasRooms || hasMenu;
 
-  /* A field that does not apply — a breakfast price with no breakfast — does not count against it. */
-  const counted = definition.fields.filter(
-    (field) => field.kind !== "boolean" && !NOT_COUNTED.has(field.name) && isShown(field, values, options),
-  );
-  const percent = counted.length
-    ? Math.round((counted.filter((field) => isFilled(values[field.name])).length / counted.length) * 100)
-    : 100;
+  function stepOf(names: readonly string[]): number {
+    return steps.findIndex((each) => stepFields(each).some((name) => names.includes(name)));
+  }
 
-  const states: readonly StepState[] = steps.map((each, index) => {
+  /* Each check belongs to the section that holds what it asks for. */
+  const checkRows: readonly CheckRow[] = checks.map((check) => ({
+    ...check,
+    done: check.all ? check.fields.every((name) => isFilled(values[name])) : check.fields.some((name) => isFilled(values[name])),
+    at: Math.max(0, check.step ? steps.findIndex((each) => each.id === check.step) : stepOf(check.fields)),
+  }));
+
+  const sections: readonly SectionInfo[] = steps.map((each, index) => {
     const names = stepFields(each);
-    if (names.some((name) => errors[name]) || (each.review && errors.status)) return "error";
-    const missing = names.some((name) => fieldsByName.get(name)?.required && !isFilled(values[name]));
-    return !missing && visited.has(index) && index !== step ? "done" : "todo";
+    const own = checkRows.filter((row) => row.at === index);
+    const missing = own.filter((row) => !row.done);
+    const required = names.some((name) => fieldsByName.get(name)?.required && !isFilled(values[name]));
+    return {
+      id: each.id,
+      title: each.title,
+      state:
+        names.some((name) => errors[name]) || (each.review && errors.status)
+          ? "error"
+          : own.length > 0 && missing.length === 0 && !required
+            ? "done"
+            : "todo",
+      missing,
+      locked: gated && index > gateAt,
+    };
   });
+  const current = open.find((each) => each.id === inView) ?? open[0];
+
+  /* The section in view is the last one whose heading has reached the upper third of the window. */
+  const openIds = open.map((each) => each.id).join(",");
+  useEffect(() => {
+    const ids = openIds.split(",");
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const atEnd = window.scrollY > 0 && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+      const line = Math.max(120, window.innerHeight / 3);
+      let found = ids[0];
+      for (const id of ids) {
+        const top = document.getElementById(sectionDomId(id))?.getBoundingClientRect().top;
+        if (top !== undefined && top <= line) found = id;
+      }
+      setInView(atEnd ? ids[ids.length - 1] : found);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, [openIds]);
 
   const statusField = definition.status;
   const goingLive = statusField != null && values.status === statusField.live;
@@ -337,26 +388,14 @@ export function ListingForm({
   /* A new one, or one handed back for changes, is sent unless kept back; any other edit only saves. */
   const sendForReview = offerReview && (sendChoice ?? (!record || request == null || request.status === "DRAFT"));
 
-  function goTo(index: number) {
-    setStep(index);
-    setVisited((seen) => new Set(seen).add(index));
-    setConfirmingDelete(false);
-    requestAnimationFrame(() => top.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
-  }
-
-  async function next() {
-    setVisited((seen) => new Set(seen).add(step));
-    const valid = await form.trigger([...stepFields(current)]);
-    if (!valid) {
-      setBanner("A few details on this step need attention — they are marked in red.");
-      return;
-    }
-    setBanner(null);
-    goTo(step + 1);
-  }
-
-  function stepOf(names: readonly string[]): number {
-    return steps.findIndex((each) => stepFields(each).some((name) => names.includes(name)));
+  /** Scrolls to a section; `toProblem` stops on the first field in it marked in red instead. */
+  function scrollToSection(id: string, toProblem = false) {
+    requestAnimationFrame(() => {
+      const section = document.getElementById(sectionDomId(id));
+      const problem = toProblem ? section?.querySelector('[role="alert"]') : null;
+      if (problem) problem.scrollIntoView({ behavior: "smooth", block: "center" });
+      else section?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   async function save(submitted: FormValues) {
@@ -445,15 +484,15 @@ export function ListingForm({
       form.setError(name, { message });
     }
     const at = stepOf(Object.keys(fieldErrors));
-    if (at >= 0 && at !== step) goTo(at);
+    if (at >= 0) scrollToSection(steps[at].id, true);
     setBanner(result.message);
   }
 
   function refuse(invalid: FieldErrors<FormValues>) {
-    /* The first step holding a problem; the status lives on the last. */
+    /* The first section holding a problem; the status lives in the last. */
     const first = stepOf(Object.keys(invalid));
     const target = first >= 0 ? first : invalid.status ? steps.length - 1 : -1;
-    if (target >= 0 && target !== step) goTo(target);
+    if (target >= 0) scrollToSection(steps[target].id, true);
     setBanner("A few details need attention before this can be saved — they are marked in red.");
   }
 
@@ -491,24 +530,24 @@ export function ListingForm({
             !wide && "xl:grid-cols-[12.5rem_minmax(0,1fr)_17rem]",
           )}
           noValidate
-          onSubmit={(event) => {
-            /* Enter on a step that is not the last moves on, the way Continue does. */
-            if (!editing && !last) {
-              event.preventDefault();
-              void next();
-              return;
-            }
-            void form.handleSubmit(save, refuse)(event);
+          onKeyDown={(event) => {
+            /* A new listing is made by its button alone: Enter in a field does not create it half-written. */
+            if (!editing && event.key === "Enter" && event.target instanceof HTMLInputElement) event.preventDefault();
           }}
+          onSubmit={(event) => void form.handleSubmit(save, refuse)(event)}
         >
-          <aside className="hidden lg:block">
-            <div className="sticky top-20">
-              <StepList current={step} onSelect={goTo} percent={percent} states={states} steps={steps} />
-            </div>
+          <aside className="quiet-scroll sticky top-20 hidden max-h-[calc(100dvh-6rem)] overflow-y-auto lg:block">
+            <SectionList
+              current={current.id}
+              done={checkRows.filter((row) => row.done).length}
+              onSelect={scrollToSection}
+              sections={sections}
+              total={checkRows.length}
+            />
           </aside>
 
-          <div className="flex min-w-0 scroll-mt-20 flex-col gap-3" ref={top}>
-            <MobileSteps current={step} onSelect={goTo} percent={percent} states={states} steps={steps} />
+          <div className="flex min-w-0 flex-col gap-4">
+            <SectionChips current={current.id} onSelect={scrollToSection} sections={sections} />
 
             {!canEdit ? (
               <p className="flex items-start gap-2.5 rounded-lg border border-line bg-sand px-3 py-2.5 text-sm text-ink-soft" role="status">
@@ -517,215 +556,227 @@ export function ListingForm({
               </p>
             ) : null}
 
-            {banner ? (
-              <p className="flex items-start gap-2.5 rounded-lg border border-heritage/20 bg-heritage-soft px-3 py-2.5 text-sm text-heritage" role="alert">
-                <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
-                <span>
-                  {banner}
-                  {savedHref ? (
+            {open.map((each) => (
+              <section
+                aria-labelledby={`${sectionDomId(each.id)}-title`}
+                className="panel min-w-0 scroll-mt-28 lg:scroll-mt-20"
+                id={sectionDomId(each.id)}
+                key={each.id}
+              >
+                <header className="border-b border-line px-5 py-4">
+                  <h2 className="heading text-lg font-semibold text-ink" id={`${sectionDomId(each.id)}-title`}>
+                    {each.title}
+                  </h2>
+                  <p className="mt-0.5 text-sm text-muted">{each.description}</p>
+                </header>
+
+                <div className="divide-y divide-line">
+                  <Tip className={cn("px-5 py-3", !wide && "xl:hidden")} step={each} />
+
+                  {each.review ? (
                     <>
-                      {" "}
-                      <Link className="font-medium underline underline-offset-2" href={savedHref}>
-                        Open the saved {noun}
-                      </Link>{" "}
-                      to add them again.
+                      <Readiness onOpen={(row) => scrollToSection(steps[row.at].id)} rows={checkRows} />
+                      {statusField ? (
+                        <FormSection description={`Who can see this ${noun} once it is saved.`} title="Visibility">
+                          {!canEdit ? (
+                            <p className="text-sm text-muted">An editor manages publication and changes to this {noun}.</p>
+                          ) : reviewed && (offerReview || waiting) ? (
+                            <ReviewChoice
+                              noun={noun}
+                              onChange={setSendChoice}
+                              request={request}
+                              reviewer={reviewer ?? ""}
+                              send={sendForReview}
+                              waiting={waiting}
+                            />
+                          ) : choosesStatus ? (
+                            <StatusChoices
+                              liveLabel={editing && statusValueOf(definition, record) === statusField.live ? "Published" : "Publish now"}
+                              options={
+                                editing
+                                  ? statusChoices(definition, statusValueOf(definition, record))
+                                  : statusChoices(definition, null).filter(
+                                      (option) => option.value === statusField.live || option.value === statusField.initial,
+                                    )
+                              }
+                            />
+                          ) : (
+                            <p className="flex items-start gap-2.5 rounded-md bg-sand px-3 py-2.5 text-sm text-ink-soft">
+                              <FilePen aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
+                              <span>
+                                {reviewHref
+                                  ? `You are correcting this ${noun} before deciding on it. Save your changes, then approve it, send it back or reject it on the review.`
+                                  : editing
+                                  ? `Currently ${statusOption(definition, statusValueOf(definition, record))?.label.toLowerCase() ?? "unknown"}. Whether it is on the website is decided by a reviewer, not here.`
+                                  : canSetStatus
+                                    ? `New ${definition.labelPlural.toLowerCase()} start as drafts. You can publish it once it exists.`
+                                    : `It is saved as a draft. Whether it is on the website is decided by a reviewer, not here.`}
+                                {listingType && !canSetStatus && !reviewer && !reviewHref ? " Submit it from the publishing screen when it is ready." : ""}
+                              </span>
+                            </p>
+                          )}
+                        </FormSection>
+                      ) : null}
                     </>
                   ) : null}
-                </span>
+
+                  {each.groups.map((group) => {
+                    /* A lone field already names the group; saying it twice is noise. */
+                    const titled = group.title && !(group.fields.length === 1 && fieldsByName.get(group.fields[0])?.label === group.title);
+                    /* The map pin: search, the map and the paste box first, then the two numbers they fill. */
+                    const pinned = group.fields.includes("latitude") && group.fields.includes("longitude");
+                    return (
+                      <FormSection description={titled ? group.description : undefined} key={group.title ?? group.fields.join("-")} title={titled ? group.title : undefined}>
+                        <fieldset className="grid gap-x-4 gap-y-5 md:grid-cols-2" disabled={!canEdit}>
+                          {pinned ? <LocationMap disabled={!canEdit} /> : null}
+                          {group.fields.map((name) => {
+                            const field = fieldsByName.get(name);
+                            if (!field || !isShown(field, values, options)) return null;
+                            return (
+                              <ListingField
+                                field={field}
+                                key={name}
+                                locked={editing && field.createOnly === true}
+                                narrowing={narrowingOptions(field)}
+                                options={field.ref ? (options[field.ref] ?? []) : []}
+                                pathPrefix={`/${definition.key}/`}
+                                wide={group.fields.length === 1}
+                              />
+                            );
+                          })}
+                        </fieldset>
+                      </FormSection>
+                    );
+                  })}
+
+                  {hasRooms && each.id === "rooms" ? (
+                    <div className="px-5 py-5">
+                      <RoomsManager
+                        canEdit={canEdit}
+                        currency={typeof values.currency === "string" && values.currency.trim() ? values.currency.trim().toUpperCase() : "USD"}
+                        onPendingChange={setPendingRooms}
+                        onSummaryChange={onRoomSummary}
+                        pending={pendingRooms}
+                        pendingPhotos={pendingPhotos.map((photo) => ({ key: photo.key, url: photo.url }))}
+                        stayId={record?.id ?? null}
+                        stayType={typeof values.type === "string" ? values.type : "OTHER"}
+                      />
+                    </div>
+                  ) : null}
+
+                  {hasMenu && each.id === "menu" ? (
+                    <div className="px-5 py-5">
+                      <MenuManager
+                        averageMealPrice={values.averageMealPrice}
+                        canEdit={canEdit}
+                        currency={typeof values.currency === "string" && values.currency.trim() ? values.currency.trim().toUpperCase() : "USD"}
+                        foodId={record?.id ?? null}
+                        foodType={typeof values.type === "string" ? values.type : "OTHER"}
+                        onPendingChange={setPendingDishes}
+                        onSummaryChange={onMenuSummary}
+                        pending={pendingDishes}
+                        pendingPhotos={pendingPhotos.map((photo) => ({ key: photo.key, url: photo.url }))}
+                      />
+                    </div>
+                  ) : null}
+
+                  {gallery && each.id === "photos" ? (
+                    <div className="px-5 py-5">
+                      <div className="mb-4">
+                        <h3 className="text-sm font-semibold text-ink">Gallery</h3>
+                        <p className="mt-0.5 text-xs text-muted">
+                          Every photo travellers can page through. Select as many as you like — they upload while you carry on.
+                        </p>
+                      </div>
+                      <GalleryManager
+                        canAdd={canAddPhotos}
+                        canDelete={Boolean(gallery.canDelete && canEdit)}
+                        coverKey={typeof values.coverKey === "string" ? values.coverKey : ""}
+                        handle={galleryHandle}
+                        listing={definition.key as ListingKey}
+                        listingId={record?.id ?? null}
+                        onBusyChange={setPhotosUploading}
+                        onPendingChange={setPendingPhotos}
+                        onUseAsCover={(photo) => {
+                          form.setValue("coverKey", photo.key, { shouldDirty: true });
+                          form.setValue("coverUrl", photo.url, { shouldDirty: true });
+                        }}
+                        pending={pendingPhotos}
+                      />
+                    </div>
+                  ) : null}
+
+                  {each.review ? (
+                    <>
+                      <div className={cn("px-5 py-5", !wide && "xl:hidden")}>
+                        <ListingPreview definition={definition} options={options} values={values} />
+                      </div>
+                      {editing && canDelete ? (
+                        <FormSection description="It is removed from the website and the dashboard for good. This cannot be undone." title={`Delete this ${noun}`}>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {confirmingDelete ? (
+                              <>
+                                <span className="text-sm text-ink">Delete permanently?</span>
+                                <Button disabled={deleting} onClick={destroy} size="sm" type="button" variant="destructive">
+                                  {deleting ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <Trash2 aria-hidden className="size-3.5" />}
+                                  Yes, delete
+                                </Button>
+                                <Button onClick={() => setConfirmingDelete(false)} size="sm" type="button" variant="ghost">
+                                  Keep it
+                                </Button>
+                              </>
+                            ) : (
+                              <Button
+                                className="text-heritage hover:bg-heritage-soft hover:text-heritage"
+                                onClick={() => setConfirmingDelete(true)}
+                                size="sm"
+                                type="button"
+                                variant="secondary"
+                              >
+                                <Trash2 aria-hidden className="size-3.5" />
+                                Delete {noun}
+                              </Button>
+                            )}
+                          </div>
+                        </FormSection>
+                      ) : null}
+                    </>
+                  ) : null}
+                </div>
+              </section>
+            ))}
+
+            {gated ? (
+              <p className="rounded-xl border border-dashed border-line-strong px-5 py-4 text-sm text-muted">
+                {definition.key === "destinations" ? "Choose a theme above" : "Choose the type above"} to see the rest of the form. Every
+                section after it is written for that choice.
               </p>
             ) : null}
 
-            <section aria-labelledby="listing-step-title" className="panel min-w-0">
-              <header className="border-b border-line px-5 py-4">
-                <p className="text-xs font-medium text-muted">
-                  Step {step + 1} of {steps.length} · {current.title}
+            {/*
+             * The actions stay at the foot of the window over a band of the page's own ground, and
+             * what a save found sits with the button that was pressed, wherever the page is scrolled to.
+             */}
+            <div className={cn("flex flex-col gap-2", !gated && "sticky bottom-0 z-10 bg-background pt-2 pb-3")}>
+              {banner ? (
+                <p className="flex items-start gap-2.5 rounded-lg border border-heritage/20 bg-heritage-soft px-3 py-2.5 text-sm text-heritage" role="alert">
+                  <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
+                  <span>
+                    {banner}
+                    {savedHref ? (
+                      <>
+                        {" "}
+                        <Link className="font-medium underline underline-offset-2" href={savedHref}>
+                          Open the saved {noun}
+                        </Link>{" "}
+                        to add them again.
+                      </>
+                    ) : null}
+                  </span>
                 </p>
-                <h2 className="heading mt-1 text-xl font-semibold text-ink" id="listing-step-title">
-                  {current.question}
-                </h2>
-                <p className="mt-0.5 text-sm text-muted">{current.description}</p>
-              </header>
-
-              <div className="divide-y divide-line" key={current.id}>
-                <Tip className={cn("px-5 py-3", !wide && "xl:hidden")} step={current} />
-
-                {current.review ? (
-                  <>
-                    <Readiness
-                      checks={checks}
-                      onOpen={(check) => goTo(Math.max(0, check.step ? steps.findIndex((each) => each.id === check.step) : stepOf(check.fields)))}
-                      percent={percent}
-                      values={values}
-                    />
-                    {statusField ? (
-                      <FormSection description={`Who can see this ${noun} once it is saved.`} title="Visibility">
-                        {!canEdit ? (
-                          <p className="text-sm text-muted">An editor manages publication and changes to this {noun}.</p>
-                        ) : reviewed && (offerReview || waiting) ? (
-                          <ReviewChoice
-                            noun={noun}
-                            onChange={setSendChoice}
-                            request={request}
-                            reviewer={reviewer ?? ""}
-                            send={sendForReview}
-                            waiting={waiting}
-                          />
-                        ) : choosesStatus ? (
-                          <StatusChoices
-                            liveLabel={editing && statusValueOf(definition, record) === statusField.live ? "Published" : "Publish now"}
-                            options={
-                              editing
-                                ? statusChoices(definition, statusValueOf(definition, record))
-                                : statusChoices(definition, null).filter(
-                                    (option) => option.value === statusField.live || option.value === statusField.initial,
-                                  )
-                            }
-                          />
-                        ) : (
-                          <p className="flex items-start gap-2.5 rounded-md bg-sand px-3 py-2.5 text-sm text-ink-soft">
-                            <FilePen aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
-                            <span>
-                              {reviewHref
-                                ? `You are correcting this ${noun} before deciding on it. Save your changes, then approve it, send it back or reject it on the review.`
-                                : editing
-                                ? `Currently ${statusOption(definition, statusValueOf(definition, record))?.label.toLowerCase() ?? "unknown"}. Whether it is on the website is decided by a reviewer, not here.`
-                                : canSetStatus
-                                  ? `New ${definition.labelPlural.toLowerCase()} start as drafts. You can publish it once it exists.`
-                                  : `It is saved as a draft. Whether it is on the website is decided by a reviewer, not here.`}
-                              {listingType && !canSetStatus && !reviewer && !reviewHref ? " Submit it from the publishing screen when it is ready." : ""}
-                            </span>
-                          </p>
-                        )}
-                      </FormSection>
-                    ) : null}
-                  </>
-                ) : null}
-
-                {current.groups.map((group) => {
-                  /* A lone field already names the group; saying it twice is noise. */
-                  const titled = group.title && !(group.fields.length === 1 && fieldsByName.get(group.fields[0])?.label === group.title);
-                  /* The map pin: search, the map and the paste box first, then the two numbers they fill. */
-                  const pinned = group.fields.includes("latitude") && group.fields.includes("longitude");
-                  return (
-                    <FormSection description={titled ? group.description : undefined} key={group.title ?? group.fields.join("-")} title={titled ? group.title : undefined}>
-                      <fieldset className="grid gap-x-4 gap-y-5 md:grid-cols-2" disabled={!canEdit}>
-                        {pinned ? <LocationMap disabled={!canEdit} /> : null}
-                        {group.fields.map((name) => {
-                          const field = fieldsByName.get(name);
-                          if (!field || !isShown(field, values, options)) return null;
-                          return (
-                            <ListingField
-                              field={field}
-                              key={name}
-                              locked={editing && field.createOnly === true}
-                              narrowing={narrowingOptions(field)}
-                              options={field.ref ? (options[field.ref] ?? []) : []}
-                              pathPrefix={`/${definition.key}/`}
-                              wide={group.fields.length === 1}
-                            />
-                          );
-                        })}
-                      </fieldset>
-                    </FormSection>
-                  );
-                })}
-
-                {current.review ? (
-                  <>
-                    <div className="px-5 py-5 xl:hidden">
-                      <ListingPreview definition={definition} options={options} values={values} />
-                    </div>
-                    {editing && canDelete ? (
-                      <FormSection description="It is removed from the website and the dashboard for good. This cannot be undone." title={`Delete this ${noun}`}>
-                        <div className="flex flex-wrap items-center gap-2">
-                          {confirmingDelete ? (
-                            <>
-                              <span className="text-sm text-ink">Delete permanently?</span>
-                              <Button disabled={deleting} onClick={destroy} size="sm" type="button" variant="destructive">
-                                {deleting ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <Trash2 aria-hidden className="size-3.5" />}
-                                Yes, delete
-                              </Button>
-                              <Button onClick={() => setConfirmingDelete(false)} size="sm" type="button" variant="ghost">
-                                Keep it
-                              </Button>
-                            </>
-                          ) : (
-                            <Button
-                              className="text-heritage hover:bg-heritage-soft hover:text-heritage"
-                              onClick={() => setConfirmingDelete(true)}
-                              size="sm"
-                              type="button"
-                              variant="secondary"
-                            >
-                              <Trash2 aria-hidden className="size-3.5" />
-                              Delete {noun}
-                            </Button>
-                          )}
-                        </div>
-                      </FormSection>
-                    ) : null}
-                  </>
-                ) : null}
-              </div>
-
-              {hasRooms ? (
-                <div className="px-5 py-5" hidden={current.id !== "rooms"}>
-                  <RoomsManager
-                    canEdit={canEdit}
-                    currency={typeof values.currency === "string" && values.currency.trim() ? values.currency.trim().toUpperCase() : "USD"}
-                    onPendingChange={setPendingRooms}
-                    onSummaryChange={onRoomSummary}
-                    pending={pendingRooms}
-                    pendingPhotos={pendingPhotos.map((photo) => ({ key: photo.key, url: photo.url }))}
-                    stayId={record?.id ?? null}
-                    stayType={typeof values.type === "string" ? values.type : "OTHER"}
-                  />
-                </div>
               ) : null}
 
-              {hasMenu ? (
-                <div className="px-5 py-5" hidden={current.id !== "menu"}>
-                  <MenuManager
-                    averageMealPrice={values.averageMealPrice}
-                    canEdit={canEdit}
-                    currency={typeof values.currency === "string" && values.currency.trim() ? values.currency.trim().toUpperCase() : "USD"}
-                    foodId={record?.id ?? null}
-                    foodType={typeof values.type === "string" ? values.type : "OTHER"}
-                    onPendingChange={setPendingDishes}
-                    onSummaryChange={onMenuSummary}
-                    pending={pendingDishes}
-                    pendingPhotos={pendingPhotos.map((photo) => ({ key: photo.key, url: photo.url }))}
-                  />
-                </div>
-              ) : null}
-
-              {gallery ? (
-                <div className="border-t border-line px-5 py-5" hidden={current.id !== "photos"}>
-                  <div className="mb-4">
-                    <h3 className="text-sm font-semibold text-ink">Gallery</h3>
-                    <p className="mt-0.5 text-xs text-muted">
-                      Every photo travellers can page through. Select as many as you like — they upload while you carry on.
-                    </p>
-                  </div>
-                  <GalleryManager
-                    canAdd={canAddPhotos}
-                    canDelete={Boolean(gallery.canDelete && canEdit)}
-                    coverKey={typeof values.coverKey === "string" ? values.coverKey : ""}
-                    handle={galleryHandle}
-                    listing={definition.key as ListingKey}
-                    listingId={record?.id ?? null}
-                    onBusyChange={setPhotosUploading}
-                    onPendingChange={setPendingPhotos}
-                    onUseAsCover={(photo) => {
-                      form.setValue("coverKey", photo.key, { shouldDirty: true });
-                      form.setValue("coverUrl", photo.url, { shouldDirty: true });
-                    }}
-                    pending={pendingPhotos}
-                  />
-                </div>
-              ) : null}
-
-              <footer className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-2 rounded-b-xl border-t border-line bg-paper px-5 py-3">
+              <footer className="panel flex flex-wrap items-center justify-between gap-2 px-5 py-3">
                 <div className="flex items-center gap-3">
                   <Link className={buttonVariants({ variant: "ghost", size: "sm" })} href={cancelHref ?? listHref}>
                     Cancel
@@ -738,53 +789,30 @@ export function ListingForm({
                   ) : null}
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {step > 0 ? (
-                    <Button onClick={() => goTo(step - 1)} size="sm" type="button" variant="secondary">
-                      <ArrowLeft aria-hidden className="size-3.5" />
-                      Back
-                    </Button>
-                  ) : null}
-
-                  {!last ? (
-                    editing ? (
-                      <Button onClick={() => goTo(step + 1)} size="sm" type="button" variant="secondary">
-                        Next
-                        <ArrowRight aria-hidden className="size-3.5" />
-                      </Button>
+                {canEdit && !gated ? (
+                  <Button disabled={isSubmitting || photosUploading} size="sm" type="submit">
+                    {isSubmitting ? (
+                      <Loader2 aria-hidden className="size-3.5 animate-spin" />
+                    ) : editing ? (
+                      <Save aria-hidden className="size-3.5" />
+                    ) : goingLive && canPublishOnCreate ? (
+                      <Rocket aria-hidden className="size-3.5" />
                     ) : (
-                      <Button onClick={() => void next()} size="sm" type="button">
-                        Continue
-                        <ArrowRight aria-hidden className="size-3.5" />
-                      </Button>
-                    )
-                  ) : null}
-
-                  {canEdit && (editing || last) ? (
-                    <Button disabled={isSubmitting || photosUploading} size="sm" type="submit">
-                      {isSubmitting ? (
-                        <Loader2 aria-hidden className="size-3.5 animate-spin" />
-                      ) : editing ? (
-                        <Save aria-hidden className="size-3.5" />
-                      ) : goingLive && canPublishOnCreate ? (
-                        <Rocket aria-hidden className="size-3.5" />
-                      ) : (
-                        <Check aria-hidden className="size-3.5" />
-                      )}
-                      {saveProgress ? progressLabel(saveProgress) : isSubmitting ? "Saving…" : photosUploading ? "Waiting for photos…" : primaryLabel}
-                    </Button>
-                  ) : null}
-                </div>
+                      <Check aria-hidden className="size-3.5" />
+                    )}
+                    {saveProgress ? progressLabel(saveProgress) : isSubmitting ? "Saving…" : photosUploading ? "Waiting for photos…" : primaryLabel}
+                  </Button>
+                ) : null}
               </footer>
-            </section>
+            </div>
           </div>
 
-          <aside className={cn("hidden", !wide && "xl:block")}>
-            <div className="sticky top-20 flex flex-col gap-4">
+          {!wide ? (
+            <aside className="sticky top-20 hidden flex-col gap-4 xl:flex">
               <ListingPreview definition={definition} options={options} values={values} />
               <Tip className="rounded-lg border border-line bg-paper px-3 py-3" step={current} />
-            </div>
-          </aside>
+            </aside>
+          ) : null}
         </form>
       </GalleryDropContext>
     </FormProvider>
@@ -815,67 +843,73 @@ function FormSection({
   );
 }
 
-interface StepsProps {
-  readonly steps: readonly ListingStep[];
-  readonly states: readonly StepState[];
-  readonly current: number;
-  readonly percent: number;
-  readonly onSelect: (index: number) => void;
+interface SectionNavProps {
+  readonly sections: readonly SectionInfo[];
+  /** The section in view. */
+  readonly current: string;
+  readonly onSelect: (id: string) => void;
 }
 
-function StepList({ steps, states, current, percent, onSelect }: StepsProps) {
+/**
+ * The checklist beside the form: every section, ticked once its own checks are
+ * met, and under it what is still missing. Either one scrolls to the section.
+ */
+function SectionList({ sections, current, onSelect, done, total }: SectionNavProps & { readonly done: number; readonly total: number }) {
   return (
-    <nav aria-label="Form steps">
-      <div className="mb-3 px-2">
-        <div className="flex items-baseline justify-between text-xs">
-          <span className="font-medium text-muted">Completeness</span>
-          <span className="font-medium text-ink tabular-nums">{percent}%</span>
-        </div>
-        <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-sand-deep">
-          <div className="h-full rounded-full bg-teal transition-[width] duration-300" style={{ width: `${percent}%` }} />
-        </div>
-      </div>
+    <nav aria-label="Form sections">
+      <p className="mb-2 flex items-baseline justify-between px-2 text-xs">
+        <span className="font-medium text-muted">Checklist</span>
+        <span className="font-medium text-ink tabular-nums">
+          {done} of {total} done
+        </span>
+      </p>
 
       <ol className="flex flex-col gap-0.5">
-        {steps.map((each, index) => {
-          const state = states[index];
-          const active = index === current;
+        {sections.map((section) => {
+          const active = section.id === current;
           return (
-            <li key={each.id}>
+            <li key={section.id}>
               <button
-                aria-current={active ? "step" : undefined}
+                aria-current={active ? "true" : undefined}
                 className={cn(
-                  "flex h-9 w-full items-center gap-2.5 rounded-md px-2 text-left text-sm transition-colors",
-                  active ? "bg-teal-soft font-medium text-teal-deep" : "text-ink-soft hover:bg-sand-deep hover:text-ink",
+                  "flex h-9 w-full items-center gap-2.5 rounded-md px-2 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                  active ? "bg-teal-soft font-medium text-teal-deep" : "text-ink-soft enabled:hover:bg-sand-deep enabled:hover:text-ink",
                 )}
-                onClick={() => onSelect(index)}
+                disabled={section.locked}
+                onClick={() => onSelect(section.id)}
                 type="button"
               >
-                <span
-                  className={cn(
-                    "grid size-5 shrink-0 place-items-center rounded-full text-2xs font-medium tabular-nums",
-                    state === "error"
-                      ? "text-heritage"
-                      : state === "done"
-                        ? "bg-success-strong text-white"
-                        : active
-                          ? "bg-primary text-primary-foreground"
-                          : "border border-line-strong text-muted",
-                  )}
-                >
-                  {state === "error" ? (
-                    <CircleAlert aria-hidden className="size-4" />
-                  ) : state === "done" ? (
+                {section.state === "error" ? (
+                  <CircleAlert aria-hidden className="size-5 shrink-0 p-px text-heritage" />
+                ) : section.state === "done" ? (
+                  <span className="grid size-5 shrink-0 place-items-center rounded-full bg-success-strong text-white">
                     <Check aria-hidden className="size-3" strokeWidth={3} />
-                  ) : (
-                    index + 1
-                  )}
-                </span>
-                <span className="min-w-0 flex-1 truncate">{each.title}</span>
+                  </span>
+                ) : (
+                  <CircleDashed aria-hidden className="size-5 shrink-0 p-px text-muted" />
+                )}
+                <span className="min-w-0 flex-1 truncate">{section.title}</span>
                 <span className="sr-only">
-                  {state === "error" ? ", needs attention" : state === "done" ? ", complete" : ""}
+                  {section.state === "error" ? ", needs attention" : section.state === "done" ? ", complete" : ""}
                 </span>
               </button>
+
+              {!section.locked && section.missing.length ? (
+                <ul className="mt-0.5 mb-1.5 ml-4.5 flex flex-col border-l border-line pl-2">
+                  {section.missing.map((row) => (
+                    <li key={row.label}>
+                      <button
+                        className="w-full rounded px-1.5 py-1 text-left text-xs leading-snug text-muted transition-colors hover:bg-sand-deep hover:text-ink"
+                        onClick={() => onSelect(section.id)}
+                        type="button"
+                      >
+                        {row.label}
+                        {row.required ? <span className="font-medium text-heritage"> · required</span> : null}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </li>
           );
         })}
@@ -884,49 +918,47 @@ function StepList({ steps, states, current, percent, onSelect }: StepsProps) {
   );
 }
 
-function MobileSteps({ steps, states, current, percent, onSelect }: StepsProps) {
+/** The sections as a row of chips that stays under the top bar, where there is no room for the checklist. */
+function SectionChips({ sections, current, onSelect }: SectionNavProps) {
   const list = useRef<HTMLOListElement>(null);
 
-  /* Keep the current step's chip in view as the steps move on. */
+  /* Keep the chip of the section in view centred, without touching the page's own scroll. */
   useEffect(() => {
-    list.current
-      ?.querySelector('[aria-current="step"]')
-      ?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+    const bar = list.current;
+    const chip = bar?.querySelector<HTMLElement>("[aria-current]");
+    if (!bar || !chip) return;
+    const offset = chip.getBoundingClientRect().left - bar.getBoundingClientRect().left;
+    bar.scrollBy({ left: offset - (bar.clientWidth - chip.clientWidth) / 2, behavior: "smooth" });
   }, [current]);
 
   return (
-    <nav aria-label="Form steps" className="lg:hidden">
-      <div className="flex items-center justify-between gap-3 text-xs">
-        <span className="font-medium text-ink">
-          Step {current + 1} of {steps.length}
-        </span>
-        <span className="text-muted tabular-nums">{percent}% complete</span>
-      </div>
-      <ol className="no-scrollbar -mx-1 mt-2 flex gap-1 overflow-x-auto px-1" ref={list}>
-        {steps.map((each, index) => (
-          <li className="shrink-0" key={each.id}>
-            <button
-              aria-current={index === current ? "step" : undefined}
-              className={cn(
-                "inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium whitespace-nowrap transition-colors",
-                index === current
-                  ? "border-teal bg-teal-soft text-teal-deep"
-                  : states[index] === "error"
-                    ? "border-heritage/30 bg-heritage-soft text-heritage"
-                    : "border-line bg-paper text-ink-soft hover:bg-sand",
-              )}
-              onClick={() => onSelect(index)}
-              type="button"
-            >
-              {states[index] === "done" && index !== current ? (
-                <Check aria-hidden className="size-3 text-success" strokeWidth={3} />
-              ) : (
-                <span className="tabular-nums">{index + 1}</span>
-              )}
-              {each.title}
-            </button>
-          </li>
-        ))}
+    <nav aria-label="Form sections" className="sticky top-14 z-20 -mx-4 bg-background px-4 py-2 md:-mx-6 md:px-6 lg:hidden">
+      <ol className="no-scrollbar flex gap-1 overflow-x-auto" ref={list}>
+        {sections.map((section) => {
+          const active = section.id === current;
+          return (
+            <li className="shrink-0" key={section.id}>
+              <button
+                aria-current={active ? "true" : undefined}
+                className={cn(
+                  "inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                  active
+                    ? "border-teal bg-teal-soft text-teal-deep"
+                    : section.state === "error"
+                      ? "border-heritage/30 bg-heritage-soft text-heritage"
+                      : "border-line bg-paper text-ink-soft enabled:hover:bg-sand",
+                )}
+                disabled={section.locked}
+                onClick={() => onSelect(section.id)}
+                type="button"
+              >
+                {section.state === "done" ? <Check aria-hidden className="size-3 text-success" strokeWidth={3} /> : null}
+                {section.state === "error" ? <CircleAlert aria-hidden className="size-3" /> : null}
+                {section.title}
+              </button>
+            </li>
+          );
+        })}
       </ol>
     </nav>
   );
@@ -944,27 +976,14 @@ function Tip({ step, className }: { readonly step: ListingStep; readonly classNa
   );
 }
 
-function Readiness({
-  checks,
-  values,
-  percent,
-  onOpen,
-}: {
-  readonly checks: ReturnType<typeof readinessChecks>;
-  readonly values: FormValues;
-  readonly percent: number;
-  readonly onOpen: (check: ReturnType<typeof readinessChecks>[number]) => void;
-}) {
-  const rows = checks.map((check) => ({
-    ...check,
-    done: check.all ? check.fields.every((name) => isFilled(values[name])) : check.fields.some((name) => isFilled(values[name])),
-  }));
+/** The whole checklist in one place, before the listing is saved: what is met, and what is still missing. */
+function Readiness({ rows, onOpen }: { readonly rows: readonly CheckRow[]; readonly onOpen: (row: CheckRow) => void }) {
   const missingRequired = rows.filter((row) => row.required && !row.done).length;
   const done = rows.filter((row) => row.done).length;
 
   return (
     <FormSection
-      description={`${done} of ${rows.length} checks done · ${percent}% of fields filled. Recommended details help travellers choose it.`}
+      description={`${done} of ${rows.length} checks done. Recommended details help travellers choose it.`}
       title={missingRequired ? `${missingRequired} required detail${missingRequired === 1 ? "" : "s"} missing` : "Everything required is in place"}
     >
       <ul className="grid gap-x-6 sm:grid-cols-2">

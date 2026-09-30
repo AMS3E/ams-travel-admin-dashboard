@@ -112,7 +112,7 @@ export default async function NewRecordPage(
     referenceOptions,
     reviewer: sendsTo ? DESK_REVIEWERS[sendsTo] : undefined,
   };
-  /* A destination, a stay or a food is listed step by step; everything else is one form. */
+  /* A destination, a stay or a food has the listing form, with its sections and checklist; everything else the plain one. */
   const listing = isListing(resource);
   /* A gallery photo is rarely added alone: offer the many-at-once uploader above the single form. */
   const gallery = galleryOf(definition);
@@ -123,7 +123,7 @@ export default async function NewRecordPage(
       <PageHeader
         backHref={origin ?? chooser?.href ?? listPageOf(resource)}
         backLabel={origin ? "Destination" : chooser ? chooser.label : listPageLabel(resource, definition.labelPlural)}
-        description={listing ? `List a new ${definition.label.toLowerCase()} in a few short steps. ${definition.description}` : definition.description}
+        description={definition.description}
         title={listing ? `List a new ${noun}` : resource === "region-coverage" ? "Add a royal capital" : `New ${definition.label.toLowerCase()}`}
       />
 

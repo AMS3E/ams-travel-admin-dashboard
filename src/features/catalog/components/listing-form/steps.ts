@@ -42,15 +42,16 @@ const KIND_CHECK_WORDS: Partial<Record<ListingKey, Readonly<Record<string, Reado
 };
 
 /**
- * The listing forms — a destination, a stay, a food — as a short journey
- * rather than one long page.
+ * The listing forms — a destination, a stay, a food — as one page of sections,
+ * in the order a host would think about them.
  *
- * Each step asks one question the way a host would think about it (what kind
- * of place, where, what it offers, how it looks, what it costs), holds the
- * registry's fields for that question in a few small groups, and carries one
- * tip. The fields themselves still come from the registry: a step only names
- * them, so validation and the request body are unchanged, and a field added to
- * the registry but not placed here still appears, in a "More details" step.
+ * Each section (a "step" in these names: the form was once walked one at a
+ * time) covers one question (what kind of place, where, what it offers, how it
+ * looks, what it costs), holds the registry's fields for that question in a
+ * few small groups, and carries one tip. The fields themselves still come from
+ * the registry: a step only names them, so validation and the request body are
+ * unchanged, and a field added to the registry but not placed here still
+ * appears, in a "More details" section.
  */
 
 export type ListingKey = "destinations" | "stays" | "foods";
@@ -74,19 +75,19 @@ export interface StepGroup {
 
 export interface ListingStep {
   readonly id: string;
-  /** The short name in the step list. */
+  /** The section's heading, and its name in the checklist. */
   readonly title: string;
-  /** The step's heading, asked as a question. */
+  /** The section asked as a question. Kept with its words; the one-page form shows the title instead. */
   readonly question: string;
   readonly description: string;
   readonly icon: LucideIcon;
   readonly tip: { readonly title: string; readonly body: string };
   readonly groups: readonly StepGroup[];
-  /** The last step: whether it goes live, and what is still missing. */
+  /** The last section: whether it goes live, and what is still missing. */
   readonly review?: boolean;
 }
 
-/** One line of the "ready to publish" checklist, and the fields it looks at. */
+/** One line of the checklist — beside the form and in its last section — and the fields it looks at. */
 export interface ReadinessCheck {
   readonly label: string;
   readonly fields: readonly string[];
@@ -96,7 +97,7 @@ export interface ReadinessCheck {
    * them and the check stands although the registry does not declare them.
    */
   readonly virtual?: boolean;
-  /** The step "Add" opens, for a virtual check no field leads to. */
+  /** The section the check belongs to, for a virtual check no field leads to. */
   readonly step?: string;
   /** Needs every field, rather than any one of them. */
   readonly all?: boolean;
