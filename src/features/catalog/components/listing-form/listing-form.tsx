@@ -26,6 +26,7 @@ import {
   Send,
   Trash2,
   TriangleAlert,
+  type LucideIcon,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -115,6 +116,8 @@ type CheckRow = ReadinessCheck & { readonly done: boolean; readonly at: number }
 interface SectionInfo {
   readonly id: string;
   readonly title: string;
+  /** The picture that stands for the section in the checklist. */
+  readonly icon: LucideIcon;
   /** `done` once every check of its own is met; a section with none stays `todo`. */
   readonly state: "done" | "error" | "todo";
   /** Its checks still to do, listed under it. */
@@ -329,6 +332,7 @@ export function ListingForm({
     return {
       id: each.id,
       title: each.title,
+      icon: each.icon,
       state:
         names.some((name) => errors[name]) || (each.review && errors.status)
           ? "error"
@@ -396,6 +400,39 @@ export function ListingForm({
       if (problem) problem.scrollIntoView({ behavior: "smooth", block: "center" });
       else section?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
+  }
+
+  /**
+   * Scrolls to what a check asks for — its first field still empty, the map for
+   * a pin, the rooms or the menu — and marks it for a moment so the eye finds
+   * it. A field that is not on the page falls back to its section.
+   */
+  function scrollToCheck(row: CheckRow) {
+    const name =
+      row.fields.includes("latitude") && row.fields.includes("longitude")
+        ? "pin"
+        : (row.fields.find((each) => !isFilled(values[each])) ?? row.fields[0]);
+    const section = document.getElementById(sectionDomId(steps[row.at].id));
+    const holder = section?.querySelector(`[data-field="${name}"]`);
+    /* A field's holder has no box of its own (`contents`): the field inside it is what is scrolled to. */
+    const target = holder && holder.getClientRects().length === 0 ? holder.firstElementChild : holder;
+    if (!target) {
+      scrollToSection(steps[row.at].id);
+      return;
+    }
+    const box = target.getBoundingClientRect();
+    /* Centred when it fits; when it is taller than the window, its top just under the top bar. */
+    const above = Math.max((window.innerHeight - box.height) / 2, 128);
+    window.scrollTo({ top: window.scrollY + box.top - above, behavior: "smooth" });
+    const tint = "color-mix(in srgb, var(--color-teal) 16%, transparent)";
+    target.animate(
+      [
+        { backgroundColor: tint, boxShadow: `0 0 0 8px ${tint}`, borderRadius: "6px" },
+        { backgroundColor: tint, boxShadow: `0 0 0 8px ${tint}`, borderRadius: "6px", offset: 0.6 },
+        { backgroundColor: "transparent", boxShadow: "0 0 0 8px transparent", borderRadius: "6px" },
+      ],
+      { duration: 1800, easing: "ease-out" },
+    );
   }
 
   async function save(submitted: FormValues) {
@@ -540,6 +577,7 @@ export function ListingForm({
             <SectionList
               current={current.id}
               done={checkRows.filter((row) => row.done).length}
+              onOpen={scrollToCheck}
               onSelect={scrollToSection}
               sections={sections}
               total={checkRows.length}
@@ -575,7 +613,7 @@ export function ListingForm({
 
                   {each.review ? (
                     <>
-                      <Readiness onOpen={(row) => scrollToSection(steps[row.at].id)} rows={checkRows} />
+                      <Readiness onOpen={scrollToCheck} rows={checkRows} />
                       {statusField ? (
                         <FormSection description={`Who can see this ${noun} once it is saved.`} title="Visibility">
                           {!canEdit ? (
@@ -628,20 +666,26 @@ export function ListingForm({
                     return (
                       <FormSection description={titled ? group.description : undefined} key={group.title ?? group.fields.join("-")} title={titled ? group.title : undefined}>
                         <fieldset className="grid gap-x-4 gap-y-5 md:grid-cols-2" disabled={!canEdit}>
-                          {pinned ? <LocationMap disabled={!canEdit} /> : null}
+                          {pinned ? (
+                            <div className="contents" data-field="pin">
+                              <LocationMap disabled={!canEdit} />
+                            </div>
+                          ) : null}
                           {group.fields.map((name) => {
                             const field = fieldsByName.get(name);
                             if (!field || !isShown(field, values, options)) return null;
                             return (
-                              <ListingField
-                                field={field}
-                                key={name}
-                                locked={editing && field.createOnly === true}
-                                narrowing={narrowingOptions(field)}
-                                options={field.ref ? (options[field.ref] ?? []) : []}
-                                pathPrefix={`/${definition.key}/`}
-                                wide={group.fields.length === 1}
-                              />
+                              /* Named, so a check can scroll to its field; `contents` leaves the grid to the field itself. */
+                              <div className="contents" data-field={name} key={name}>
+                                <ListingField
+                                  field={field}
+                                  locked={editing && field.createOnly === true}
+                                  narrowing={narrowingOptions(field)}
+                                  options={field.ref ? (options[field.ref] ?? []) : []}
+                                  pathPrefix={`/${definition.key}/`}
+                                  wide={group.fields.length === 1}
+                                />
+                              </div>
                             );
                           })}
                         </fieldset>
@@ -650,7 +694,7 @@ export function ListingForm({
                   })}
 
                   {hasRooms && each.id === "rooms" ? (
-                    <div className="px-5 py-5">
+                    <div className="px-5 py-5" data-field="rooms">
                       <RoomsManager
                         canEdit={canEdit}
                         currency={typeof values.currency === "string" && values.currency.trim() ? values.currency.trim().toUpperCase() : "USD"}
@@ -665,7 +709,7 @@ export function ListingForm({
                   ) : null}
 
                   {hasMenu && each.id === "menu" ? (
-                    <div className="px-5 py-5">
+                    <div className="px-5 py-5" data-field="dishes">
                       <MenuManager
                         averageMealPrice={values.averageMealPrice}
                         canEdit={canEdit}
@@ -851,10 +895,18 @@ interface SectionNavProps {
 }
 
 /**
- * The checklist beside the form: every section, ticked once its own checks are
- * met, and under it what is still missing. Either one scrolls to the section.
+ * The checklist beside the form: every section under its own picture, ticked
+ * at the end of its row once its own checks are met, and under it what is
+ * still missing. A section scrolls to itself, a missing line to its field.
  */
-function SectionList({ sections, current, onSelect, done, total }: SectionNavProps & { readonly done: number; readonly total: number }) {
+function SectionList({
+  sections,
+  current,
+  onSelect,
+  onOpen,
+  done,
+  total,
+}: SectionNavProps & { readonly onOpen: (row: CheckRow) => void; readonly done: number; readonly total: number }) {
   return (
     <nav aria-label="Form sections">
       <p className="mb-2 flex items-baseline justify-between px-2 text-xs">
@@ -867,6 +919,7 @@ function SectionList({ sections, current, onSelect, done, total }: SectionNavPro
       <ol className="flex flex-col gap-0.5">
         {sections.map((section) => {
           const active = section.id === current;
+          const Icon = section.icon;
           return (
             <li key={section.id}>
               <button
@@ -879,16 +932,15 @@ function SectionList({ sections, current, onSelect, done, total }: SectionNavPro
                 onClick={() => onSelect(section.id)}
                 type="button"
               >
-                {section.state === "error" ? (
-                  <CircleAlert aria-hidden className="size-5 shrink-0 p-px text-heritage" />
-                ) : section.state === "done" ? (
-                  <span className="grid size-5 shrink-0 place-items-center rounded-full bg-success-strong text-white">
-                    <Check aria-hidden className="size-3" strokeWidth={3} />
-                  </span>
-                ) : (
-                  <CircleDashed aria-hidden className="size-5 shrink-0 p-px text-muted" />
-                )}
+                <Icon aria-hidden className={cn("size-5 shrink-0 p-px", active ? "text-teal-deep" : "text-muted")} strokeWidth={1.75} />
                 <span className="min-w-0 flex-1 truncate">{section.title}</span>
+                {section.state === "error" ? (
+                  <CircleAlert aria-hidden className="size-4 shrink-0 text-heritage" />
+                ) : section.state === "done" ? (
+                  <span className="grid size-4 shrink-0 place-items-center rounded-full bg-success-strong text-white">
+                    <Check aria-hidden className="size-2.5" strokeWidth={3} />
+                  </span>
+                ) : null}
                 <span className="sr-only">
                   {section.state === "error" ? ", needs attention" : section.state === "done" ? ", complete" : ""}
                 </span>
@@ -900,7 +952,7 @@ function SectionList({ sections, current, onSelect, done, total }: SectionNavPro
                     <li key={row.label}>
                       <button
                         className="w-full rounded px-1.5 py-1 text-left text-xs leading-snug text-muted transition-colors hover:bg-sand-deep hover:text-ink"
-                        onClick={() => onSelect(section.id)}
+                        onClick={() => onOpen(row)}
                         type="button"
                       >
                         {row.label}
