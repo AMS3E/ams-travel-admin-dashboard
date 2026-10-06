@@ -65,10 +65,12 @@ interface ChoiceTilesProps {
   readonly invalid?: boolean;
   /** The icon of a card the tables above do not know: a historical period's, a site's. */
   readonly icon?: LucideIcon;
+  /** One line per card — the icon and the name, the description on hover — three to a row. */
+  readonly compact?: boolean;
 }
 
 /** A choice as cards: a region, a zone or a group, each with its icon and what it holds. */
-export function ChoiceTiles({ options, value, multiple = false, onChange, labelledBy, describedBy, invalid, icon }: ChoiceTilesProps) {
+export function ChoiceTiles({ options, value, multiple = false, onChange, labelledBy, describedBy, invalid, icon, compact = false }: ChoiceTilesProps) {
   const chosen = new Set(Array.isArray(value) ? value : value ? [value] : []);
   function toggle(option: string) {
     if (!multiple) return onChange(option);
@@ -79,7 +81,7 @@ export function ChoiceTiles({ options, value, multiple = false, onChange, labell
       aria-describedby={describedBy}
       aria-invalid={invalid || undefined}
       aria-labelledby={labelledBy}
-      className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3"
+      className={cn("grid gap-2", compact ? "grid-cols-2 xl:grid-cols-3" : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3")}
       role={multiple ? "group" : "radiogroup"}
     >
       {options.map((option) => {
@@ -92,12 +94,14 @@ export function ChoiceTiles({ options, value, multiple = false, onChange, labell
             aria-checked={multiple ? undefined : selected}
             aria-pressed={multiple ? selected : undefined}
             className={cn(
-              "flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
+              "flex items-center gap-3 rounded-lg border text-left transition-colors",
+              compact ? "px-2.5 py-2" : "px-3 py-2.5",
               selected ? "border-teal bg-teal-soft/50 ring-1 ring-teal" : "border-line-strong bg-paper hover:bg-sand",
             )}
             key={option.value}
             onClick={() => toggle(option.value)}
             role={multiple ? undefined : "radio"}
+            title={compact ? hint : undefined}
             type="button"
           >
             <Icon aria-hidden className={cn("size-5 shrink-0", selected ? "text-teal" : "text-muted")} strokeWidth={1.75} />
@@ -106,7 +110,7 @@ export function ChoiceTiles({ options, value, multiple = false, onChange, labell
                 {option.label}
                 {option.inactive ? <span className="text-muted"> (retired)</span> : null}
               </span>
-              {hint ? <span className="block text-xs leading-snug text-muted">{hint}</span> : null}
+              {hint && !compact ? <span className="block text-xs leading-snug text-muted">{hint}</span> : null}
             </span>
             <span
               aria-hidden

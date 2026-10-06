@@ -93,7 +93,7 @@ export function useGalleryRows(definition: ResourceDefinition, gallery: Gallery)
 
   return async function addRows(
     ownerId: string,
-    photos: readonly { readonly key: string; readonly url?: string | null }[],
+    photos: readonly { readonly key: string; readonly url?: string | null; readonly cover?: boolean }[],
     startOrder: number,
     onProgress: (progress: UploadProgress) => void,
   ): Promise<{ readonly added: number; readonly error?: string }> {
@@ -105,6 +105,8 @@ export function useGalleryRows(definition: ResourceDefinition, gallery: Gallery)
       values[gallery.file.name] = photo.key;
       if (gallery.file.urlField) values[gallery.file.urlField] = photo.url || mediaPath(photo.key);
       if (definition.orderField) values[definition.orderField] = String(startOrder + added);
+      /* The API makes a row marked as the cover the listing's cover, and unmarks the others. */
+      if (photo.cover) values.isCover = true;
       try {
         const result = await saveRecord({ resource: definition.key, values }).unwrap();
         if (!result.ok) return { added, error: result.message };

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { firstLine } from "@/lib/text";
 import { Badge } from "@/components/ui/badge";
 import type { DestinationResponse } from "@/features/catalog/api/contracts";
 import {
@@ -49,7 +50,7 @@ export function DestinationRows({
           }
           href={editable ? `/destinations/${destination.id}` : undefined}
           key={destination.id}
-          subtitle={destination.address ?? destination.shortDescription}
+          subtitle={destination.address ?? firstLine(destination.description) ?? undefined}
           title={destination.name}
           trailing={trailing?.(destination)}
           action={action?.(destination)}

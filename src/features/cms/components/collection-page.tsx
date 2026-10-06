@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { firstLine } from "@/lib/text";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, ImageIcon, Sparkles } from "lucide-react";
@@ -186,7 +187,7 @@ function FeaturedDestinations({
               <div className="min-w-0">
                 <h3 className="truncate text-sm font-medium text-ink">{item.name}</h3>
                 <p className="mt-0.5 truncate text-xs text-muted">
-                  {item.shortDescription || item.address || "Explore Cambodia"}
+                  {firstLine(item.description) || item.address || "Explore Cambodia"}
                 </p>
               </div>
               <Link

@@ -104,6 +104,11 @@ export interface ResourceField {
   readonly ref?: ReferenceKey;
   /** For `refs` — the order of the choices matters (corridor stops) and can be changed. */
   readonly ordered?: boolean;
+  /**
+   * For `refs` — one at a time: choosing another replaces it. Still sent as a
+   * list, as the API takes it. An attraction's tourism region.
+   */
+  readonly single?: boolean;
   /** For `image` — which folder in the bucket it uploads into. */
   readonly imageCategory?: ImageCategory;
   /**
@@ -129,8 +134,7 @@ export interface ResourceField {
    * offers everything. Plain strings, for the same reason as `pattern`.
    *
    * `from`: the list whose rows the followed field names when it is not a
-   * `refs` field itself. An attraction's theme is a tourism region's code, so
-   * its categories, tags and interests are that region's own.
+   * `refs` field itself — a field holding a tourism region's code.
    */
   readonly narrowedBy?: { readonly field: string; readonly links: string; readonly from?: ReferenceKey };
   /**
@@ -165,11 +169,12 @@ export interface ResourceField {
   /** The hint this kind of row is shown: a cafe's name example, a stall's address. */
   readonly hintFor?: { readonly field: string; readonly hints: Readonly<Record<string, string>> };
   /**
-   * For `refs` to a list with `groupBy`: only that group's options are
-   * offered, as a stay's interests are the Stays shelf's. One chosen from
-   * another group stays shown, so it can be taken away.
+   * For `refs` to a list with `groupBy`: only these groups' options are
+   * offered — a stay's interests are the Stays shelf's, an attraction's are
+   * the three that fit an attraction. One chosen from another group stays
+   * shown, so it can be taken away.
    */
-  readonly optionGroup?: string;
+  readonly optionGroup?: string | readonly string[];
   /**
    * For `refs`: when `field` changes and nothing is chosen here yet, the
    * option whose label is one of `labels[its value]` is chosen — a Resort
@@ -206,9 +211,9 @@ export interface ResourceField {
    */
   readonly inverse?: { readonly resource: ResourceKey; readonly field: string };
   /**
-   * Worked out by the form, never asked: an attraction's tourism regions are
-   * its theme's and those of the categories chosen for it. No step holds it,
-   * and it travels in the body as it is.
+   * Worked out by the form, never asked: an attraction's theme is the code of
+   * the tourism region chosen for it. No step holds it, and it travels in the
+   * body as it is.
    */
   readonly derived?: boolean;
   /**
@@ -242,6 +247,11 @@ export interface ResourceField {
   readonly chips?: boolean;
   /** For `text` — an icon name, chosen from the icons the website draws. */
   readonly iconPicker?: boolean;
+  /**
+   * For `textarea` — written with a toolbar (bold, lists, links…) and saved
+   * as Markdown, which the app draws. A plain text is Markdown already.
+   */
+  readonly rich?: boolean;
   readonly ties?: {
     readonly path: string;
     readonly by: string;
@@ -516,6 +526,17 @@ export function statusChoices(
 /* Reference options                                                          */
 /* -------------------------------------------------------------------------- */
 
+/** The groups a field offers (`optionGroup`), none when it offers every group. */
+export function optionGroupsOf(field: ResourceField): readonly string[] {
+  return field.optionGroup == null ? [] : typeof field.optionGroup === "string" ? [field.optionGroup] : field.optionGroup;
+}
+
+/** Whether an option is in one of the groups a field offers; any option when it offers every group. */
+export function inOptionGroup(field: ResourceField, option: ReferenceOption): boolean {
+  const groups = optionGroupsOf(field);
+  return groups.length === 0 || (option.group !== undefined && groups.includes(option.group));
+}
+
 /** One choice in a `ref`/`refs` control, and one label for a reference column. */
 export interface ReferenceOption {
   readonly value: string;
@@ -720,7 +741,7 @@ function fieldSchema(field: ResourceField): z.ZodType {
     case "refs":
     case "enums":
       return field.required
-        ? z.array(z.string()).min(1, `Choose at least one ${field.label.toLowerCase()}`)
+        ? z.array(z.string()).min(1, field.single ? `Choose a ${field.label.toLowerCase()}` : `Choose at least one ${field.label.toLowerCase()}`)
         : z.array(z.string());
 
     case "hours":

@@ -1,6 +1,7 @@
 "use client";
 
 import { Controller, useFormContext, useWatch } from "react-hook-form";
+import dynamic from "next/dynamic";
 import { Hourglass, Landmark, TriangleAlert, type LucideIcon } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormField } from "@/components/ui/form-field";
@@ -13,6 +14,7 @@ import { ChipToggles, ChoiceTiles, IconPicker } from "@/features/catalog/compone
 import { SpotList, type SpotContext } from "@/features/catalog/components/fields/spot-list";
 import { ImageField } from "@/features/catalog/components/fields/image-field";
 import { MultiSelectField } from "@/features/catalog/components/fields/multi-select-field";
+import { inOptionGroup, optionGroupsOf } from "@/features/catalog/resource";
 import type {
   FormValues,
   ReferenceOption,
@@ -92,6 +94,12 @@ function lockedText(
  * and a `decimal` is a number input — which is why adding a field to the
  * registry is enough to make it appear, correctly wired, on its form.
  */
+/* Written in the browser only, like the map: the editor has no server rendering. */
+const RichText = dynamic(() => import("@/features/catalog/components/fields/rich-text"), {
+  ssr: false,
+  loading: () => <div className="min-h-40 rounded-md border border-line-strong bg-paper" />,
+});
+
 export function FieldControl({ field, options, locked = false, siblings, places, editing = false, spot }: FieldControlProps) {
   const {
     control,
@@ -286,6 +294,24 @@ export function FieldControl({ field, options, locked = false, siblings, places,
       {(aria) => {
         switch (field.kind) {
           case "textarea":
+            if (field.rich) {
+              return (
+                <Controller
+                  control={control}
+                  name={field.name}
+                  render={({ field: bound }) => (
+                    <RichText
+                      describedBy={aria["aria-describedby"]}
+                      id={aria.id}
+                      invalid={Boolean(aria["aria-invalid"])}
+                      onBlur={bound.onBlur}
+                      onChange={bound.onChange}
+                      value={typeof bound.value === "string" ? bound.value : ""}
+                    />
+                  )}
+                />
+              );
+            }
             return <Textarea {...aria} {...register(field.name)} />;
 
           case "number":
@@ -354,12 +380,12 @@ export function FieldControl({ field, options, locked = false, siblings, places,
                   const chosen: string[] = Array.isArray(bound.value) ? bound.value : [];
                   /* `optionGroup`: one shelf's interests, and any chosen from elsewhere so they can be taken away. */
                   const shown = field.optionGroup
-                    ? choices.filter((option) => option.group === field.optionGroup || chosen.includes(option.value))
+                    ? choices.filter((option) => inOptionGroup(field, option) || chosen.includes(option.value))
                     : choices;
                   return (
                     <MultiSelectField
                       describedBy={aria["aria-describedby"]}
-                      emptyLabel={field.optionGroup ? `No ${field.optionGroup} interests yet. Add one under Taxonomy → Interests.` : `No ${field.label.toLowerCase()} exist yet.`}
+                      emptyLabel={field.optionGroup ? `No ${optionGroupsOf(field).join(", ")} interests yet. Add one under Taxonomy → Interests.` : `No ${field.label.toLowerCase()} exist yet.`}
                       invalid={aria["aria-invalid"]}
                       labelledBy={aria["aria-labelledby"]}
                       onChange={bound.onChange}

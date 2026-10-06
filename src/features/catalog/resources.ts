@@ -474,12 +474,6 @@ export const FOOD_FIELD_HINTS: Readonly<Record<string, Readonly<Record<string, s
     STREET_FOOD: "What people call it, for example: Auntie Srey's noodle cart.",
     MARKET: "For example: Phsar Chas Night Market.",
   },
-  shortDescription: {
-    RESTAURANT: "One or two sentences for every card, e.g. Grilled river fish and Khmer curries on the Mekong.",
-    CAFE: "One or two sentences for every card, e.g. Mondulkiri coffee roasted in-house, and baguettes warm by seven.",
-    STREET_FOOD: "One or two sentences for every card, e.g. Pork and rice grilled over coals, every morning from six.",
-    MARKET: "One or two sentences for every card, e.g. Night market with grilled seafood, sugar-cane juice and live music.",
-  },
   description: {
     RESTAURANT: "The story: who cooks, since when, and the first three dishes to order.",
     CAFE: "The story: where the beans come from, what comes out of the oven, what people order, and the best seat.",
@@ -581,10 +575,6 @@ export const FOOD_FIELD_LABELS: Readonly<Record<string, Readonly<Record<string, 
   name: {
     RESTAURANT: "Restaurant name", CAFE: "Cafe name", STREET_FOOD: "Stall name", MARKET: "Market name",
   },
-  shortDescription: {
-    RESTAURANT: "The restaurant in a sentence", CAFE: "The cafe in a sentence", STREET_FOOD: "The stall in a sentence",
-    MARKET: "The market in a sentence",
-  },
   description: {
     RESTAURANT: "The restaurant's story", CAFE: "The cafe's story", STREET_FOOD: "The stall's story",
     MARKET: "What the market is like",
@@ -669,12 +659,11 @@ const inKindWords = (labels: KindWords, hints: KindWords, kindField = "type") =>
 });
 
 /*
- * --- an attraction's theme, and what only it has -----------------------------
+ * --- an attraction's theme ---------------------------------------------------
  *
- * A theme is the tourism region an attraction is mainly about, by the region's
- * code. Its own lists are the API's `DestinationThemes` (a test compares them),
- * and every field reads in its words. Only the form narrows: the API keeps one
- * vocabulary, so a changed theme loses nothing.
+ * The code of the tourism region an attraction is listed on. Chosen as the
+ * region in Where it appears, never as a theme: the form writes the code for
+ * the API and the website's page (see `themeOf`).
  */
 export const DESTINATION_THEMES: readonly EnumOption[] = [
   { value: "ANCIENT-CAPITALS", label: "Ancient Capitals & Khmer Civilization" },
@@ -687,162 +676,6 @@ export const DESTINATION_THEMES: readonly EnumOption[] = [
   { value: "ECO-COMMUNITY", label: "Eco-Community Tourism" },
   { value: "LUXURY-TOURISM", label: "Luxury Tourism" },
 ];
-
-const DESTINATION_SPECIALTY_GROUPS: readonly (readonly [string, readonly (readonly [string, readonly (readonly [string, string])[]])[]])[] = [
-  /* Ancient Capitals & Khmer Civilization has none: its tags tell its history. */
-  ["NORTHEASTERN", [
-    ["Nature", [["crater-lake", "Volcanic crater lake"], ["primary-forest", "Primary forest"], ["waterfall-pools", "Waterfall with pools"], ["wildlife-watching", "Wildlife watching"], ["elephant-sanctuary", "Elephant sanctuary"]]],
-    ["People", [["indigenous-village", "Indigenous village"], ["community-guides", "Community guides"], ["village-handicrafts", "Village handicrafts"], ["coffee-plantation", "Coffee plantation"]]],
-    ["Getting in", [["dry-season-only", "Best in the dry season"], ["dirt-road", "Dirt road"], ["guide-required", "A guide is required"], ["river-crossing", "River crossing"]]],
-  ]],
-  ["MEKONG-TONLE-SAP", [
-    ["On the water", [["boat-trip", "Boat trip"], ["floating-houses", "Floating houses"], ["dolphin-watching", "Irrawaddy dolphins"], ["birds-from-the-boat", "Birds from the boat"], ["river-sunset", "Sunset on the river"]]],
-    ["Seasons", [["high-water", "Best at high water (Aug–Nov)"], ["low-water", "Best at low water (Mar–May)"], ["water-festival", "Water festival"]]],
-    ["The village", [["fishing-village", "Fishing village"], ["silk-weaving", "Silk weaving"], ["community-homestay", "Community homestay"], ["community-fee", "A small community fee"]]],
-  ]],
-  ["MOUNTAIN-WATERFALL", [
-    ["Trail", [["trail-easy", "Easy walk"], ["trail-moderate", "Moderate hike"], ["trail-hard", "Hard trek"], ["trail-signed", "Signed trail"], ["ranger-station", "Ranger station"]]],
-    ["Water", [["swimming-allowed", "Swimming allowed"], ["wet-season-best", "Fullest in the wet season"], ["natural-pool", "Natural pool"]]],
-    ["Views & nights", [["sunrise-point", "Sunrise viewpoint"], ["sea-of-clouds", "Sea of clouds"], ["camping-allowed", "Camping allowed"], ["cool-climate", "Cool climate"]]],
-  ]],
-  ["COASTAL-ISLAND", [
-    ["The beach", [["white-sand", "White sand"], ["calm-water", "Calm water"], ["safe-swimming", "Safe for swimming"], ["shade-trees", "Shade under trees"], ["sunset-beach", "Sunset beach"], ["quiet-beach", "Quiet, few people"]]],
-    ["In the water", [["snorkel-reef", "Reef to snorkel"], ["dive-sites", "Dive sites"], ["kayak-hire", "Kayaks for hire"], ["bioluminescence", "Glowing plankton at night"]]],
-    ["Getting to it", [["by-ferry", "By ferry"], ["by-speedboat", "By speedboat"], ["by-road", "By road"]]],
-    ["On the beach", [["beach-bars", "Beach bars"], ["sun-loungers", "Sun loungers"], ["lifeguard", "Lifeguard"]]],
-  ]],
-  ["URBAN-LIFESTYLE", [
-    ["What it is", [["city-landmark", "City landmark"], ["colonial-architecture", "Colonial architecture"], ["art-space", "Gallery or art space"], ["rooftop-view", "Rooftop view"], ["market-hall", "Market hall"]]],
-    ["When to go", [["best-by-day", "Best by day"], ["best-at-night", "Best at night"], ["weekends-only", "Weekends only"], ["open-late", "Open late"]]],
-    ["Getting around town", [["easy-on-foot", "Easy on foot"], ["short-tuk-tuk", "A short tuk-tuk ride"]]],
-  ]],
-  ["KHMER-CULINARY", [
-    ["Taste", [["signature-dish", "Known for one dish"], ["tasting-flight", "Tasting session"], ["palm-sugar-making", "Palm sugar making"], ["pepper-tasting", "Kampot pepper tasting"], ["rice-wine-tasting", "Rice wine tasting"]]],
-    ["Learn", [["cooking-class-onsite", "Cooking class"], ["farm-tour", "Farm tour"], ["market-tour", "Market tour with a cook"]]],
-    ["Planning", [["book-ahead", "Book ahead"], ["good-for-families", "Good for families"]]],
-  ]],
-  ["ECO-COMMUNITY", [
-    ["The community", [["community-run", "Run by the community"], ["homestay-nights", "Homestay nights"], ["local-guides", "Local guides"], ["craft-workshop", "Craft workshop"], ["farm-life", "Farm life"]]],
-    ["How you help", [["fees-to-village", "Fees go to the village"], ["conservation-project", "Conservation project"], ["volunteer-days", "Volunteer days"]]],
-    ["Reaching the village", [["by-bicycle", "By bicycle"], ["by-boat", "By boat"], ["remote-village", "Remote village"]]],
-  ]],
-  ["LUXURY-TOURISM", [
-    ["Private", [["private-guide-service", "Private guide"], ["private-transfer", "Private transfer"], ["helicopter-access", "Helicopter access"], ["yacht-charter", "Yacht charter"], ["vip-entry", "VIP entry"]]],
-    ["Comfort", [["spa-onsite", "Spa"], ["fine-dining-onsite", "Fine dining"], ["golf-course", "Golf course"], ["butler-service", "Butler service"]]],
-    ["Booking", [["by-appointment", "By appointment only"], ["exclusive-use", "Exclusive use"]]],
-  ]],
-];
-
-export const DESTINATION_SPECIALTIES: readonly EnumOption[] = DESTINATION_SPECIALTY_GROUPS.flatMap(([, groups]) =>
-  groups.flatMap(([group, entries]) => entries.map(([value, label]) => ({ value, label: `${group} · ${label}` }))),
-);
-
-export const DESTINATION_SPECIALTIES_BY_THEME: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
-  DESTINATION_SPECIALTY_GROUPS.map(([theme, groups]) => [theme, groups.flatMap(([, entries]) => entries.map(([value]) => value))]),
-);
-
-/** What the own-data field is called for each theme. */
-export const DESTINATION_SPECIALTY_LABEL: Readonly<Record<string, string>> = {
-    "NORTHEASTERN": "Its nature, people and trails",
-    "MEKONG-TONLE-SAP": "Life on the water",
-    "MOUNTAIN-WATERFALL": "Trails, water and views",
-    "COASTAL-ISLAND": "The beach, the sea and getting there",
-    "URBAN-LIFESTYLE": "What it is, and when to go",
-    "KHMER-CULINARY": "What you taste and learn",
-    "ECO-COMMUNITY": "The community, and how you help",
-    "LUXURY-TOURISM": "The private experience",
-  };
-
-/** What each field is called for each theme. */
-export const DESTINATION_FIELD_LABELS: KindWords = {
-  name: {
-    "ANCIENT-CAPITALS": "Site name",
-    "NORTHEASTERN": "Place name",
-    "MEKONG-TONLE-SAP": "Place name",
-    "MOUNTAIN-WATERFALL": "Place name",
-    "COASTAL-ISLAND": "Beach or island name",
-    "URBAN-LIFESTYLE": "Place name",
-    "KHMER-CULINARY": "Place name",
-    "ECO-COMMUNITY": "Community name",
-    "LUXURY-TOURISM": "Experience name",
-  },
-  shortDescription: {
-    "ANCIENT-CAPITALS": "The site in a sentence",
-    "NORTHEASTERN": "The place in a sentence",
-    "MEKONG-TONLE-SAP": "The place in a sentence",
-    "MOUNTAIN-WATERFALL": "The place in a sentence",
-    "COASTAL-ISLAND": "The beach or island in a sentence",
-    "URBAN-LIFESTYLE": "The place in a sentence",
-    "KHMER-CULINARY": "The place in a sentence",
-    "ECO-COMMUNITY": "The community in a sentence",
-    "LUXURY-TOURISM": "The experience in a sentence",
-  },
-  description: {
-    "ANCIENT-CAPITALS": "The site's story",
-    "NORTHEASTERN": "The place's story",
-    "MEKONG-TONLE-SAP": "The place's story",
-    "MOUNTAIN-WATERFALL": "The place's story",
-    "COASTAL-ISLAND": "A day there",
-    "URBAN-LIFESTYLE": "The place's story",
-    "KHMER-CULINARY": "The place's story",
-    "ECO-COMMUNITY": "The community's story",
-    "LUXURY-TOURISM": "The experience",
-  },
-};
-
-/** The examples under each field, per theme. */
-export const DESTINATION_FIELD_HINTS: KindWords = {
-  name: {
-    "ANCIENT-CAPITALS": "For example: Ta Prohm.",
-    "NORTHEASTERN": "For example: Yeak Laom Lake.",
-    "MEKONG-TONLE-SAP": "For example: Kampong Phluk Floating Village.",
-    "MOUNTAIN-WATERFALL": "For example: Popokvil Waterfall.",
-    "COASTAL-ISLAND": "For example: Long Set Beach, Koh Rong.",
-    "URBAN-LIFESTYLE": "For example: Phnom Penh Riverside.",
-    "KHMER-CULINARY": "For example: Kampot Pepper Farm.",
-    "ECO-COMMUNITY": "For example: Chi Phat Community.",
-    "LUXURY-TOURISM": "For example: Angkor by Helicopter.",
-  },
-  shortDescription: {
-    "ANCIENT-CAPITALS": "One or two sentences for every card, e.g. Jungle roots grip the towers of this 12th-century monastery.",
-    "NORTHEASTERN": "One or two sentences for every card, e.g. A round crater lake, warm enough to swim in, ringed by forest.",
-    "MEKONG-TONLE-SAP": "One or two sentences for every card, e.g. Stilt houses ten metres tall, and a boat ride through the flooded forest.",
-    "MOUNTAIN-WATERFALL": "One or two sentences for every card, e.g. A forest walk to a two-tier waterfall on the Bokor plateau.",
-    "COASTAL-ISLAND": "One or two sentences for every card, e.g. White sand, calm water and a reef off the point.",
-    "URBAN-LIFESTYLE": "One or two sentences for every card, e.g. The riverfront at dusk, when the whole city comes out to walk.",
-    "KHMER-CULINARY": "One or two sentences for every card, e.g. Walk the pepper vines, then taste red, black and white Kampot pepper.",
-    "ECO-COMMUNITY": "One or two sentences for every card, e.g. Former hunters now guide forest treks and river trips, and host guests at home.",
-    "LUXURY-TOURISM": "One or two sentences for every card, e.g. Angkor from the air at sunrise, then breakfast on a private terrace.",
-  },
-  description: {
-    "ANCIENT-CAPITALS": "Its story: who built it, when, and what to look for — the reliefs, the gates, the best-kept corner.",
-    "NORTHEASTERN": "What it is like: the landscape, the people who live near it, and the best time to come.",
-    "MEKONG-TONLE-SAP": "Life on the water: what the village does, the boat trip, and how the seasons change it.",
-    "MOUNTAIN-WATERFALL": "The walk and the reward: how long it takes, what the trail is like, and what is at the top or the falls.",
-    "COASTAL-ISLAND": "A day there: the sand, the water, what to do, and how to get across.",
-    "URBAN-LIFESTYLE": "What it is like at its best hour, what to see, and what is around it.",
-    "KHMER-CULINARY": "What a visit is: what is grown or made, what you taste, and what you learn.",
-    "ECO-COMMUNITY": "The community: who runs it, what guests do with them, and where the money goes.",
-    "LUXURY-TOURISM": "The experience: what happens, what is included, and what makes it exceptional.",
-  },
-  address: {
-    "ANCIENT-CAPITALS": "The site and its area, e.g. Angkor Archaeological Park, Siem Reap.",
-    "NORTHEASTERN": "The village or road, e.g. Yeak Laom, 5 km east of Banlung.",
-    "MEKONG-TONLE-SAP": "The village and pier, e.g. Kampong Phluk, from the Roluos pier.",
-    "MOUNTAIN-WATERFALL": "The park or road, e.g. Preah Monivong Bokor National Park, Kampot.",
-    "COASTAL-ISLAND": "The beach or island, e.g. Long Set Beach, Koh Rong.",
-    "URBAN-LIFESTYLE": "Street and area, e.g. Sisowath Quay, Phnom Penh.",
-    "KHMER-CULINARY": "The farm or street, e.g. Kampong Trach road, Kampot.",
-    "ECO-COMMUNITY": "The village and commune, e.g. Chi Phat, Thma Bang, Koh Kong.",
-    "LUXURY-TOURISM": "Where guests are met, e.g. Siem Reap helipad.",
-  },
-  tagIds: {
-    "ANCIENT-CAPITALS": "Tick each that is true of the site. Century, King, Architecture Style, Religion and Historical Period then ask which; UNESCO is for a World Heritage site.",
-  },
-};
-
-/** A destination field in its theme's words (see DESTINATION_FIELD_LABELS and DESTINATION_FIELD_HINTS). */
-const forTheme = inKindWords(DESTINATION_FIELD_LABELS, DESTINATION_FIELD_HINTS, "theme");
 
 /**
  * What only one kind of place has — the API's `FoodSpecialties`, in its order,
@@ -1343,14 +1176,6 @@ export const STAY_FIELD_LABELS: KindWords = {
     GUESTHOUSE: "Official star rating",
     RESORT: "Official star rating",
   },
-  shortDescription: {
-    HOTEL: "The hotel in a sentence",
-    GUESTHOUSE: "The guesthouse in a sentence",
-    HOSTEL: "The hostel in a sentence",
-    RESORT: "The resort in a sentence",
-    HOMESTAY: "The homestay in a sentence",
-    VILLA: "The villa in a sentence",
-  },
   description: {
     HOTEL: "The hotel's story",
     GUESTHOUSE: "The guesthouse and its hosts",
@@ -1492,14 +1317,6 @@ export const STAY_FIELD_HINTS: KindWords = {
     HOMESTAY: "For example: Mr Sok's Family Homestay, Chi Phat.",
     VILLA: "For example: Villa Lotus Kep.",
   },
-  shortDescription: {
-    HOTEL: "One or two sentences for every card, e.g. Five minutes from the Royal Palace, with a rooftop pool over the river.",
-    GUESTHOUSE: "One or two sentences for every card, e.g. Six garden rooms run by a Khmer family who book your tuk-tuk to the temples.",
-    HOSTEL: "One or two sentences for every card, e.g. Pod beds, a rooftop bar and a free walking tour every morning.",
-    RESORT: "One or two sentences for every card, e.g. Wooden bungalows on a white-sand beach, twenty minutes by boat from Sihanoukville.",
-    HOMESTAY: "One or two sentences for every card, e.g. Sleep in a stilt house, cook dinner with the family and cycle to the temple at dawn.",
-    VILLA: "One or two sentences for every card, e.g. Three bedrooms, a private pool and a chef who cooks Khmer dinner.",
-  },
   description: {
     HOTEL: "The story: what the hotel is known for, the best rooms, and what is close by.",
     GUESTHOUSE: "Who runs it, what the house is like, and what the hosts help with.",
@@ -1573,16 +1390,25 @@ const classification: readonly ResourceField[] = [
   { name: "interestIds", label: "Interests", kind: "refs", ref: "interests", span: 2, section: "Classification" },
 ];
 
+/** The interest shelves an attraction can stand on; Stays and Food are a stay's and a food listing's, Tourism Corridors a corridor's. */
+const ATTRACTION_INTEREST_GROUPS = ["Attraction Sites", "Water", "Activities & Experiences"] as const;
+
 /**
- * An attraction's categories, search filters and interests are its theme's
- * own: Ancient Capitals & Khmer Civilization offers its temples, museums and
- * ancient roads, UNESCO, and Historical Sites — not the whole catalogue. Each
- * tourism region keeps its three lists; the theme names the region by code.
+ * An attraction's categories and tags are its tourism region's own: Ancient
+ * Capitals & Khmer Civilization offers its temples, museums and ancient
+ * roads, and UNESCO — not the whole catalogue. Its interests are not the
+ * region's: they are what a traveller comes for, anywhere in the country, so
+ * a temple known for its sunset can stand under Viewpoint.
  */
-const themeClassification: readonly ResourceField[] = classification.map((field) => ({
-  ...field,
-  narrowedBy: { field: "theme", links: field.name, from: "tourism-regions" },
-}));
+const regionClassification: readonly ResourceField[] = classification.map((field) =>
+  field.name === "interestIds"
+    ? {
+        ...field,
+        optionGroup: ATTRACTION_INTEREST_GROUPS,
+        hint: "What a traveller comes for. It is listed under each one on the Interests tab and on its province's page, whatever its region.",
+      }
+    : { ...field, narrowedBy: { field: "tourismRegionIds", links: field.name } },
+);
 
 /**
  * Ancient Capitals & Khmer Civilization's tags Century, King, Architecture
@@ -1778,9 +1604,14 @@ const STAY_INTERESTS = shelfInterests("Stays", "stay", {
 });
 
 
-const listingName: ResourceField = { ...name(), maxLength: 255 };
+const listingName: ResourceField = { ...name(), maxLength: 255, span: 2 };
 const listingSlug: ResourceField = { ...slug, maxLength: 150 };
-const listingShortDescription: ResourceField = { ...shortDescription, maxLength: 500 };
+/*
+ * No longer asked on any listing: the app shows the slogan and the first lines
+ * of About instead. Kept as it is on a record, since the API writes the column
+ * from every save (see `derived`).
+ */
+const listingShortDescription: ResourceField = { ...shortDescription, maxLength: 500, derived: true };
 const contact = (websiteLength: number): readonly ResourceField[] => [
   { name: "phone", label: "Phone", kind: "text", section: "Contact", maxLength: 50 },
   { name: "contactEmail", label: "E-mail", kind: "text", section: "Contact", maxLength: 255 },
@@ -1870,57 +1701,60 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { name: "isFeatured", label: "Featured", kind: "boolean", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
-    /* Every field in its theme's words. */
-    fields: ([
-      {
-        name: "theme",
-        label: "Theme",
-        kind: "enum",
-        options: DESTINATION_THEMES,
-        required: true,
-        hint: "The tourism region it is mainly about. The rest of the form is written for it, and it is listed on that region's page.",
-      },
+    /*
+     * The same fields for every attraction. Its tourism region is chosen in
+     * Where it appears, and its categories and tags are that region's own.
+     */
+    fields: [
       listingName,
       listingSlug,
       listingShortDescription,
-      description,
-      cover("destination"),
       {
-        name: "specialties",
-        label: "What only this theme has",
-        labelFor: { field: "theme", labels: DESTINATION_SPECIALTY_LABEL },
-        kind: "enums",
-        options: DESTINATION_SPECIALTIES,
-        /* Written group by group, each group a sequence: kept as written, not A to Z. */
-        scale: true,
-        optionsFor: { field: "theme", keep: DESTINATION_SPECIALTIES_BY_THEME },
-        /* Asked of the themes that have a list of their own; Ancient Capitals' history is its tags. */
-        visibleWhen: { field: "theme", values: Object.keys(DESTINATION_SPECIALTIES_BY_THEME) },
-        span: 2,
-        section: "Visiting",
-        hint: "Only this theme's places are asked these. Travellers read them on its page.",
+        ...description,
+        label: "About",
+        rich: true,
+        hint: "The full story. The app shows its first lines on the page and all of it under Read more. Headings, bold, lists and links come through.",
       },
+      {
+        name: "slogan",
+        label: "Slogan",
+        kind: "text",
+        maxLength: 300,
+        span: 2,
+        hint: "One line someone said about it. The app quotes it at the top of the page, e.g. “Angkor Wat, the crown jewel of Cambodia, emanates history and awe in equal measure.”",
+      },
+      {
+        name: "sloganBy",
+        label: "Said by",
+        kind: "text",
+        maxLength: 120,
+        hint: "Optional. Who said it, e.g. Gail Gutradt, shown under the quote. Leave it empty for a slogan of its own.",
+      },
+      /* Chosen among its gallery's photos, never asked on its own: the gallery writes it. */
+      { ...cover("destination"), derived: true },
       ref("provinceId", "Province", "provinces", {
         required: true,
         section: "Placement",
         hint: "The region follows from the province.",
       }),
-      /*
-       * Not asked: its theme's region, and the region of each category chosen
-       * (see derivedRegions). Where it appears offers only the theme's own lists.
-       */
       {
         name: "tourismRegionIds",
-        label: "Tourism regions",
+        label: "Tourism region",
         kind: "refs",
         ref: "tourism-regions",
-        derived: true,
+        required: true,
+        single: true,
+        tiles: true,
         span: 2,
         section: "Classification",
+        hint: "The region the place is best known for. Its categories and tags follow from it, and it is listed on that region's page.",
       },
-      ...themeClassification,
+      /* The region's code, for the API and the website's page: worked out from the choice above, never asked. */
+      { name: "theme", label: "Theme", kind: "enum", options: DESTINATION_THEMES, derived: true },
+      ...regionClassification,
       ...Object.values(ancientSiteFilters),
-      ...location,
+      /* Its address sits beside its province, under the map. */
+      ...location.map((field): ResourceField => (field.name === "address" ? { ...field, span: 1 } : field)),
       {
         name: "isFeatured",
         label: "Featured",
@@ -1928,7 +1762,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         section: "Standing",
         hint: "On: always shown in the homepage's Recommended and Popular lists, first. Off: it gets there only by being browsed.",
       },
-    ] satisfies readonly ResourceField[]).map(forTheme),
+    ] satisfies readonly ResourceField[],
   },
 
   "destination-media": {
@@ -1990,7 +1824,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         visibleWhen: { field: "type", values: STAR_RATED },
       },
       listingShortDescription,
-      description,
+      { ...description, rich: true },
       STAY_INTERESTS,
       ref("ownerUserId", "Owner account", "users", {
         section: "Placement",
@@ -2021,7 +1855,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         section: "Facilities",
         hint: "Everything a guest can use. Guests filter stays by these, so tick only what is really there.",
       },
-      cover("stay"),
+      { ...cover("stay"), derived: true },
       ...priceFor("The lowest a guest pays for one night. Once the rooms have prices, this follows the cheapest room by itself."),
       {
         name: "checkInFrom",
@@ -2099,13 +1933,13 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         hint: "What a traveller would call it. The rest of the form is written for it: a cafe is asked about its coffee and its bakes, a stall about how it cooks.",
       },
       listingShortDescription,
-      description,
+      { ...description, rich: true },
       ref("ownerUserId", "Owner account", "users", {
         section: "Placement",
         hint: "The account this listing is listed for — the partner, or the contributor who looks after it. Leave it empty when your own team does; whoever writes their own is filled in for them.",
       }),
       ...pinnedLocation,
-      cover("food"),
+      { ...cover("food"), derived: true },
       {
         name: "specialties",
         label: "What only this kind of place has",
@@ -2331,7 +2165,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     labelPlural: "Tourism Regions",
     group: "Catalogue",
     description:
-      "The regions travellers discover Cambodia by. Each is an attraction theme, with its own categories, search filters and interests.",
+      "The regions travellers discover Cambodia by. Each has its own categories and search filters.",
     titleField: "name",
     searchFields: ["name", "code"],
     /* In the curators' order, 1 to 9: Discover, the theme tiles and every region list follow it. */
@@ -2344,7 +2178,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { name: "code", label: "Code", secondary: true },
       { name: "categoryIds", label: "Categories", kind: "refs", ref: "categories" },
       { name: "tagIds", label: "Search filters", kind: "refs", ref: "tags", secondary: true },
-      { name: "interestIds", label: "Interests", kind: "refs", ref: "interests", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
     /*
@@ -2366,7 +2199,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         span: 2,
         hint: "Discover, the attraction form's themes and every list of regions show them in this order. The others move to make room.",
       },
-      { ...description, hint: "The lines under its name on its Discover page." },
+      { ...description, label: "Overview", rich: true, hint: "The lines under its name on its Discover page, under Overview." },
       {
         name: "historyIntro",
         label: "History intro",
@@ -2394,15 +2227,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         section: "Its own lists",
         ordered: true,
         hint: "The tags its page offers as filters, in the order it shows them, and the only ones its attractions are offered. Ancient Capitals' Century, King, Architecture Style, Religion and Historical Period each ask which on the form.",
-      },
-      {
-        name: "interestIds",
-        label: "Interests",
-        kind: "refs",
-        ref: "interests",
-        span: 2,
-        section: "Its own lists",
-        hint: "The interests its attractions are offered on their form.",
       },
     ],
   },
@@ -2514,11 +2338,10 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { name: "name", label: "Name" },
       { name: "groupName", label: "Group", secondary: true },
       { name: "sortOrder", label: "#", kind: "number", secondary: true },
-      { name: "tourismRegionIds", label: "Tourism regions", kind: "refs", ref: "tourism-regions", secondary: true },
       { name: "createdBy", label: "Created by", kind: "ref", ref: "users", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
-    /* Compact, with a live preview beside it: name, group, its place in the group, icon, regions. */
+    /* Compact, with a live preview beside it: name, group, its place in the group, icon. */
     preview: "interest",
     fields: [
       { ...name(), span: 2, hint: "For example: Waterfalls." },
@@ -2545,13 +2368,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         label: "Icon",
         kind: "text",
         iconPicker: true,
-      },
-      {
-        ...regionsOf("interest", "interestIds"),
-        chips: true,
-        hint: "Attractions in these regions can pick it. Stays and food can pick it anywhere.",
-        /* A corridor interest is chosen on the corridors themselves, which no region offers. */
-        visibleWhen: { field: "groupName", values: INTEREST_GROUPS.map((option) => option.value).filter((group) => group !== CORRIDOR_INTEREST_GROUP) },
       },
       { ...description, hint: "Optional. The line under its name on its page." },
     ],

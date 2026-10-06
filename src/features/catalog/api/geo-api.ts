@@ -1,4 +1,4 @@
-import type { LinkedPoint, PlaceResult } from "@/features/catalog/geo";
+import type { GeoPoint, LinkedPoint, PlaceDetails, PlaceResult } from "@/features/catalog/geo";
 import { baseApi } from "@/store/api/base-api";
 
 /*
@@ -17,7 +17,12 @@ export const geoApi = baseApi.injectEndpoints({
       query: (url) => ({ url: "geo/link", params: { url } }),
       keepUnusedDataFor: 600,
     }),
+    /* A pin's province and address, as OpenStreetMap has them (`app/api/geo/reverse`). */
+    describePlace: builder.query<PlaceDetails, GeoPoint>({
+      query: (point) => ({ url: "geo/reverse", params: { lat: point.latitude, lon: point.longitude } }),
+      keepUnusedDataFor: 600,
+    }),
   }),
 });
 
-export const { useLazySearchPlacesQuery, useLazyResolveMapLinkQuery } = geoApi;
+export const { useLazySearchPlacesQuery, useLazyResolveMapLinkQuery, useLazyDescribePlaceQuery } = geoApi;

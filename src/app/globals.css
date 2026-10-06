@@ -566,3 +566,12 @@ html .leaflet-container a.map-link {
   background: var(--atmosphere);
   background-attachment: fixed;
 }
+
+/* The rich text box (Tiptap): its placeholder, drawn by the Placeholder extension on the empty first line. */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--color-muted);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}

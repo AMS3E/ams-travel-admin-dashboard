@@ -1,6 +1,5 @@
 import {
   CalendarClock,
-  Compass,
   FileText,
   Hotel,
   ImagePlus,
@@ -21,7 +20,6 @@ import type {
   ResourceKey,
 } from "@/features/catalog/resource";
 import { STAY_CHECK_WORDS, STAY_WORDS } from "@/features/catalog/components/listing-form/stay-words";
-import { DESTINATION_CHECK_WORDS, DESTINATION_WORDS } from "@/features/catalog/components/listing-form/destination-words";
 import { FOOD_CHECK_WORDS, FOOD_WORDS } from "@/features/catalog/components/listing-form/food-words";
 
 /** Each kind of stay or place to eat reads its own words on every step (see STAY_WORDS, FOOD_WORDS). */
@@ -31,12 +29,10 @@ type KindStepWords = Partial<Pick<ListingStep, "title" | "question" | "descripti
   readonly omit?: boolean;
 };
 const KIND_WORDS: Partial<Record<ListingKey, Readonly<Record<string, Readonly<Record<string, KindStepWords>>>>>> = {
-  destinations: DESTINATION_WORDS,
   stays: STAY_WORDS,
   foods: FOOD_WORDS,
 };
 const KIND_CHECK_WORDS: Partial<Record<ListingKey, Readonly<Record<string, Readonly<Record<string, string>>>>>> = {
-  destinations: DESTINATION_CHECK_WORDS,
   stays: STAY_CHECK_WORDS,
   foods: FOOD_CHECK_WORDS,
 };
@@ -110,15 +106,15 @@ const about = (noun: string, withSlug: boolean): ListingStep => ({
   id: "about",
   title: "About",
   question: `What's this ${noun} called, and what's it like?`,
-  description: "A name, a line that sells it, and the full story.",
+  description: "A name, and the full story.",
   icon: FileText,
   tip: {
     title: "Write for a first-time visitor",
-    body: "Lead with what makes it worth the trip. The short description is what cards across the website show, so keep it to one or two sentences.",
+    body: "Lead with what makes it worth the trip. The app shows the first lines on the page; the rest opens under Read more.",
   },
   groups: [
     { fields: withSlug ? ["name", "slug"] : ["name"] },
-    { title: "Description", fields: ["shortDescription", "description"] },
+    { fields: ["description"] },
   ],
 });
 
@@ -126,20 +122,21 @@ const photos = (noun: string): ListingStep => ({
   id: "photos",
   title: "Photos",
   question: "Show it at its best",
-  description: `The cover is the first thing travellers see of this ${noun} — on cards, in search, and across the top of its page.`,
+  description: `Every photo travellers can page through. The cover is the first thing they see of this ${noun} — on cards, in search, and across the top of its page: choose it among them.`,
   icon: ImagePlus,
   tip: {
     title: "What makes a great cover",
     body: "A bright landscape photo of the place itself, with no text, logos or collages. 1600 × 900 pixels or larger stays sharp everywhere.",
   },
-  groups: [{ fields: ["coverKey"] }],
+  /* No field of its own: the gallery is the section, and the cover is one of its photos. */
+  groups: [],
 });
 
 const review = (standing: readonly string[]): ListingStep => ({
   id: "review",
-  title: "Review & publish",
+  title: "Review",
   question: "Ready to go live?",
-  description: "Check what is still missing, then choose whether travellers can see it yet.",
+  description: "Check what is still missing. Publishing and saving are the buttons at the top.",
   icon: Rocket,
   tip: {
     title: "Nothing here is final",
@@ -178,67 +175,51 @@ const whereAndContact = (noun: string, example: string): ListingStep => ({
 const STEPS: Readonly<Record<ListingKey, readonly ListingStep[]>> = {
   destinations: [
     {
-      id: "theme",
-      title: "Theme",
-      question: "What is it mainly about?",
-      description: "Choose its tourism region. The rest of the form is written for it: a temple is asked about its history, a beach about its sea.",
-      icon: Compass,
-      tip: {
-        title: "One theme, its own lists",
-        body: "Choose the region the place is best known for. From here on it is offered only that region's categories, search filters and interests, and the form is written for it.",
-      },
-      groups: [{ fields: ["theme"] }],
+      ...about("place", true),
+      /* The name, then the slogan — the quote at the top of the page — and then the full story. */
+      groups: [
+        about("place", true).groups[0]!,
+        { title: "Slogan", description: "A quote the app shows at the top of the page, with who said it if anyone did.", fields: ["slogan", "sloganBy"] },
+        ...about("place", true).groups.slice(1),
+      ],
     },
-    about("place", true),
     {
       id: "location",
       title: "Location",
       question: "Where is it?",
-      description: "The province places it in the right region of Cambodia; the coordinates drop the pin on the map.",
+      description: "Paste the place's Google Maps link, or find it on the map. Its province and address are filled in from the pin, for you to check.",
       icon: MapPin,
       tip: {
         title: "Putting the pin on the place",
-        body: "At the place with a phone? Press Use my location. Otherwise search for it, click the map, or paste a Google Maps link — then switch to Satellite and drag the pin onto the spot.",
+        body: "Copy the place's link in Google Maps (Share, then Copy link) and paste it here, or search it by name. Then switch to Satellite and drag the pin onto the entrance. At the place with a phone? Use the crosshair on the map. A pair of coordinates typed into the box works too.",
       },
       groups: [
+        /* The map first: the pin knows the province and the address, so they come after it, already filled. */
+        { fields: ["latitude", "longitude"] },
         { fields: ["provinceId", "address"] },
-        { title: "Map pin", fields: ["latitude", "longitude"] },
       ],
     },
     {
       id: "classification",
       title: "Where it appears",
       question: "What kind of place is it?",
-      description: "Its theme's own categories, search filters and interests. They decide where it shows up on the website.",
+      description: "Its tourism region with that region's own categories and tags, then the interests travellers find it under.",
       icon: Tags,
       tip: {
-        title: "Choose what a traveller would look for",
-        body: "Two or three accurate categories, the search filters that are true of it, and the interests a traveller would find it under.",
+        title: "One region, its own lists",
+        body: "Choose the region the place is best known for. Only that region's categories and tags are offered, and the place is listed on its Discover page. Interests are separate: tick what a traveller comes for, whatever the region.",
       },
       groups: [
+        { title: "Tourism region", fields: ["tourismRegionIds"] },
         { title: "Categories", fields: ["categoryIds"] },
         /*
-         * The theme's own tags. Ancient Capitals & Khmer Civilization's Century,
+         * The region's own tags. Ancient Capitals & Khmer Civilization's Century,
          * King, Architecture Style, Religion and Historical Period then ask which.
          */
-        {
-          title: "Search filters",
-          fields: ["tagIds", "centuries", "monarchIds", "architectureStyleIds", "religionIds", "historicalPeriodIds"],
-        },
-        { title: "Interests", description: "The Explore shelves and province pages it is listed under.", fields: ["interestIds"] },
+        /* No heading of its own: the tags, and under them what a ticked tag asks. */
+        { fields: ["tagIds", "centuries", "monarchIds", "architectureStyleIds", "religionIds", "historicalPeriodIds"] },
+        { title: "Interests", description: "The Interests tab and province pages it is listed under.", fields: ["interestIds"] },
       ],
-    },
-    {
-      id: "visiting",
-      title: "Visiting",
-      question: "What should a visitor know?",
-      description: "What only this kind of place has — its theme decides what is asked.",
-      icon: Sparkles,
-      tip: {
-        title: "Only what is true today",
-        body: "Travellers plan their day on these. Tick only what they will really find.",
-      },
-      groups: [{ fields: ["specialties"] }],
     },
     photos("place"),
     review(["isFeatured"]),
@@ -339,16 +320,16 @@ const STEPS: Readonly<Record<ListingKey, readonly ListingStep[]>> = {
       id: "about",
       title: "About",
       question: "What is the place, and what is it like?",
-      description: "What it is called, what kind of place a traveller would call it, and the line that makes them want to eat there.",
+      description: "What it is called, what kind of place a traveller would call it, and its story.",
       icon: FileText,
       tip: {
         title: "Lead with what people come for",
-        body: "“Charcoal-grilled river fish, open late” tells a traveller more than “good food and friendly service”. The short description is what cards across the website show, so keep it to one or two sentences.",
+        body: "“Charcoal-grilled river fish, open late” tells a traveller more than “good food and friendly service”. The app shows the first lines on the page; the rest opens under Read more.",
       },
       groups: [
         /* The kind first: every label, hint and heading after it is written for what is picked here. */
         { fields: ["type", "name"] },
-        { title: "Description", fields: ["shortDescription", "description"] },
+        { fields: ["description"] },
       ],
     },
     {
@@ -412,15 +393,13 @@ const STEPS: Readonly<Record<ListingKey, readonly ListingStep[]>> = {
 
 const CHECKS: Readonly<Record<ListingKey, readonly ReadinessCheck[]>> = {
   destinations: [
-    { label: "Theme", fields: ["theme"], required: true },
+    { label: "Tourism region", fields: ["tourismRegionIds"], required: true },
     { label: "Name", fields: ["name"], required: true },
     { label: "Province", fields: ["provinceId"], required: true },
-    { label: "Short description", fields: ["shortDescription"] },
-    { label: "Cover photo", fields: ["coverKey"] },
+    { label: "Cover photo", fields: ["coverKey"], step: "photos" },
     { label: "Map pin", fields: ["latitude", "longitude"], all: true },
     { label: "At least one category", fields: ["categoryIds"] },
     { label: "At least one interest", fields: ["interestIds"] },
-    { label: "What makes it this kind of place", fields: ["specialties"], id: "own" },
   ],
   stays: [
     { label: "Property type", fields: ["type"], required: true },
@@ -434,8 +413,7 @@ const CHECKS: Readonly<Record<ListingKey, readonly ReadinessCheck[]>> = {
     { label: "Ways to pay", fields: ["paymentMethods"] },
     { label: "Languages spoken", fields: ["languagesSpoken"] },
     { label: "Telegram, WhatsApp or Facebook", fields: ["telegram", "whatsapp", "facebookUrl"] },
-    { label: "Short description", fields: ["shortDescription"] },
-    { label: "Cover photo", fields: ["coverKey"] },
+    { label: "Cover photo", fields: ["coverKey"], step: "photos" },
     { label: "Facilities", fields: ["amenities"] },
     { label: "Price from", fields: ["priceFrom"], id: "price" },
   ],
@@ -445,8 +423,7 @@ const CHECKS: Readonly<Record<ListingKey, readonly ReadinessCheck[]>> = {
     { label: "Map pin", fields: ["latitude", "longitude"], all: true, required: true },
     { label: "At least one dish", fields: ["dishes"], virtual: true, step: "menu", id: "menu" },
     { label: "What makes it this kind of place", fields: ["specialties"], id: "own" },
-    { label: "Short description", fields: ["shortDescription"] },
-    { label: "Cover photo", fields: ["coverKey"] },
+    { label: "Cover photo", fields: ["coverKey"], step: "photos" },
     { label: "Opening hours", fields: ["openingHours"] },
     { label: "Telegram, WhatsApp or Facebook", fields: ["telegram", "whatsapp", "facebookUrl"] },
     { label: "What a meal costs", fields: ["priceRange", "averageMealPrice"], id: "price" },
@@ -467,7 +444,7 @@ export function listingSteps(definition: ResourceDefinition, kind?: string): rea
 
   /*
    * A field only some kinds are asked, and this kind is not one of them: a
-   * theme added since, with no Visiting questions of its own, is not asked any.
+   * food listing of a kind with no Known for list of its own is not asked one.
    */
   const kindField = definition.key === "destinations" ? "theme" : "type";
   const notAsked = (name: string) => {
@@ -475,8 +452,8 @@ export function listingSteps(definition: ResourceDefinition, kind?: string): rea
     return Boolean(kind && shown && !shown.bySlug && shown.field === kindField && !shown.values.includes(kind));
   };
   /*
-   * A step this kind does not have — an ancient site's History & visiting, or
-   * one whose every question is for other kinds — is left out, and its fields with it.
+   * A step this kind does not have — one whose every question is for other
+   * kinds — is left out, and its fields with it.
    */
   const omitted = (step: ListingStep) => {
     const names = step.groups.flatMap((group) => group.fields);

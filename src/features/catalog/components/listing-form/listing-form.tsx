@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   FormProvider,
   useForm,
-  useFormContext,
   useWatch,
   type FieldErrors,
   type Resolver,
@@ -24,6 +23,8 @@ import {
   Rocket,
   Save,
   Send,
+  Eye,
+  EyeOff,
   Trash2,
   TriangleAlert,
   type LucideIcon,
@@ -33,20 +34,21 @@ import {
   useDeleteRecordMutation,
   useGetReferenceOptionsQuery,
   useSaveRecordMutation,
+  useGetCatalogQuery,
 } from "@/features/catalog/api/catalog-api";
 import type { CatalogRecord } from "@/features/catalog/api/contracts";
 import {
-  GalleryDropContext,
   GalleryManager,
-  type GalleryHandle,
   type PendingPhoto,
 } from "@/features/catalog/components/listing-form/gallery-manager";
-import { ListingField } from "@/features/catalog/components/listing-form/listing-field";
+import { HelpIcon, ListingField } from "@/features/catalog/components/listing-form/listing-field";
 import { RoomsManager, type RoomDraft } from "@/features/catalog/components/listing-form/rooms-manager";
 import { MenuManager, type DishDraft } from "@/features/catalog/components/listing-form/menu-manager";
 import type { MenuSummary } from "@/features/catalog/menu";
 import type { RoomSummary } from "@/features/catalog/rooms";
-import { ListingPreview } from "@/features/catalog/components/listing-form/listing-preview";
+import { Badge } from "@/components/ui/badge";
+import { HelpStyleContext } from "@/features/catalog/components/listing-form/help-style";
+import { PhonePreview } from "@/features/catalog/components/listing-form/phone-preview";
 import { LocationMap } from "@/features/catalog/components/listing-form/location-map";
 import {
   LISTING_GALLERIES,
@@ -59,14 +61,13 @@ import {
   type ReadinessCheck,
 } from "@/features/catalog/components/listing-form/steps";
 import { listPageOf } from "@/features/catalog/all-destinations";
-import { derivedRegions } from "@/features/catalog/narrowing";
+import { mainRegion, themeOf } from "@/features/catalog/narrowing";
 import { getResource } from "@/features/catalog/resources";
 import { progressLabel, useGalleryRows, type UploadProgress } from "@/features/catalog/use-image-upload";
 import {
   galleryOf,
   isShown,
   resourceSchema,
-  statusChoices,
   statusOption,
   statusValueOf,
   toFormValues,
@@ -74,7 +75,6 @@ import {
   type ReferenceOptions,
   type ResourceDefinition,
   type ResourceField,
-  type StatusOption,
 } from "@/features/catalog/resource";
 import { useGetPublishRequestsQuery, useSubmitPublishRequestMutation } from "@/features/publishing/api/publishing-api";
 import { lastActivityOf, listingTypeOf, type PublishRequestResponse } from "@/features/publishing/api/contracts";
@@ -126,8 +126,66 @@ interface SectionInfo {
   readonly locked: boolean;
 }
 
+/** One of the bar's buttons: what it says, its picture, and what it does. */
+interface BarAction {
+  readonly label: string;
+  readonly icon: LucideIcon;
+  readonly onPress: () => void;
+}
+
 /** Where a section sits in the page, for the checklist to scroll to. */
 const sectionDomId = (id: string) => `listing-section-${id}`;
+
+/*
+ * Whether the phone preview is put away, remembered in this browser. Read as
+ * an external store, so the server renders it shown and the browser's answer
+ * replaces that without a second render pass.
+ */
+const PREVIEW_HIDDEN_KEY = "ams.listing-preview.hidden";
+const previewListeners = new Set<() => void>();
+function subscribePreview(listener: () => void) {
+  previewListeners.add(listener);
+  window.addEventListener("storage", listener);
+  return () => {
+    previewListeners.delete(listener);
+    window.removeEventListener("storage", listener);
+  };
+}
+function readPreviewHidden(): boolean {
+  try {
+    return localStorage.getItem(PREVIEW_HIDDEN_KEY) === "1";
+  } catch {
+    /* Private windows and blocked storage: the preview simply shows. */
+    return false;
+  }
+}
+function writePreviewHidden(hidden: boolean) {
+  try {
+    localStorage.setItem(PREVIEW_HIDDEN_KEY, hidden ? "1" : "0");
+  } catch {
+    /* Not remembered, then. */
+  }
+  previewListeners.forEach((listener) => listener());
+}
+
+/**
+ * What the form opens with. An attraction listed on several regions — from
+ * before each had one of its own — opens on its theme's, so one choice shows.
+ */
+function openingValues(
+  definition: ResourceDefinition,
+  record: ListingFormProps["record"],
+  presets: Readonly<FormValues> | undefined,
+  options: ReferenceOptions,
+): FormValues {
+  const values: FormValues = { ...toFormValues(definition, record), ...(record ? {} : presets) };
+  const regions = definition.fields.find((field) => field.name === "tourismRegionIds");
+  const chosen = values.tourismRegionIds;
+  if (regions?.single && Array.isArray(chosen)) {
+    values.tourismRegionIds = mainRegion(options["tourism-regions"] ?? [], typeof values.theme === "string" ? values.theme : undefined, chosen);
+  }
+  return values;
+}
 
 /**
  * A destination, a stay or a food listing, written on one page.
@@ -141,9 +199,10 @@ const sectionDomId = (id: string) => `listing-section-${id}`;
  * gets saved does not change.
  *
  * Creating and editing are the same page, saved by the button at its foot. A
- * new listing shows its first section alone until its kind is chosen — a
- * destination's theme, a food listing's type — because every section after it
- * is written for that kind. A save that finds a problem scrolls to it.
+ * new stay or food listing shows its first section alone until its kind is
+ * chosen, because every section after it is written for that kind. An
+ * attraction's form is the same for every attraction: its tourism region is
+ * chosen in Where it appears. A save that finds a problem scrolls to it.
  */
 export function ListingForm({
   definition,
@@ -186,7 +245,6 @@ export function ListingForm({
   const [banner, setBanner] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, startDelete] = useTransition();
-  const galleryHandle = useRef<GalleryHandle>(null);
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [saveProgress, setSaveProgress] = useState<UploadProgress | null>(null);
   const [savedHref, setSavedHref] = useState<string | null>(null);
@@ -201,31 +259,36 @@ export function ListingForm({
   const galleryDefinition = getResource(LISTING_GALLERIES[definition.key as ListingKey]);
   const addGalleryRows = useGalleryRows(galleryDefinition, galleryOf(galleryDefinition)!);
   const canAddPhotos = Boolean(gallery?.canAdd && canEdit);
+  /* The phone preview beside the form, and whether it is put away. */
+  const previewHidden = useSyncExternalStore(subscribePreview, readPreviewHidden, () => false);
+  const showPreview = (shown: boolean) => writePreviewHidden(!shown);
+  /* The gallery's photos, for the dots under the preview's cover: the saved rows, or the ones waiting to be uploaded. */
+  const galleryOwner = galleryOf(galleryDefinition)!.owner.name;
+  const galleryRows = useGetCatalogQuery(galleryDefinition.key, { skip: !editing });
+  const photoCount = editing ? (galleryRows.data ?? []).filter((row) => row[galleryOwner] === record.id).length : pendingPhotos.length;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as unknown as Resolver<FormValues>,
-    defaultValues: { ...toFormValues(definition, record), ...(record ? {} : presets) },
+    defaultValues: openingValues(definition, record, presets, referenceOptions),
   });
   const values = useWatch({ control: form.control }) as FormValues;
   const { errors, isSubmitting, isDirty } = form.formState;
   /* What the form is written for: a food's or a stay's type, an attraction's theme. */
   const kindField = definition.key === "destinations" ? "theme" : "type";
   const kind = typeof values[kindField] === "string" && values[kindField] ? (values[kindField] as string) : undefined;
+  /* Asked on the form — a stay's type — or worked out by it: an attraction's theme follows its region. */
+  const asksKind = !fieldsByName.get(kindField)?.derived;
 
   /*
-   * An attraction's tourism regions are not asked. It is listed on its theme's
-   * region, and on each region one of its categories belongs to; Where it
-   * appears offers only the theme's own categories, tags and interests.
+   * An attraction's theme is not asked: it is the code of the tourism region
+   * chosen in Where it appears, kept for the API and the website's page.
    */
   const regionOptions = options["tourism-regions"];
-  const derivesRegions = definition.fields.some((field) => field.name === "tourismRegionIds" && field.derived);
-  const chosenCategories = values.categoryIds;
-  const listedIn = useMemo(
-    () =>
-      derivesRegions && regionOptions?.length
-        ? derivedRegions(regionOptions, kind, Array.isArray(chosenCategories) ? chosenCategories.map(String) : [])
-        : null,
-    [derivesRegions, regionOptions, kind, chosenCategories],
+  const derivesTheme = definition.fields.some((field) => field.name === "theme" && field.derived);
+  const chosenRegions = values.tourismRegionIds;
+  const themeCode = useMemo(
+    () => (derivesTheme && regionOptions ? themeOf(regionOptions, Array.isArray(chosenRegions) ? chosenRegions.map(String) : []) : null),
+    [derivesTheme, regionOptions, chosenRegions],
   );
   /*
    * A tag that asks which — an ancient site's King, Century — takes its answer
@@ -247,12 +310,10 @@ export function ListingForm({
   }, [askedByTag, form]);
 
   useEffect(() => {
-    if (!listedIn) return;
-    const chosen = form.getValues("tourismRegionIds");
-    const current = Array.isArray(chosen) ? chosen.map(String) : [];
-    const same = current.length === listedIn.length && listedIn.every((id) => current.includes(id));
-    if (!same) form.setValue("tourismRegionIds", listedIn, { shouldDirty: true });
-  }, [listedIn, form]);
+    if (themeCode === null) return;
+    const current = form.getValues("theme");
+    if ((typeof current === "string" ? current : "") !== themeCode) form.setValue("theme", themeCode, { shouldDirty: true });
+  }, [themeCode, form]);
   /* A cafe is asked what it serves, a bar what it pours: the steps follow the type chosen. */
   /* Someone who cannot publish is not asked whether it goes live, but whether to send it. */
   /* An attraction, a stay or a food listing: each goes to its author's reviewer the same way. */
@@ -303,11 +364,11 @@ export function ListingForm({
   );
 
   /*
-   * A new listing's first section stands alone until its kind is chosen: every
-   * section after it is written for that kind, and would change under the
-   * reader's hands.
+   * A new stay's or food listing's first section stands alone until its kind
+   * is chosen: every section after it is written for that kind, and would
+   * change under the reader's hands.
    */
-  const gateAt = !editing && !kind ? steps.findIndex((each) => stepFields(each).includes(kindField)) : -1;
+  const gateAt = !editing && asksKind && !kind ? steps.findIndex((each) => stepFields(each).includes(kindField)) : -1;
   const gated = gateAt >= 0;
   const open = gated ? steps.slice(0, gateAt + 1) : steps;
   /* Rooms and dishes need the room: a stay or a food listing has no preview column, and its tips come inline. */
@@ -344,6 +405,8 @@ export function ListingForm({
     };
   });
   const current = open.find((each) => each.id === inView) ?? open[0];
+  /* Where it stands on the website, for the bar: what is saved, not what a button is about to make it. */
+  const standing = record ? statusOption(definition, statusValueOf(definition, record)) : null;
 
   /* The section in view is the last one whose heading has reached the upper third of the window. */
   const openIds = open.map((each) => each.id).join(",");
@@ -374,7 +437,6 @@ export function ListingForm({
   }, [openIds]);
 
   const statusField = definition.status;
-  const goingLive = statusField != null && values.status === statusField.live;
   const choosesStatus = editing ? canSetStatus : canPublishOnCreate;
 
   /*
@@ -388,9 +450,8 @@ export function ListingForm({
   const waiting = request?.status === "PENDING_REVIEW";
   const live = record != null && statusField != null && statusValueOf(definition, record) === statusField.live;
   const offerReview = reviewed && !waiting && !live && (!record || !requests.isLoading);
-  const [sendChoice, setSendChoice] = useState<boolean | null>(null);
-  /* A new one, or one handed back for changes, is sent unless kept back; any other edit only saves. */
-  const sendForReview = offerReview && (sendChoice ?? (!record || request == null || request.status === "DRAFT"));
+  /* Unless a button in the bar says otherwise: a new one, or one handed back for changes, is sent; any other edit only saves. */
+  const sendByDefault = offerReview && (!record || request == null || request.status === "DRAFT");
 
   /** Scrolls to a section; `toProblem` stops on the first field in it marked in red instead. */
   function scrollToSection(id: string, toProblem = false) {
@@ -435,7 +496,8 @@ export function ListingForm({
     );
   }
 
-  async function save(submitted: FormValues) {
+  /** `send`: whether it goes to its reviewer once saved — the bar's button says; null leaves it to the default. */
+  async function save(submitted: FormValues, send: boolean | null = null) {
     if (!canEdit) return;
     setBanner(null);
     let result;
@@ -453,7 +515,13 @@ export function ListingForm({
     if (result.ok) {
       /* A new listing's gallery could not be written before it existed; it can now. */
       if (!record && pendingPhotos.length && canAddPhotos) {
-        const written = await addGalleryRows(result.id, pendingPhotos, 1, setSaveProgress);
+        /* The one chosen as the cover is marked as it, so the gallery and the listing agree. */
+        const written = await addGalleryRows(
+          result.id,
+          pendingPhotos.map((photo) => ({ ...photo, cover: photo.key === submitted.coverKey })),
+          1,
+          setSaveProgress,
+        );
         setSaveProgress(null);
         if (written.error) {
           setSavedHref(`/${definition.key}/${result.id}`);
@@ -502,7 +570,7 @@ export function ListingForm({
         }
       }
       /* Last, once everything it holds is saved: into the reviewer's queue. */
-      if (sendForReview && listingType) {
+      if (offerReview && (send ?? sendByDefault) && listingType) {
         try {
           await submitForReview({ targetType: listingType, targetId: result.id }).unwrap();
         } catch (error) {
@@ -548,32 +616,134 @@ export function ListingForm({
     });
   }
 
-  const primaryLabel = sendForReview
-    ? editing
-      ? "Save and send for review"
-      : "Create and send for review"
-    : editing
-      ? "Save changes"
-      : goingLive && canPublishOnCreate
-        ? `Publish ${noun}`
-        : `Create ${noun}`;
+  /*
+   * The bar's buttons. Each says what the save should do — which status, and
+   * whether it goes to the reviewer — then submits. Someone who cannot publish
+   * sends it or keeps a draft; an editor publishes, unpublishes or saves;
+   * anyone else only saves.
+   */
+  function saveAs(status: string | null, send: boolean | null) {
+    if (status !== null) form.setValue("status", status, { shouldDirty: true });
+    void form.handleSubmit((submitted) => save(submitted, send), refuse)();
+  }
+  const draftStatus = statusField?.initial ?? "DRAFT";
+  const liveStatus = statusField?.live ?? "PUBLISHED";
+  let secondary: BarAction | null = null;
+  let primary: BarAction;
+  if (offerReview) {
+    secondary = { label: "Save draft", icon: FilePen, onPress: () => saveAs(editing ? null : draftStatus, false) };
+    primary = {
+      label: request?.status === "DRAFT" ? "Send back for review" : editing ? "Save and send for review" : "Send for review",
+      icon: Send,
+      onPress: () => saveAs(editing ? null : draftStatus, true),
+    };
+  } else if (choosesStatus && statusField) {
+    if (editing) {
+      secondary = live
+        ? { label: "Unpublish", icon: FilePen, onPress: () => saveAs(draftStatus, null) }
+        : { label: "Publish", icon: Rocket, onPress: () => saveAs(liveStatus, null) };
+      primary = { label: "Save changes", icon: Save, onPress: () => saveAs(null, null) };
+    } else {
+      secondary = { label: "Save draft", icon: FilePen, onPress: () => saveAs(draftStatus, null) };
+      primary = { label: `Publish ${noun}`, icon: Rocket, onPress: () => saveAs(liveStatus, null) };
+    }
+  } else {
+    primary = { label: editing ? "Save changes" : `Create ${noun}`, icon: editing ? Save : Check, onPress: () => saveAs(null, null) };
+  }
+  const busy = isSubmitting || photosUploading;
+  const busyLabel = saveProgress ? progressLabel(saveProgress) : isSubmitting ? "Saving…" : photosUploading ? "Waiting for photos…" : null;
+  /* Help behind an icon on the destination form; under the box on the others, until their screens are reviewed. */
+  const helpInIcon = definition.key === "destinations";
 
   return (
     <FormProvider {...form}>
-      <GalleryDropContext value={canAddPhotos ? (files) => galleryHandle.current?.addFiles(files) : null}>
+      <HelpStyleContext value={helpInIcon ? "icon" : "below"}>
         <form
           className={cn(
-            "grid items-start gap-6 lg:grid-cols-[12.5rem_minmax(0,1fr)]",
-            !wide && "xl:grid-cols-[12.5rem_minmax(0,1fr)_17rem]",
+            "grid items-start gap-x-6 gap-y-4 lg:grid-cols-[12.5rem_minmax(0,1fr)]",
+            /* The preview's column is as wide as the preview: nothing when it is put away. */
+            !wide && "xl:grid-cols-[12.5rem_minmax(0,1fr)_auto]",
           )}
           noValidate
           onKeyDown={(event) => {
             /* A new listing is made by its button alone: Enter in a field does not create it half-written. */
             if (!editing && event.key === "Enter" && event.target instanceof HTMLInputElement) event.preventDefault();
           }}
-          onSubmit={(event) => void form.handleSubmit(save, refuse)(event)}
+          onSubmit={(event) => void form.handleSubmit((submitted) => save(submitted), refuse)(event)}
         >
-          <aside className="quiet-scroll sticky top-20 hidden max-h-[calc(100dvh-6rem)] overflow-y-auto lg:block">
+          {/*
+           * One bar for everything the page does: where the listing stands, the
+           * preview, and the save. It stays at the top while the form scrolls.
+           */}
+          <div className="z-20 col-span-full -mx-4 bg-background px-4 pt-1 pb-1 md:-mx-6 md:px-6 lg:sticky lg:top-14">
+            <div className="panel flex flex-wrap items-center gap-2 px-3 py-2">
+              <Link className={buttonVariants({ variant: "ghost", size: "sm" })} href={cancelHref ?? listHref}>
+                Cancel
+              </Link>
+              {editing && isDirty ? (
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted">
+                  <span aria-hidden className="size-1.5 rounded-full bg-gold" />
+                  Unsaved changes
+                </span>
+              ) : null}
+              <span className="flex-1" />
+              {standing ? (
+                <Badge dot tone={standing.tone}>
+                  {standing.label}
+                </Badge>
+              ) : !editing ? (
+                <Badge>Not saved yet</Badge>
+              ) : null}
+              {!wide ? (
+                <button
+                  aria-label={previewHidden ? "Show preview" : "Hide preview"}
+                  aria-pressed={!previewHidden}
+                  className={cn(
+                    "hidden size-8 place-items-center rounded-md text-ink-soft transition-colors hover:bg-sand hover:text-ink xl:grid",
+                    !previewHidden && "bg-teal-soft text-teal hover:bg-teal-soft hover:text-teal",
+                  )}
+                  onClick={() => showPreview(previewHidden)}
+                  title={previewHidden ? "Show preview" : "Hide preview"}
+                  type="button"
+                >
+                  {previewHidden ? <EyeOff aria-hidden className="size-4" /> : <Eye aria-hidden className="size-4" />}
+                </button>
+              ) : null}
+              {canEdit && !gated ? (
+                <>
+                  {secondary ? (
+                    <Button disabled={busy} onClick={secondary.onPress} size="sm" type="button" variant="secondary">
+                      <secondary.icon aria-hidden className="size-3.5" />
+                      {secondary.label}
+                    </Button>
+                  ) : null}
+                  <Button disabled={busy} onClick={primary.onPress} size="sm" type="button">
+                    {isSubmitting ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <primary.icon aria-hidden className="size-3.5" />}
+                    {busyLabel ?? primary.label}
+                  </Button>
+                </>
+              ) : null}
+            </div>
+            {banner ? (
+              <p className="mt-2 flex items-start gap-2.5 rounded-lg border border-heritage/20 bg-heritage-soft px-3 py-2.5 text-sm text-heritage" role="alert">
+                <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
+                <span>
+                  {banner}
+                  {savedHref ? (
+                    <>
+                      {" "}
+                      <Link className="font-medium underline underline-offset-2" href={savedHref}>
+                        Open the saved {noun}
+                      </Link>{" "}
+                      to add them again.
+                    </>
+                  ) : null}
+                </span>
+              </p>
+            ) : null}
+          </div>
+
+          <aside className="quiet-scroll sticky top-[7.5rem] hidden max-h-[calc(100dvh-8.5rem)] overflow-y-auto lg:block">
             <SectionList
               current={current.id}
               done={checkRows.filter((row) => row.done).length}
@@ -597,47 +767,30 @@ export function ListingForm({
             {open.map((each) => (
               <section
                 aria-labelledby={`${sectionDomId(each.id)}-title`}
-                className="panel min-w-0 scroll-mt-28 lg:scroll-mt-20"
+                className="panel min-w-0 scroll-mt-28 lg:scroll-mt-32"
                 id={sectionDomId(each.id)}
                 key={each.id}
               >
                 <header className="border-b border-line px-5 py-4">
-                  <h2 className="heading text-lg font-semibold text-ink" id={`${sectionDomId(each.id)}-title`}>
+                  <h2 className="heading flex items-center gap-1.5 text-lg font-semibold text-ink" id={`${sectionDomId(each.id)}-title`}>
                     {each.title}
+                    {helpInIcon ? <HelpIcon id={`${sectionDomId(each.id)}-tip`} label={each.title} text={`${each.tip.title}. ${each.tip.body}`} /> : null}
                   </h2>
                   <p className="mt-0.5 text-sm text-muted">{each.description}</p>
                 </header>
 
                 <div className="divide-y divide-line">
-                  <Tip className={cn("px-5 py-3", !wide && "xl:hidden")} step={each} />
+                  {helpInIcon ? null : <Tip className="px-5 py-3" step={each} />}
 
                   {each.review ? (
                     <>
                       <Readiness onOpen={scrollToCheck} rows={checkRows} />
-                      {statusField ? (
-                        <FormSection description={`Who can see this ${noun} once it is saved.`} title="Visibility">
+                      {statusField && (!canEdit || (reviewed && (waiting || request?.status === "DRAFT")) || (!choosesStatus && !offerReview)) ? (
+                        <FormSection description={`Who can see this ${noun}.`} title="Visibility">
                           {!canEdit ? (
                             <p className="text-sm text-muted">An editor manages publication and changes to this {noun}.</p>
-                          ) : reviewed && (offerReview || waiting) ? (
-                            <ReviewChoice
-                              noun={noun}
-                              onChange={setSendChoice}
-                              request={request}
-                              reviewer={reviewer ?? ""}
-                              send={sendForReview}
-                              waiting={waiting}
-                            />
-                          ) : choosesStatus ? (
-                            <StatusChoices
-                              liveLabel={editing && statusValueOf(definition, record) === statusField.live ? "Published" : "Publish now"}
-                              options={
-                                editing
-                                  ? statusChoices(definition, statusValueOf(definition, record))
-                                  : statusChoices(definition, null).filter(
-                                      (option) => option.value === statusField.live || option.value === statusField.initial,
-                                    )
-                              }
-                            />
+                          ) : reviewed && (waiting || request?.status === "DRAFT") ? (
+                            <ReviewNote request={request} reviewer={reviewer ?? ""} waiting={waiting} />
                           ) : (
                             <p className="flex items-start gap-2.5 rounded-md bg-sand px-3 py-2.5 text-sm text-ink-soft">
                               <FilePen aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
@@ -659,8 +812,8 @@ export function ListingForm({
                   ) : null}
 
                   {each.groups.map((group) => {
-                    /* A lone field already names the group; saying it twice is noise. */
-                    const titled = group.title && !(group.fields.length === 1 && fieldsByName.get(group.fields[0])?.label === group.title);
+                    /* A group whose first field already says its name does not say it twice. */
+                    const titled = Boolean(group.title) && fieldsByName.get(group.fields[0] ?? "")?.label !== group.title;
                     /* The map pin: search, the map and the paste box first, then the two numbers they fill. */
                     const pinned = group.fields.includes("latitude") && group.fields.includes("longitude");
                     return (
@@ -668,10 +821,16 @@ export function ListingForm({
                         <fieldset className="grid gap-x-4 gap-y-5 md:grid-cols-2" disabled={!canEdit}>
                           {pinned ? (
                             <div className="contents" data-field="pin">
-                              <LocationMap disabled={!canEdit} />
+                              <LocationMap
+                                disabled={!canEdit}
+                                fills={{ province: fieldsByName.has("provinceId"), address: fieldsByName.has("address") }}
+                                provinces={options.provinces ?? []}
+                              />
                             </div>
                           ) : null}
                           {group.fields.map((name) => {
+                            /* The pin is the coordinates: the map draws their two boxes itself, folded away. */
+                            if (pinned && (name === "latitude" || name === "longitude")) return null;
                             const field = fieldsByName.get(name);
                             if (!field || !isShown(field, values, options)) return null;
                             return (
@@ -725,25 +884,31 @@ export function ListingForm({
                   ) : null}
 
                   {gallery && each.id === "photos" ? (
-                    <div className="px-5 py-5">
-                      <div className="mb-4">
-                        <h3 className="text-sm font-semibold text-ink">Gallery</h3>
-                        <p className="mt-0.5 text-xs text-muted">
-                          Every photo travellers can page through. Select as many as you like — they upload while you carry on.
-                        </p>
-                      </div>
+                    /* Named for the checklist's "Cover photo": the cover is chosen here, among the photos. */
+                    <div className="px-5 py-5" data-field="coverKey">
+                      {/* The cover has no box of its own: the gallery sets it. Registered, so the form can take a value the API already has. */}
+                      <input type="hidden" {...form.register("coverKey")} />
+                      <input type="hidden" {...form.register("coverUrl")} />
                       <GalleryManager
                         canAdd={canAddPhotos}
                         canDelete={Boolean(gallery.canDelete && canEdit)}
                         coverKey={typeof values.coverKey === "string" ? values.coverKey : ""}
-                        handle={galleryHandle}
+                        coverUrl={typeof values.coverUrl === "string" ? values.coverUrl : ""}
                         listing={definition.key as ListingKey}
                         listingId={record?.id ?? null}
                         onBusyChange={setPhotosUploading}
                         onPendingChange={setPendingPhotos}
-                        onUseAsCover={(photo) => {
-                          form.setValue("coverKey", photo.key, { shouldDirty: true });
-                          form.setValue("coverUrl", photo.url, { shouldDirty: true });
+                        onCover={(photo, saved) => {
+                          const key = photo?.key ?? "";
+                          const url = photo?.url ?? "";
+                          if (saved) {
+                            /* The API has it already: the form takes the value without a change to save. */
+                            form.resetField("coverKey", { defaultValue: key });
+                            form.resetField("coverUrl", { defaultValue: url });
+                          } else {
+                            form.setValue("coverKey", key, { shouldDirty: true });
+                            form.setValue("coverUrl", url, { shouldDirty: true });
+                          }
                         }}
                         pending={pendingPhotos}
                       />
@@ -752,8 +917,9 @@ export function ListingForm({
 
                   {each.review ? (
                     <>
-                      <div className={cn("px-5 py-5", !wide && "xl:hidden")}>
-                        <ListingPreview definition={definition} options={options} values={values} />
+                      <div className={cn("flex flex-col items-center gap-2 px-5 py-5", !wide && "xl:hidden")}>
+                        <p className="self-start text-xs font-medium text-muted">Preview, as the app shows it</p>
+                        <PhonePreview options={options} photos={photoCount} values={values} />
                       </div>
                       {editing && canDelete ? (
                         <FormSection description="It is removed from the website and the dashboard for good. This cannot be undone." title={`Delete this ${noun}`}>
@@ -792,73 +958,29 @@ export function ListingForm({
 
             {gated ? (
               <p className="rounded-xl border border-dashed border-line-strong px-5 py-4 text-sm text-muted">
-                {definition.key === "destinations" ? "Choose a theme above" : "Choose the type above"} to see the rest of the form. Every
-                section after it is written for that choice.
+                Choose the type above to see the rest of the form. Every section after it is written for that choice.
               </p>
             ) : null}
 
-            {/*
-             * The actions stay at the foot of the window over a band of the page's own ground, and
-             * what a save found sits with the button that was pressed, wherever the page is scrolled to.
-             */}
-            <div className={cn("flex flex-col gap-2", !gated && "sticky bottom-0 z-10 bg-background pt-2 pb-3")}>
-              {banner ? (
-                <p className="flex items-start gap-2.5 rounded-lg border border-heritage/20 bg-heritage-soft px-3 py-2.5 text-sm text-heritage" role="alert">
-                  <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
-                  <span>
-                    {banner}
-                    {savedHref ? (
-                      <>
-                        {" "}
-                        <Link className="font-medium underline underline-offset-2" href={savedHref}>
-                          Open the saved {noun}
-                        </Link>{" "}
-                        to add them again.
-                      </>
-                    ) : null}
-                  </span>
-                </p>
-              ) : null}
-
-              <footer className="panel flex flex-wrap items-center justify-between gap-2 px-5 py-3">
-                <div className="flex items-center gap-3">
-                  <Link className={buttonVariants({ variant: "ghost", size: "sm" })} href={cancelHref ?? listHref}>
-                    Cancel
-                  </Link>
-                  {editing && isDirty ? (
-                    <span className="hidden items-center gap-1.5 text-xs text-muted sm:inline-flex">
-                      <span aria-hidden className="size-1.5 rounded-full bg-gold" />
-                      Unsaved changes
-                    </span>
-                  ) : null}
-                </div>
-
-                {canEdit && !gated ? (
-                  <Button disabled={isSubmitting || photosUploading} size="sm" type="submit">
-                    {isSubmitting ? (
-                      <Loader2 aria-hidden className="size-3.5 animate-spin" />
-                    ) : editing ? (
-                      <Save aria-hidden className="size-3.5" />
-                    ) : goingLive && canPublishOnCreate ? (
-                      <Rocket aria-hidden className="size-3.5" />
-                    ) : (
-                      <Check aria-hidden className="size-3.5" />
-                    )}
-                    {saveProgress ? progressLabel(saveProgress) : isSubmitting ? "Saving…" : photosUploading ? "Waiting for photos…" : primaryLabel}
-                  </Button>
-                ) : null}
-              </footer>
-            </div>
           </div>
 
           {!wide ? (
-            <aside className="sticky top-20 hidden flex-col gap-4 xl:flex">
-              <ListingPreview definition={definition} options={options} values={values} />
-              <Tip className="rounded-lg border border-line bg-paper px-3 py-3" step={current} />
-            </aside>
+            /* The preview slides in from the right edge and the form widens as it leaves; put away, its column is nothing. */
+            <div
+              aria-hidden={previewHidden}
+              className={cn(
+                "quiet-scroll sticky top-[7.5rem] hidden max-h-[calc(100dvh-8.5rem)] self-start overflow-x-hidden overflow-y-auto transition-[width,opacity,margin-left] duration-300 ease-out xl:block",
+                previewHidden ? "pointer-events-none -ml-6 w-0 opacity-0" : "ml-0 w-[21.5rem] opacity-100",
+              )}
+              inert={previewHidden}
+            >
+              <div className="w-[21.5rem] pb-2">
+                <PhonePreview options={options} photos={photoCount} values={values} />
+              </div>
+            </div>
           ) : null}
         </form>
-      </GalleryDropContext>
+      </HelpStyleContext>
     </FormProvider>
   );
 }
@@ -1067,12 +1189,6 @@ function Readiness({ rows, onOpen }: { readonly rows: readonly CheckRow[]; reado
   );
 }
 
-const STATUS_TEXT: Readonly<Record<string, string>> = {
-  PUBLISHED: "Travellers can find it on the website as soon as it is saved.",
-  DRAFT: "Only the dashboard can see it until it is published.",
-  ARCHIVED: "Taken off the website, and kept here for the record.",
-};
-
 /** This listing's most recent request, sent or answered. */
 function latestRequest(requests: readonly PublishRequestResponse[], listingId: string): PublishRequestResponse | null {
   return requests
@@ -1087,14 +1203,8 @@ function latestRequest(requests: readonly PublishRequestResponse[], listingId: s
  * Whether saving sends the destination to its reviewer — or, while it waits,
  * that it is waiting. What the reviewer last said is shown with the choice.
  */
-function ReviewChoice({ noun, reviewer, request, waiting, send, onChange }: {
-  readonly noun: string;
-  readonly reviewer: string;
-  readonly request: PublishRequestResponse | null;
-  readonly waiting: boolean;
-  readonly send: boolean;
-  readonly onChange: (send: boolean) => void;
-}) {
+/** Where a listing stands with its reviewer: waiting, or handed back with a note. The sending itself is a button in the bar. */
+function ReviewNote({ reviewer, request, waiting }: { readonly reviewer: string; readonly request: PublishRequestResponse | null; readonly waiting: boolean }) {
   if (waiting && request) {
     return (
       <p className="flex items-start gap-2.5 rounded-md bg-sand px-3 py-2.5 text-sm text-ink-soft" role="status">
@@ -1106,68 +1216,14 @@ function ReviewChoice({ noun, reviewer, request, waiting, send, onChange }: {
       </p>
     );
   }
-  const handedBack = request?.status === "DRAFT";
-  const choices = [
-    {
-      value: true,
-      title: handedBack ? `Send it back to ${reviewer}` : `Send to ${reviewer} for review`,
-      hint: handedBack
-        ? "With your changes, so they can approve it."
-        : `It goes into their queue as soon as it is saved, and onto the website once they approve it.`,
-    },
-    { value: false, title: "Keep as a draft", hint: `Only you can see it. Send the ${noun} later from your Requests page.` },
-  ];
-  return (
-    <div className="flex flex-col gap-3">
-      {handedBack && request?.reviewNote ? (
-        <p className="rounded-md border border-gold/30 bg-gold-soft px-3 py-2.5 text-sm text-ink-soft">
-          <span className="font-medium text-ink">{request.reviewerName ?? reviewer} asked for changes:</span> “{request.reviewNote}”
-        </p>
-      ) : null}
-      <div aria-label="Review" className="grid gap-2 sm:grid-cols-2" role="radiogroup">
-        {choices.map((choice) => (
-          <label
-            className="flex cursor-pointer items-start gap-3 rounded-lg border border-line-strong bg-paper px-3 py-3 transition-colors hover:bg-sand has-checked:border-teal has-checked:bg-teal-soft/50"
-            key={String(choice.value)}
-          >
-            <input
-              checked={send === choice.value}
-              className="mt-0.5 size-4 shrink-0 accent-teal"
-              name="send-for-review"
-              onChange={() => onChange(choice.value)}
-              type="radio"
-            />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium text-ink">{choice.title}</span>
-              <span className="mt-0.5 block text-xs text-muted">{choice.hint}</span>
-            </span>
-          </label>
-        ))}
-      </div>
-    </div>
-  );
+  if (request?.status === "DRAFT") {
+    return (
+      <p className="rounded-md border border-gold/30 bg-gold-soft px-3 py-2.5 text-sm text-ink-soft">
+        <span className="font-medium text-ink">{request.reviewerName ?? reviewer} asked for changes</span>
+        {request.reviewNote ? <>: “{request.reviewNote}”</> : null}. Send it back with the button at the top when it is ready.
+      </p>
+    );
+  }
+  return null;
 }
 
-function StatusChoices({ options, liveLabel }: { readonly options: readonly StatusOption[]; readonly liveLabel: string }) {
-  const { register } = useFormContext<FormValues>();
-
-  return (
-    <div aria-label="Visibility" className="grid gap-2 sm:grid-cols-2" role="radiogroup">
-      {options.map((option) => {
-        const live = option.value === "PUBLISHED";
-        return (
-          <label
-            className="flex cursor-pointer items-start gap-3 rounded-lg border border-line-strong bg-paper px-3 py-3 transition-colors hover:bg-sand has-checked:border-teal has-checked:bg-teal-soft/50"
-            key={option.value}
-          >
-            <input {...register("status")} className="mt-0.5 size-4 shrink-0 accent-teal" type="radio" value={option.value} />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium text-ink">{live ? liveLabel : option.label}</span>
-              <span className="mt-0.5 block text-xs text-muted">{STATUS_TEXT[option.value] ?? option.hint}</span>
-            </span>
-          </label>
-        );
-      })}
-    </div>
-  );
-}

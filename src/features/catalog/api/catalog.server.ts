@@ -288,7 +288,7 @@ async function optionsFor(key: ReferenceKey): Promise<readonly ReferenceOption[]
     if (key === "tourism-regions") {
       const regions = (await getRecords("regions")).filter((region) => region.kind === "TOURISM");
       const options = toOptions(getResource("regions"), regions);
-      /* Each region's own categories, tags and interests: all an attraction of its theme is offered, its categories and tags in its order. */
+      /* Each region's own categories and tags, in its order: all an attraction of that region is offered. */
       return options.map((option) => {
         const region = regions.find((each) => each.id === option.value);
         return {
@@ -296,7 +296,6 @@ async function optionsFor(key: ReferenceKey): Promise<readonly ReferenceOption[]
           links: {
             categoryIds: idsOf(region?.categoryIds),
             tagIds: idsOf(region?.tagIds),
-            interestIds: idsOf(region?.interestIds),
           },
         };
       });

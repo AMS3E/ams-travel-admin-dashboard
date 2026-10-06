@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isPoint, roundCoordinate, type PlaceResult } from "@/features/catalog/geo";
+import { isPoint, placeDetails, roundCoordinate, type OsmAddress, type PlaceResult } from "@/features/catalog/geo";
 import { requireAdminToken } from "@/lib/api-route.server";
 
 interface NominatimPlace {
@@ -7,6 +7,7 @@ interface NominatimPlace {
   readonly display_name?: string;
   readonly lat?: string;
   readonly lon?: string;
+  readonly address?: OsmAddress;
 }
 
 /**
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest) {
     format: "jsonv2",
     countrycodes: "kh",
     limit: "6",
+    addressdetails: "1",
     "accept-language": "en",
   }).toString();
 
@@ -52,6 +54,7 @@ export async function GET(request: NextRequest) {
         label,
         latitude: roundCoordinate(latitude),
         longitude: roundCoordinate(longitude),
+        ...placeDetails(place.address),
       }];
     });
     return NextResponse.json(results);
