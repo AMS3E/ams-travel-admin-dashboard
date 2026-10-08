@@ -1282,7 +1282,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         kind: "number",
         min: 1,
         max: 5,
-        hint: "One to five. Leave empty for a guesthouse or homestay that is not rated.",
+        hint: "One to five, for a hotel or resort with an official rating. Leave it empty otherwise.",
         visibleWhen: { field: "type", values: STAR_RATED },
       },
       listingShortDescription,
@@ -1388,6 +1388,8 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
      */
     fields: [
       listingName,
+      /* The end of the listing's web address, as on an attraction. */
+      listingSlug,
       /* Never asked: it follows the first Type ticked (see kindOf). The names stay for the API's lists. */
       { name: "type", label: "Kind (API)", kind: "enum", options: FOOD_TYPES, derived: true },
       listingShortDescription,
@@ -1524,16 +1526,16 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       ),
       { name: "maxAdults", label: "Adults", kind: "number", min: 1, max: 40, initial: "2", required: true, section: "Guests" },
       { name: "maxChildren", label: "Children", kind: "number", min: 0, max: 20, initial: "0", section: "Guests" },
-      { name: "sizeSqm", label: "Size (m²)", kind: "decimal", min: 1, max: 9999, step: 0.5, section: "Room details" },
+      { derived: true, name: "sizeSqm", label: "Size (m²)", kind: "decimal", min: 1, max: 9999, step: 0.5, section: "Room details" },
       { derived: true, name: "bedrooms", label: "Bedrooms", kind: "number", min: 0, max: 20, initial: "1", section: "Layout" },
       { derived: true, name: "livingRooms", label: "Living rooms", kind: "number", min: 0, max: 10, initial: "0", section: "Layout" },
       { derived: true, name: "bathroomCount", label: "Bathrooms", kind: "number", min: 0, max: 20, initial: "1", section: "Layout" },
       { derived: true, name: "floor", label: "Floor", kind: "number", min: -2, max: 200, section: "Layout", hint: "Ground floor is 0, first floor up is 1. Leave empty when these rooms are on different floors." },
       { derived: true, name: "liftAccess", label: "A lift reaches it", kind: "boolean", section: "Layout" },
       { derived: true, name: "housekeeping", label: "Cleaning", kind: "enum", options: ROOM_HOUSEKEEPING, scale: true, section: "Layout" },
-      { name: "view", label: "View", kind: "enum", options: ROOM_VIEWS, section: "Room details" },
+      { derived: true, name: "view", label: "View", kind: "enum", options: ROOM_VIEWS, section: "Room details" },
       { derived: true, name: "bathroom", label: "Bathroom", kind: "enum", options: ROOM_BATHROOMS, initial: "PRIVATE", section: "Room details" },
-      { name: "smokingAllowed", label: "Smoking allowed", kind: "boolean", section: "Room details" },
+      { derived: true, name: "smokingAllowed", label: "Smoking allowed", kind: "boolean", section: "Room details" },
       { derived: true, name: "hasWindow", label: "Has a window", kind: "boolean", initial: "true", section: "Room details" },
       { derived: true, name: "extraBeds", label: "Extra beds you can add", kind: "number", min: 0, max: 4, initial: "0", section: "Guests" },
       {

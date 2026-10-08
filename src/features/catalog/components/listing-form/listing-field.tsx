@@ -2,6 +2,7 @@
 
 import { useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
+import { createPortal } from "react-dom";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import {
   BedDouble,
@@ -23,6 +24,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -373,10 +375,25 @@ export function ListingField({ field: declared, options, locked = false, pathPre
     );
   }
 
-  if (field.kind === "enums" && (field.name === "amenities" || field.name === "specialties")) {
-    const own = field.name === "specialties";
+  if (field.kind === "enums" && field.name === "amenities") {
     return (
-      <FieldShell className="md:col-span-2" error={error} field={own || declared.labelFor ? field : { ...field, label: "Facilities & services" }}>
+      <FieldShell className="md:col-span-2" error={error} field={declared.labelFor ? field : { ...field, label: "Facilities & services" }}>
+        {({ labelId }) => (
+          <Controller
+            control={control}
+            name={field.name}
+            render={({ field: bound }) => (
+              <FacilitiesField labelledBy={labelId} onChange={bound.onChange} options={offered} value={Array.isArray(bound.value) ? bound.value : []} />
+            )}
+          />
+        )}
+      </FieldShell>
+    );
+  }
+
+  if (field.kind === "enums" && field.name === "specialties") {
+    return (
+      <FieldShell className="md:col-span-2" error={error} field={field}>
         {({ labelId }) => (
           <Controller
             control={control}
@@ -384,12 +401,12 @@ export function ListingField({ field: declared, options, locked = false, pathPre
             render={({ field: bound }) => (
               <AmenityPicker
                 labelledBy={labelId}
-                noun={own ? "this list" : undefined}
+                noun="this list"
                 onChange={bound.onChange}
                 options={offered}
-                /* What only this kind has is a written sequence; facilities are a list of names. */
-                ordered={own}
-                popular={own ? [] : undefined}
+                /* What only this kind has is a written sequence, so it reads in its own order. */
+                ordered
+                popular={[]}
                 value={Array.isArray(bound.value) ? bound.value : []}
               />
             )}
@@ -766,6 +783,103 @@ function PriceRangeInput({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * A stay's facilities on the form: the chosen ones as chips, each with a
+ * cross, and a button that opens the full checklist in a dialog over the
+ * page. The list is long; the form shows only what was picked from it.
+ */
+function FacilitiesField({
+  options,
+  value,
+  onChange,
+  labelledBy,
+}: {
+  readonly options: readonly EnumOption[];
+  readonly value: readonly string[];
+  readonly onChange: (value: string[]) => void;
+  readonly labelledBy: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const labels = useMemo(() => new Map(options.map((option) => [option.value, option.label.split(" · ").pop() ?? option.label])), [options]);
+  const chosen = value.filter((slug) => labels.has(slug));
+
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {chosen.length ? (
+          chosen.map((slug) => (
+            <span className="inline-flex items-center gap-1 rounded-md border border-line bg-sand px-2 py-1 text-xs text-ink" key={slug}>
+              {labels.get(slug)}
+              <button
+                aria-label={`Remove ${labels.get(slug)}`}
+                className="grid size-4 place-items-center rounded-full text-muted hover:bg-sand-deep hover:text-heritage"
+                onClick={() => onChange(value.filter((each) => each !== slug))}
+                type="button"
+              >
+                <X aria-hidden className="size-3" />
+              </button>
+            </span>
+          ))
+        ) : (
+          <span className="text-sm text-muted">None chosen yet.</span>
+        )}
+        <Button className="ml-auto" onClick={() => setOpen(true)} size="sm" type="button" variant="secondary">
+          Choose facilities
+        </Button>
+      </div>
+
+      {open
+        ? createPortal(
+            <div className="fixed inset-0 z-[100] overflow-y-auto bg-ink/40 p-3 sm:p-6" onClick={() => setOpen(false)}>
+              <div
+                aria-labelledby="facilities-dialog-title"
+                aria-modal="true"
+                className="mx-auto w-full max-w-3xl rounded-xl border border-line bg-paper p-5 shadow-xl sm:p-6"
+                onClick={(event) => event.stopPropagation()}
+                role="dialog"
+              >
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h3 className="text-base font-semibold text-ink" id="facilities-dialog-title">
+                    Facilities & services
+                  </h3>
+                  <button
+                    aria-label="Close"
+                    className="grid size-8 place-items-center rounded-md text-muted hover:bg-sand hover:text-ink"
+                    onClick={() => setOpen(false)}
+                    type="button"
+                  >
+                    <X aria-hidden className="size-4" />
+                  </button>
+                </div>
+                <AmenityPicker labelledBy={labelledBy} onChange={onChange} options={options} popular={[]} value={value} />
+                <div className="mt-4 flex justify-end border-t border-line pt-4">
+                  <Button onClick={() => setOpen(false)} size="sm" type="button">
+                    Done
+                  </Button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

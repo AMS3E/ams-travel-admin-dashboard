@@ -12,8 +12,6 @@ import type { FormValues } from "@/features/catalog/resource";
 import { ROOM_BEDS, ROOM_HOUSEKEEPING, ROOM_TYPES, ROOM_VIEWS } from "@/features/catalog/resources";
 
 /** A word in front of the name, Booking.com-style; not stored, only used to suggest one. */
-export const ROOM_GRADES = ["", "Budget", "Standard", "Superior", "Deluxe", "Premier", "Executive"] as const;
-export type RoomGrade = (typeof ROOM_GRADES)[number];
 
 /** Days of free cancellation offered as one click; empty is non-refundable. */
 export const CANCELLATION_CHOICES = ["", "0", "1", "3", "7", "14"] as const;
@@ -66,53 +64,6 @@ export function cancellationLabel(days: unknown): string {
   return `Free cancellation until ${n} ${n === 1 ? "day" : "days"} before arrival`;
 }
 
-const TYPE_NAMES: Readonly<Record<string, string>> = {
-  SINGLE: "Single Room",
-  DOUBLE: "Double Room",
-  TWIN: "Twin Room",
-  TWIN_DOUBLE: "Double or Twin Room",
-  TRIPLE: "Triple Room",
-  QUADRUPLE: "Quadruple Room",
-  FAMILY: "Family Room",
-  SUITE: "Suite",
-  STUDIO: "Studio",
-  APARTMENT: "Apartment",
-  BUNGALOW: "Bungalow",
-  VILLA: "Villa",
-  DORM_BED: "Bed in Dormitory",
-  DORM_ROOM: "Dormitory Room",
-};
-
-const amenitiesOf = (values: FormValues): readonly string[] => (Array.isArray(values.amenities) ? values.amenities : []);
-
-/**
- * The name a room would be listed under — "Deluxe King Room with Balcony and
- * River View" — from its grade, type, beds, view and a feature worth naming.
- * A double room with a king or a queen bed says so, the way guests search.
- */
-export function suggestName(values: FormValues, grade: RoomGrade = ""): string {
-  const type = typeof values.roomType === "string" ? values.roomType : "DOUBLE";
-  let base = TYPE_NAMES[type] ?? "Room";
-  if (type === "DOUBLE" && count(values, "kingBeds")) base = "King Room";
-  else if (type === "DOUBLE" && count(values, "queenBeds")) base = "Queen Room";
-  if (type === "DORM_BED") {
-    const beds = bedsOf(values) + count(values, "bunkBeds");
-    base = beds > 1 ? `Bed in ${beds}-Bed Dormitory` : base;
-  }
-
-  const features: string[] = [];
-  const amenities = amenitiesOf(values);
-  if (amenities.includes("private-pool")) features.push("Private Pool");
-  else if (amenities.includes("balcony")) features.push("Balcony");
-  else if (amenities.includes("terrace")) features.push("Terrace");
-  const view = viewLabel(values.view);
-  if (view) features.push(view.replace(/\bview\b/, "View"));
-
-  const named = [grade, base].filter(Boolean).join(" ");
-  return features.length ? `${named} with ${features.join(" and ")}` : named;
-}
-
-/** What a room of each kind is usually made of; everything else is one bedroom and one bathroom. */
 export const LAYOUT_FOR_TYPE: Readonly<Record<string, Readonly<Record<string, number>>>> = {
   SUITE: { bedrooms: 1, livingRooms: 1, bathroomCount: 1 },
   STUDIO: { bedrooms: 1, livingRooms: 0, bathroomCount: 1 },
@@ -215,175 +166,26 @@ export function withBedsFor(values: FormValues, roomType: string): FormValues {
 
 /** What the Rooms step calls what a stay lets, and the words around it. */
 export interface RoomWords {
-  readonly kinds: string;
-  readonly total: string;
-  readonly biggest: string;
-  readonly cheapest: string;
-  readonly blank: string;
   readonly fresh: string;
   readonly edit: string;
   readonly add: string;
   readonly save: string;
   readonly copy: string;
-  readonly what: string;
-  readonly like: string;
   /** The empty list: what is missing, and how to add it. */
   readonly none: string;
   readonly noneHint: string;
 }
 
-const ROOMS: RoomWords = {
-  kinds: "Kinds of room",
-  total: "Rooms in total",
-  biggest: "Biggest room sleeps",
-  cheapest: "Cheapest room, per night",
-  blank: "Blank room",
+/** The same words for every kind of stay: the kinds that had their own — hostels, guesthouses — are no longer offered. */
+export const ROOM_WORDS: RoomWords = {
   fresh: "New room",
   edit: "Edit room",
   add: "Add room",
   save: "Save room",
   copy: "Copy to a new room",
-  what: "What kind of room is it?",
-  like: "What is the room like?",
   none: "No rooms yet",
   noneHint: "Add each kind of room once. Guests choose by beds, how many it sleeps, and price.",
 };
-
-/** Each kind of stay's words: a hostel lets dorms and rooms, a resort rooms and villas, a villa itself. */
-export const ROOM_WORDS: Readonly<Record<string, RoomWords>> = {
-  HOTEL: ROOMS,
-  GUESTHOUSE: {
-    ...ROOMS,
-    total: "Rooms in the house",
-    noneHint: "Add each kind of room once — a fan room and an air-con room are two.",
-  },
-  HOSTEL: {
-    kinds: "Kinds of dorm and room",
-    total: "Beds and rooms in total",
-    biggest: "Biggest dorm or room sleeps",
-    cheapest: "Cheapest bed, per night",
-    blank: "Blank dorm or room",
-    fresh: "New dorm or room",
-    edit: "Edit dorm or room",
-    add: "Add dorm or room",
-    save: "Save dorm or room",
-    copy: "Copy to a new dorm or room",
-    what: "Is it a dorm, or a private room?",
-    like: "What is it like?",
-    none: "No dorms or rooms yet",
-    noneHint: "Add each dorm once with its number of beds — guests book one bed — then any private rooms.",
-  },
-  RESORT: {
-    kinds: "Kinds of room and villa",
-    total: "Rooms and villas in total",
-    biggest: "Biggest room or villa sleeps",
-    cheapest: "Cheapest room or villa, per night",
-    blank: "Blank room or villa",
-    fresh: "New room or villa",
-    edit: "Edit room or villa",
-    add: "Add room or villa",
-    save: "Save room or villa",
-    copy: "Copy to a new room or villa",
-    what: "What kind of room or villa is it?",
-    like: "What is it like?",
-    none: "No rooms or villas yet",
-    noneHint: "Add each kind of room, bungalow or villa once. Guests choose by setting, beds and price.",
-  },
-  HOMESTAY: {
-    ...ROOMS,
-    total: "Rooms for guests",
-    like: "What is the room in the home like?",
-    none: "No rooms in the home yet",
-    noneHint: "Add each room guests can sleep in — say whether it has a fan, a mosquito net and its own bathroom.",
-  },
-  VILLA: {
-    kinds: "Ways to book it",
-    total: "To let in all",
-    biggest: "Sleeps at most",
-    cheapest: "Cheapest night",
-    blank: "Blank villa or bedroom",
-    fresh: "New villa or bedroom",
-    edit: "Edit villa or bedroom",
-    add: "Add villa or bedroom",
-    save: "Save villa or bedroom",
-    copy: "Copy to a new villa or bedroom",
-    what: "The whole villa, or one bedroom?",
-    like: "What is it like?",
-    none: "The villa is not bookable yet",
-    noneHint: "Add the whole villa as one entry, with its bedrooms, beds and a night's price — or each bedroom, if they are let one by one.",
-  },
-  OTHER: ROOMS,
-};
-
-export function roomWords(stayType: string): RoomWords {
-  return ROOM_WORDS[stayType] ?? ROOMS;
-}
-
-export interface RoomTemplate {
-  readonly id: string;
-  readonly title: string;
-  readonly grade: RoomGrade;
-  readonly values: Readonly<FormValues>;
-}
-
-const template = (id: string, title: string, grade: RoomGrade, roomType: string, extra: FormValues): RoomTemplate => ({
-  id,
-  title,
-  grade,
-  values: { roomType, ...BEDS_FOR_TYPE[roomType], ...(LAYOUT_FOR_TYPE[roomType] ?? PLAIN_LAYOUT), ...extra },
-});
-
-const ESSENTIALS = ["air-conditioning", "wifi", "hot-water", "toiletries"];
-const BUDGET = ["fan", "mosquito-net", "wifi", "hot-water"];
-
-/**
- * One-click starting points for the property's type, the way a host would
- * describe their rooms. Beds are counts as strings, like every form value.
- */
-export const ROOM_TEMPLATES: Readonly<Record<string, readonly RoomTemplate[]>> = {
-  HOTEL: [
-    template("standard-double", "Standard double", "Standard", "DOUBLE", { amenities: [...ESSENTIALS, "tv", "kettle"], sizeSqm: "22" }),
-    template("superior-twin", "Superior twin", "Superior", "TWIN", { singleBeds: "2", amenities: [...ESSENTIALS, "tv", "kettle", "desk"], sizeSqm: "26" }),
-    template("deluxe-king", "Deluxe king with balcony", "Deluxe", "DOUBLE", { doubleBeds: "0", kingBeds: "1", amenities: [...ESSENTIALS, "tv", "minibar", "safe", "balcony"], sizeSqm: "32" }),
-    template("family", "Family room", "", "FAMILY", { maxAdults: "2", maxChildren: "2", amenities: [...ESSENTIALS, "tv", "fridge", "cot-available"], sizeSqm: "38" }),
-    template("junior-suite", "Junior suite", "Deluxe", "SUITE", { housekeeping: "DAILY", amenities: [...ESSENTIALS, "tv", "minibar", "safe", "bathtub", "seating-area", "bathrobes"], sizeSqm: "48" }),
-  ],
-  GUESTHOUSE: [
-    template("fan-double", "Double with fan", "Budget", "DOUBLE", { amenities: BUDGET, sizeSqm: "16" }),
-    template("ac-double", "Double with air conditioning", "Standard", "DOUBLE", { amenities: [...ESSENTIALS, "tv"], sizeSqm: "18" }),
-    template("twin", "Twin room", "Standard", "TWIN", { singleBeds: "2", amenities: [...ESSENTIALS], sizeSqm: "18" }),
-  ],
-  HOSTEL: [
-    template("mixed-dorm", "Bed in 6-bed mixed dorm", "", "DORM_BED", { singleBeds: "0", bunkBeds: "3", maxAdults: "1", roomCount: "6", bathroom: "SHARED", amenities: ["air-conditioning", "wifi", "hot-water", "lockers", "privacy-curtain", "reading-light"] }),
-    template("female-dorm", "Bed in 4-bed female dorm", "", "DORM_BED", { singleBeds: "0", bunkBeds: "2", maxAdults: "1", roomCount: "4", bathroom: "SHARED", amenities: ["air-conditioning", "wifi", "hot-water", "safe", "lockers", "privacy-curtain", "reading-light"] }),
-    template("private-double", "Private double", "", "DOUBLE", { amenities: ["fan", "wifi", "hot-water"], bathroom: "SHARED" }),
-  ],
-  RESORT: [
-    template("pool-view", "Deluxe double, pool view", "Deluxe", "DOUBLE", { view: "POOL", amenities: [...ESSENTIALS, "balcony", "minibar", "safe"], sizeSqm: "34" }),
-    template("garden-bungalow", "Garden bungalow", "", "BUNGALOW", { view: "GARDEN", amenities: [...ESSENTIALS, "terrace", "rain-shower"], sizeSqm: "40" }),
-    template("pool-villa", "Pool villa", "Premier", "VILLA", { kingBeds: "1", bedrooms: "1", livingRooms: "1", bathroomCount: "1", amenities: [...ESSENTIALS, "private-pool", "terrace", "bathtub", "minibar"], sizeSqm: "90" }),
-  ],
-  HOMESTAY: [
-    template("family-home", "Room in the family home", "", "DOUBLE", { bathroom: "SHARED", breakfastIncluded: true, amenities: BUDGET }),
-    template("homestay-family", "Family room", "", "FAMILY", { bathroom: "SHARED", breakfastIncluded: true, maxAdults: "2", maxChildren: "2", amenities: BUDGET }),
-  ],
-  VILLA: [
-    template("whole-villa", "The whole villa", "", "VILLA", { singleBeds: "2", maxChildren: "2", bedrooms: "3", livingRooms: "1", bathroomCount: "3", housekeeping: "DAILY", amenities: [...ESSENTIALS, "private-pool", "kitchen", "terrace"], sizeSqm: "150" }),
-  ],
-  OTHER: [template("double", "Double room", "", "DOUBLE", { amenities: ESSENTIALS })],
-};
-
-/** A template laid over a fresh room's values, beds settled and the name suggested. */
-export function fromTemplate(fresh: FormValues, chosen: RoomTemplate): FormValues {
-  const values: FormValues = { ...fresh };
-  for (const bed of ROOM_BEDS) values[bed.name] = "0";
-  for (const [name, value] of Object.entries(chosen.values)) {
-    values[name] = typeof value === "number" ? String(value) : value;
-  }
-  if (!chosen.values.maxAdults) values.maxAdults = String(Math.max(1, sleepsOf(values)));
-  values.name = suggestName(values, chosen.grade);
-  return values;
-}
 
 export interface RoomSummary {
   /** Kinds of room. */
@@ -409,18 +211,6 @@ export function roomSummary(rooms: readonly FormValues[]): RoomSummary {
   };
 }
 
-/** What a traveller looks for on a room, as a short checklist. */
-export function roomChecklist(values: FormValues): readonly { readonly label: string; readonly done: boolean }[] {
-  const photos = Array.isArray(values.photoKeys) ? values.photoKeys.length : 0;
-  return [
-    { label: "Beds", done: bedsOf(values) > 0 },
-    { label: "Price per night", done: price(values) !== null },
-    { label: "Photos", done: photos > 0 },
-    { label: "Size", done: typeof values.sizeSqm === "string" && values.sizeSqm.trim() !== "" },
-    { label: "Facilities", done: amenitiesOf(values).length >= 3 },
-    { label: "Description", done: typeof values.description === "string" && values.description.trim().length > 0 },
-  ];
-}
 
 /**
  * A long stay that costs less than the nights in it — a week priced at one

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition, useSyncExternalStore } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -409,6 +409,7 @@ export function ListingForm({
     at: Math.max(0, check.step ? steps.findIndex((each) => each.id === check.step) : stepOf(check.fields)),
   }));
 
+  const virtualFields = new Set(checks.filter((check) => check.virtual).flatMap((check) => check.fields));
   const sections: readonly SectionInfo[] = steps.map((each, index) => {
     const names = stepFields(each);
     /* Where a place sits on the page, so the navigator lists them in the order they are met. */
@@ -417,8 +418,12 @@ export function ListingForm({
       return at === -1 ? names.length : at;
     };
     /* A section that names its own places lists those; the others list their checks, in page order. */
+    /* A place is a field shown for this kind, or something the form counts for itself, like the rooms. */
     const own: readonly CheckRow[] | undefined = each.places
-      ?.filter((place) => fieldsByName.has(place.field))
+      ?.filter((place) => {
+        const field = fieldsByName.get(place.field);
+        return field ? isShown(field, values, options) : virtualFields.has(place.field);
+      })
       .map((place) => ({
         label: place.label,
         fields: [place.field],
@@ -866,7 +871,8 @@ export function ListingForm({
                       );
                     };
                     return (
-                      <FormSection description={titled ? group.description : undefined} key={group.title ?? group.fields.join("-")} title={titled ? group.title : undefined}>
+                      <Fragment key={group.title ?? group.fields.join("-")}>
+                      <FormSection description={titled ? group.description : undefined} title={titled ? group.title : undefined}>
                         <fieldset
                           className={cn(
                             "grid gap-y-5",
@@ -894,23 +900,23 @@ export function ListingForm({
                           )}
                         </fieldset>
                       </FormSection>
+                        {hasRooms && group.rooms ? (
+                          <div className="px-5 py-5" data-field="rooms">
+                            <RoomsManager
+                              canEdit={canEdit}
+                              currency={typeof values.currency === "string" && values.currency.trim() ? values.currency.trim().toUpperCase() : "USD"}
+                              onPendingChange={setPendingRooms}
+                              onSummaryChange={onRoomSummary}
+                              pending={pendingRooms}
+                              pendingPhotos={pendingPhotos.map((photo) => ({ key: photo.key, url: photo.url }))}
+                              stayId={record?.id ?? null}
+                            />
+                          </div>
+                        ) : null}
+                      </Fragment>
                     );
                   })}
 
-                  {hasRooms && each.id === "rooms" ? (
-                    <div className="px-5 py-5" data-field="rooms">
-                      <RoomsManager
-                        canEdit={canEdit}
-                        currency={typeof values.currency === "string" && values.currency.trim() ? values.currency.trim().toUpperCase() : "USD"}
-                        onPendingChange={setPendingRooms}
-                        onSummaryChange={onRoomSummary}
-                        pending={pendingRooms}
-                        pendingPhotos={pendingPhotos.map((photo) => ({ key: photo.key, url: photo.url }))}
-                        stayId={record?.id ?? null}
-                        stayType={typeof values.type === "string" ? values.type : "OTHER"}
-                      />
-                    </div>
-                  ) : null}
 
                   {hasMenu && each.id === "menu" ? (
                     <div className="px-5 py-5" data-field="dishes">

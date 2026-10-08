@@ -7,7 +7,6 @@ import {
   Rocket,
   Sparkles,
   Tags,
-  BedDouble,
   ChefHat,
   type LucideIcon,
 } from "lucide-react";
@@ -55,6 +54,8 @@ export interface StepGroup {
    * and an e-mail under each other. Otherwise two equal columns.
    */
   readonly columns?: "fill-fit" | "one";
+  /** The stay's rooms block follows this group. */
+  readonly rooms?: true;
 }
 
 export interface ListingStep {
@@ -236,6 +237,12 @@ const STEPS: Readonly<Record<ListingKey, readonly ListingStep[]>> = {
         { fields: ["tagIds", "centuries", "monarchIds", "architectureStyleIds", "religionIds", "historicalPeriodIds"] },
         { title: "Interests", description: "The Interests tab and province pages it is listed under.", fields: ["interestIds"] },
       ],
+      places: [
+        { label: "Tourism region", field: "tourismRegionIds" },
+        { label: "Categories", field: "categoryIds" },
+        { label: "Tags", field: "tagIds" },
+        { label: "Interests", field: "interestIds" },
+      ],
     },
     review,
   ],
@@ -247,41 +254,36 @@ const STEPS: Readonly<Record<ListingKey, readonly ListingStep[]>> = {
     contact("stay"),
     {
       id: "facilities",
-      title: "Facilities",
-      question: "What type of property is it, what can guests use, and what are the rules?",
-      description: "The type of property, everything a guest can use today, and the stay's policies.",
+      title: "Rooms & facilities",
+      question: "What is the property, and what does it offer?",
+      description: "The type of property, its facilities and policies, and each kind of room once.",
       icon: Sparkles,
       tip: {
         title: "Only list what is there",
-        body: "A guest who chooses a stay for its pool expects to find one. Leave out anything seasonal or on request. Leave the stars empty for a guesthouse or homestay without an official rating.",
+        body: "A guest who chooses a stay for its pool expects to find one. Leave out anything seasonal or on request. Add each kind of room once; copy a room to make the next one like it, and mark one unavailable instead of deleting it.",
       },
       groups: [
         /* The type first — the Stays shelf of the taxonomy — then the stars: the type decides which rooms the stay is offered later. */
         { fields: ["interestIds"] },
         { fields: ["starRating"] },
-        /* Breakfast and parking are chips in this list, as the app shows them. */
-        { fields: ["amenities"] },
+        /* Breakfast and parking are chips in this list, as the app shows them; the rooms follow the list. */
+        { fields: ["amenities"], rooms: true },
         { title: "Stay policies", description: "Check-in and check-out, children, pets, smoking, how guests pay — written out, the way the app shows them.", fields: ["policies"] },
       ],
-    },
-    {
-      id: "rooms",
-      title: "Rooms",
-      question: "Which rooms can guests book?",
-      description: "Add each kind of room once: how many people it sleeps, in which beds, what it has, and what one night costs.",
-      icon: BedDouble,
-      tip: {
-        title: "One entry per kind of room",
-        body: "Ten identical doubles are one room. Copy a room to make the next one like it. When a room cannot be booked for a while, hide it instead of deleting it. The cheapest bookable room sets the “From” price guests see.",
-      },
-      groups: [],
+      places: [
+        { label: "Type", field: "interestIds" },
+        { label: "Star rating", field: "starRating" },
+        { label: "Facilities", field: "amenities" },
+        { label: "Rooms", field: "rooms" },
+        { label: "Stay policies", field: "policies" },
+      ],
     },
     review,
   ],
 
   foods: [
     {
-      ...about("place", { featured: true }),
+      ...about("place", { slug: true, featured: true }),
       tip: {
         title: "Lead with what people come for",
         body: "“Charcoal-grilled river fish, open late” tells a traveller more than “good food and friendly service”. The app shows the first lines on the page; the rest opens under Read more.",
@@ -309,6 +311,13 @@ const STEPS: Readonly<Record<ListingKey, readonly ListingStep[]>> = {
         /* Parked here for now: the hours left the Contact section and have no home of their own yet. */
         { title: "Opening hours", fields: ["openingHours"] },
       ],
+      places: [
+        { label: "Type", field: "interestIds" },
+        { label: "Price range", field: "priceRange" },
+        { label: "Ways to pay", field: "paymentMethods" },
+        { label: "Opening hours", field: "openingHours" },
+        { label: "Menu", field: "dishes" },
+      ],
     },
     review,
   ],
@@ -330,7 +339,7 @@ const CHECKS: Readonly<Record<ListingKey, readonly ReadinessCheck[]>> = {
     { label: "Name", fields: ["name"], required: true },
     { label: "Map pin", fields: ["latitude", "longitude"], all: true, required: true },
     { label: "Address", fields: ["provinceId"] },
-    { label: "Rooms", fields: ["rooms"], virtual: true, step: "rooms", id: "rooms" },
+    { label: "Rooms", fields: ["rooms"], virtual: true, step: "facilities", id: "rooms" },
     { label: "Stay policies", fields: ["policies"] },
     { label: "Messaging apps", fields: ["telegram", "whatsapp", "facebookUrl"] },
     { label: "Cover and gallery", fields: ["coverKey"], step: "photos" },

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
-import { BedDouble, Copy, EyeOff, Eye, Loader2, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import { createPortal } from "react-dom";
+import { BedDouble, Copy, EyeOff, Eye, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   useDeleteRecordMutation,
@@ -9,19 +10,10 @@ import {
   useSaveRecordMutation,
 } from "@/features/catalog/api/catalog-api";
 import type { SaveResult } from "@/features/catalog/form-state";
-import { mediaPath, toFormValues, type FormValues } from "@/features/catalog/resource";
+import { galleryOf, mediaPath, toFormValues, type FormValues } from "@/features/catalog/resource";
 import { getResource } from "@/features/catalog/resources";
-import {
-  ROOM_TEMPLATES,
-  fromTemplate,
-  roomSummary,
-  roomWords,
-  withBedsFor,
-  type RoomGrade,
-  type RoomSummary,
-  type RoomTemplate,
-} from "@/features/catalog/rooms";
-import { RoomBadge, RoomCard, formatMoney } from "@/features/catalog/components/listing-form/room-card";
+import { ROOM_WORDS, roomSummary, withBedsFor, type RoomSummary } from "@/features/catalog/rooms";
+import { RoomBadge, RoomCard } from "@/features/catalog/components/listing-form/room-card";
 import { RoomEditor, type GalleryPhoto } from "@/features/catalog/components/listing-form/room-editor";
 import { apiErrorMessage } from "@/store/api/api-error";
 
@@ -40,8 +32,6 @@ interface Room {
 interface RoomsManagerProps {
   /** Null while the stay is being created. */
   readonly stayId: string | null;
-  /** HOTEL, HOSTEL…: which templates to offer. */
-  readonly stayType: string;
   readonly currency: string;
   readonly pending: readonly RoomDraft[];
   readonly onPendingChange: Dispatch<SetStateAction<RoomDraft[]>>;
@@ -56,22 +46,19 @@ interface Editing {
   /** The saved room's id, or the draft's uid; null for a new room. */
   readonly id: string | null;
   readonly values: FormValues;
-  readonly grade: RoomGrade;
 }
 
 /**
  * A stay's rooms: every kind once, with who it sleeps, its beds, what it has
  * and what a night costs.
  *
- * Starts from a template for the property's type, or from nothing; a room can
- * be copied to make the next one like it, and taken off sale without being
- * deleted. On a saved stay each room is written as it is saved; on a new one
+ * Each room is written in a dialog over the page; a room can be copied to
+ * make the next one like it, and made unavailable without being deleted. On a saved stay each room is written as it is saved; on a new one
  * the rooms wait with the form and are written with the stay. The cheapest room
  * on sale is the stay's "From" price.
  */
 export function RoomsManager({
   stayId,
-  stayType,
   currency,
   pending,
   onPendingChange,
@@ -124,24 +111,34 @@ export function RoomsManager({
   const summary = useMemo(() => roomSummary(rooms.map((room) => room.values)), [rooms]);
   useEffect(() => onSummaryChange(summary), [onSummaryChange, summary]);
 
-  const templates = ROOM_TEMPLATES[stayType] ?? ROOM_TEMPLATES.OTHER;
-  /* A hostel lets dorms and rooms, a villa itself: the step says so. */
-  const words = roomWords(stayType);
+  const words = ROOM_WORDS;
   const fresh = (): FormValues => ({ ...toFormValues(definition, null), stayId: stayId ?? "" });
 
-  function start(template?: RoomTemplate) {
+  /* A new room starts as a double with nothing else filled in. */
+  function start() {
     setNotice(null);
-    setEditing(
-      template
-        ? { id: null, values: fromTemplate(fresh(), template), grade: template.grade }
-        : { id: null, values: { ...withBedsFor(fresh(), "DOUBLE"), name: "" }, grade: "" },
-    );
+    setEditing({ id: null, values: { ...withBedsFor(fresh(), "DOUBLE"), name: "" } });
   }
 
   function copy(room: Room) {
     setNotice(null);
-    setEditing({ id: null, values: { ...room.values, name: `${String(room.values.name ?? "")} (copy)` }, grade: "" });
+    setEditing({ id: null, values: { ...room.values, name: `${String(room.values.name ?? "")} (copy)` } });
   }
+
+  /* Escape closes the dialog; the page behind stays put. */
+  useEffect(() => {
+    if (!editing) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setEditing(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [editing]);
 
   async function write(values: FormValues, id: string | null): Promise<SaveResult> {
     try {
@@ -197,60 +194,62 @@ export function RoomsManager({
     setBusy(room.id);
     const result = await write(values, room.id);
     setBusy(null);
-    setNotice(result.ok ? (values.status === "INACTIVE" ? "Hidden from guests." : "Shown to guests again.") : result.message);
+    setNotice(result.ok ? (values.status === "INACTIVE" ? "Marked unavailable." : "Available again.") : result.message);
   }
 
-  if (editing) {
-    return (
-      <div>
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold text-ink">{editing.id ? words.edit : words.fresh}</h3>
-        </div>
-        <RoomEditor
-          currency={currency}
-          definition={definition}
-          initial={editing.values}
-          initialGrade={editing.grade}
-          isNew={editing.id === null}
-          key={editing.id ?? "new"}
-          onCancel={() => setEditing(null)}
-          onSave={save}
-          photos={photos}
-          words={words}
-        />
-      </div>
-    );
-  }
+  /* The room is written in a dialog over the page, outside the listing's form: its own Enter and Escape, and room to work. */
+  const dialog = editing
+    ? createPortal(
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-ink/40 p-3 sm:p-6" onClick={() => setEditing(null)}>
+          <div
+            aria-labelledby="room-dialog-title"
+            aria-modal="true"
+            className="mx-auto w-full max-w-5xl rounded-xl border border-line bg-paper p-5 shadow-xl sm:p-6"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h3 className="text-base font-semibold text-ink" id="room-dialog-title">
+                {editing.id ? words.edit : words.fresh}
+              </h3>
+              <IconButton label="Close without saving" onClick={() => setEditing(null)}>
+                <X aria-hidden className="size-4" />
+              </IconButton>
+            </div>
+            <RoomEditor
+              currency={currency}
+              definition={definition}
+              initial={editing.values}
+              isNew={editing.id === null}
+              key={editing.id ?? "new"}
+              onCancel={() => setEditing(null)}
+              onSave={save}
+              photos={photos}
+              category={galleryOf(getResource("stay-media"))?.category ?? "stay"}
+            />
+          </div>
+        </div>,
+        document.body,
+      )
+    : null;
 
   return (
     <div className="flex flex-col gap-4">
-      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-4">
-        <Metric label={words.kinds} value={String(summary.types)} />
-        <Metric label={words.total} value={String(summary.rooms)} />
-        <Metric label={words.biggest} value={summary.guests ? String(summary.guests) : "—"} />
-        <Metric label={words.cheapest} value={summary.fromPrice !== null ? formatMoney(summary.fromPrice, currency) : "—"} />
-      </dl>
-
-      {canEdit ? (
-        <div>
-          <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted">
-            <Sparkles aria-hidden className="size-3.5" />
-            Start from a template — then change anything
+      {dialog}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-ink">Rooms</h3>
+        <div className="flex items-center gap-3">
+          <p className="text-xs text-muted tabular-nums">
+            {summary.types} {summary.types === 1 ? "room" : "rooms"}
           </p>
-          <div className="flex flex-wrap gap-1.5">
-            {templates.map((template) => (
-              <Button key={template.id} onClick={() => start(template)} size="sm" type="button" variant="secondary">
-                <Plus aria-hidden className="size-3.5" />
-                {template.title}
-              </Button>
-            ))}
-            <Button onClick={() => start()} size="sm" type="button" variant="ghost">
+          {canEdit ? (
+            <Button onClick={start} size="sm" type="button" variant="secondary">
               <Plus aria-hidden className="size-3.5" />
-              {words.blank}
+              {words.add}
             </Button>
-          </div>
+          ) : null}
         </div>
-      ) : null}
+      </div>
 
       {notice ? (
         <p aria-live="polite" className="text-xs text-muted" role="status">
@@ -274,13 +273,13 @@ export function RoomsManager({
                   actions={
                     canEdit ? (
                       <>
-                        <IconButton label="Edit" onClick={() => setEditing({ id: room.id, values: room.values, grade: "" })}>
+                        <IconButton label="Edit" onClick={() => setEditing({ id: room.id, values: room.values })}>
                           <Pencil aria-hidden className="size-3.5" />
                         </IconButton>
                         <IconButton label={words.copy} onClick={() => copy(room)}>
                           <Copy aria-hidden className="size-3.5" />
                         </IconButton>
-                        <IconButton label={offSale ? "Show to guests again" : "Hide from guests"} onClick={() => void toggleSale(room)}>
+                        <IconButton label={offSale ? "Make available" : "Make unavailable"} onClick={() => void toggleSale(room)}>
                           {offSale ? <Eye aria-hidden className="size-3.5" /> : <EyeOff aria-hidden className="size-3.5" />}
                         </IconButton>
                         <IconButton danger label="Delete" onClick={() => void remove(room)}>
@@ -312,14 +311,6 @@ export function RoomsManager({
   );
 }
 
-function Metric({ label, value }: { readonly label: string; readonly value: string }) {
-  return (
-    <div className="bg-paper px-3 py-2">
-      <dt className="text-xs text-muted">{label}</dt>
-      <dd className="text-base font-semibold text-ink tabular-nums">{value}</dd>
-    </div>
-  );
-}
 
 function IconButton({
   label,
