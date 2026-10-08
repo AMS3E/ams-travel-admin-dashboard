@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
-import { Copy, EyeOff, Eye, Loader2, Pencil, Plus, Sparkles, Trash2, UtensilsCrossed } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Check, Copy, EyeOff, Eye, Loader2, Pencil, Plus, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   useDeleteRecordMutation,
@@ -11,27 +11,20 @@ import {
   useSaveRecordMutation,
 } from "@/features/catalog/api/catalog-api";
 import type { SaveResult } from "@/features/catalog/form-state";
-import { mediaPath, toFormValues, type FormValues } from "@/features/catalog/resource";
+import { galleryOf, mediaPath, toFormValues, type FormValues } from "@/features/catalog/resource";
 import { getResource } from "@/features/catalog/resources";
 import {
-  DISH_TEMPLATES,
-  byCourse,
-  courseLabel,
-  courseOrder,
+  type MenuSummary,
+  bySection,
   firstCourse,
-  fromDishTemplate,
   menuSummary,
   menuWords,
-  type DishTemplate,
-  type MenuSummary,
-  type MenuWords,
+  sectionOf,
 } from "@/features/catalog/menu";
 import { DishBadge, DishCard } from "@/features/catalog/components/listing-form/dish-card";
 import { DishEditor } from "@/features/catalog/components/listing-form/dish-editor";
-import { formatMoney } from "@/features/catalog/components/listing-form/room-card";
 import type { GalleryPhoto } from "@/features/catalog/components/listing-form/room-editor";
 import { apiErrorMessage } from "@/store/api/api-error";
-import { cn } from "@/lib/utils";
 
 /** A dish made while the listing does not exist yet; written when the listing is saved. */
 export interface DishDraft {
@@ -51,8 +44,6 @@ interface MenuManagerProps {
   /** RESTAURANT, STREET_FOOD…: which dishes to offer as a starting point. */
   readonly foodType: string;
   readonly currency: string;
-  /** What the listing says a meal costs, to sanity-check a dish's price against. */
-  readonly averageMealPrice: unknown;
   readonly pending: readonly DishDraft[];
   readonly onPendingChange: Dispatch<SetStateAction<DishDraft[]>>;
   /** Gallery photos waiting for a new listing to be saved; a saved one's are read here. */
@@ -82,7 +73,6 @@ export function MenuManager({
   foodId,
   foodType,
   currency,
-  averageMealPrice,
   pending,
   onPendingChange,
   pendingPhotos,
@@ -104,8 +94,11 @@ export function MenuManager({
   const [deleteRecord] = useDeleteRecordMutation();
   const [editing, setEditing] = useState<Editing | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  /* Headings made this session that hold nothing yet; a heading with a dish in it lives on the dish. */
+  const [headings, setHeadings] = useState<string[]>([]);
+  const [naming, setNaming] = useState("");
+  const [renaming, setRenaming] = useState<{ readonly from: string; readonly to: string } | null>(null);
 
   const dishes: readonly Dish[] = useMemo(
     () =>
@@ -135,16 +128,64 @@ export function MenuManager({
   const summary = useMemo(() => menuSummary(dishes.map((each) => each.values)), [dishes]);
   useEffect(() => onSummaryChange(summary), [onSummaryChange, summary]);
 
-  const templates = DISH_TEMPLATES[foodType] ?? DISH_TEMPLATES.OTHER;
   /* A cafe has items on a board, a restaurant dishes on a menu. */
   const words = menuWords(foodType);
   const One = words.one.charAt(0).toUpperCase() + words.one.slice(1);
-  const Many = words.many.charAt(0).toUpperCase() + words.many.slice(1);
-  const fresh = (): FormValues => ({ ...toFormValues(definition, null), foodId: foodId ?? "", course: firstCourse(foodType) });
+  /* The course is the API's fixed heading: filled with a sensible one, never chosen. The host's heading is the category. */
+  const fresh = (section = ""): FormValues => ({ ...toFormValues(definition, null), foodId: foodId ?? "", course: firstCourse(foodType), section });
 
-  function start(template?: DishTemplate) {
+  function start(section = "") {
     setNotice(null);
-    setEditing({ id: null, values: template ? fromDishTemplate(fresh(), template) : fresh() });
+    setEditing({ id: null, values: fresh(section) });
+  }
+
+  useEffect(() => {
+    if (!editing) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setEditing(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [editing]);
+
+  const groups = bySection(dishes, headings);
+  const sectionNames = groups.map((group) => group.section).filter(Boolean);
+
+  function addHeading() {
+    const name = naming.trim();
+    setNaming("");
+    if (!name || sectionNames.some((each) => each.toLowerCase() === name.toLowerCase())) return;
+    setHeadings((list) => [...list, name]);
+  }
+
+  /** A heading renamed on every dish under it; the empty ones are just renamed. */
+  async function renameHeading(from: string, to: string) {
+    const name = to.trim();
+    setRenaming(null);
+    if (!name || name === from) return;
+    setHeadings((list) => list.map((each) => (each === from ? name : each)));
+    const under = dishes.filter((item) => sectionOf(item.values) === from);
+    if (!foodId) {
+      onPendingChange((list) => list.map((draft) => (sectionOf(draft.values) === from ? { uid: draft.uid, values: { ...draft.values, section: name } } : draft)));
+      return;
+    }
+    setBusy(from);
+    const failed: string[] = [];
+    for (const item of under) {
+      const result = await write({ ...item.values, section: name }, item.id);
+      if (!result.ok) failed.push(`${String(item.values.name)}: ${result.message}`);
+    }
+    setBusy(null);
+    setNotice(failed.length ? failed.join("; ") : `Renamed to ${name}.`);
+  }
+
+  function removeHeading(name: string) {
+    setHeadings((list) => list.filter((each) => each !== name));
   }
 
   function copy(item: Dish) {
@@ -180,41 +221,6 @@ export function MenuManager({
     return result;
   }
 
-  /**
-   * A whole board at once: a coffee shop sells a dozen drinks, and writing
-   * each one through the editor is a dozen round trips. What is ticked here is
-   * added with its price; everything else about it — a photo, a description —
-   * is added afterwards, on the item itself.
-   */
-  async function addMany(chosen: readonly { readonly template: DishTemplate; readonly price: string }[]) {
-    setNotice(null);
-    if (!chosen.length || adding) return;
-    setAdding(true);
-    const made = chosen.map(({ template, price }) => {
-      const values = fromDishTemplate(fresh(), template);
-      return price.trim() ? { ...values, price: price.trim() } : values;
-    });
-    const many = made.length === 1 ? words.one : words.many;
-    if (!foodId) {
-      onPendingChange((list) => [
-        ...list,
-        ...made.map((values, index) => ({ uid: crypto.randomUUID(), values: { ...values, sortOrder: String(list.length + index) } })),
-      ]);
-      setAdding(false);
-      setNotice(`${made.length} ${many} added — they are saved with the listing.`);
-      return;
-    }
-    const failed: string[] = [];
-    for (const [index, values] of made.entries()) {
-      const result = await write({ ...values, sortOrder: String(dishes.length + index) }, null);
-      if (!result.ok) failed.push(`${String(values.name)}: ${result.message}`);
-    }
-    setAdding(false);
-    setNotice(failed.length
-      ? `${made.length - failed.length} added; ${failed.join("; ")}`
-      : `${made.length} ${many} added.`);
-  }
-
   async function remove(item: Dish) {
     setNotice(null);
     if (!item.saved) {
@@ -244,48 +250,77 @@ export function MenuManager({
     setNotice(result.ok ? (values.status === "INACTIVE" ? "Taken off the menu — kept here." : "Back on the menu.") : result.message);
   }
 
-  if (editing) {
-    return (
-      <div>
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold text-ink">{editing.id ? `Edit ${words.one}` : `New ${words.one}`}</h3>
-        </div>
-        <DishEditor
-          averageMealPrice={averageMealPrice}
-          currency={currency}
-          definition={definition}
-          foodType={foodType}
-          words={words}
-          initial={editing.values}
-          isNew={editing.id === null}
-          key={editing.id ?? "new"}
-          onCancel={() => setEditing(null)}
-          onSave={save}
-          photos={photos}
-        />
-      </div>
-    );
-  }
+  /* The dish is written in a dialog over the page, outside the listing's form: its own Enter and Escape, and room to work. */
+  const dialog = editing
+    ? createPortal(
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-ink/40 p-3 sm:p-6" onClick={() => setEditing(null)}>
+          <div
+            aria-labelledby="dish-dialog-title"
+            aria-modal="true"
+            className="mx-auto w-full max-w-5xl rounded-xl border border-line bg-paper p-5 shadow-xl sm:p-6"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h3 className="text-base font-semibold text-ink" id="dish-dialog-title">
+                {editing.id ? `Edit ${words.one}` : `New ${words.one}`}
+              </h3>
+              <IconButton label="Close without saving" onClick={() => setEditing(null)}>
+                <X aria-hidden className="size-4" />
+              </IconButton>
+            </div>
+            <DishEditor
+              currency={currency}
+              definition={definition}
+              foodType={foodType}
+              words={words}
+              initial={editing.values}
+              isNew={editing.id === null}
+              key={editing.id ?? "new"}
+              onCancel={() => setEditing(null)}
+              onSave={save}
+              photos={photos}
+              category={galleryOf(getResource("food-media"))?.category ?? "food"}
+              sections={sectionNames}
+            />
+          </div>
+        </div>,
+        document.body,
+      )
+    : null;
 
   return (
     <div className="flex flex-col gap-4">
-      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-4">
-        <Metric label={Many} value={String(summary.dishes)} />
-        <Metric label={words.sections} value={String(summary.courses)} />
-        <Metric label={`Signature ${words.many}`} value={String(summary.signature)} />
-        <Metric label={`Cheapest ${words.one}`} value={summary.fromPrice !== null ? formatMoney(summary.fromPrice, currency) : "—"} />
-      </dl>
+      {dialog}
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-sm font-semibold text-ink">Menu</h3>
+        <p className="text-xs text-muted tabular-nums">
+          {summary.dishes} {summary.dishes === 1 ? words.one : words.many} · {summary.sections} {summary.sections === 1 ? "category" : "categories"}
+        </p>
+      </div>
 
+      {/* No form of its own: this sits inside the listing's form, so Enter is caught on the box instead of saving the listing. */}
       {canEdit ? (
-        <QuickAdd
-          adding={adding}
-          currency={currency}
-          foodType={foodType}
-          onAdd={addMany}
-          onBlank={() => start()}
-          templates={templates}
-          words={words}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            aria-label="New category"
+            className="h-9 w-56"
+            maxLength={100}
+            onChange={(event) => setNaming(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              addHeading();
+            }}
+            placeholder="New category, e.g. Soups"
+            value={naming}
+          />
+          <Button disabled={!naming.trim()} onClick={addHeading} size="sm" type="button" variant="secondary">
+            <Plus aria-hidden className="size-3.5" />
+            Add category
+          </Button>
+          <p className="text-2xs text-muted">Your own headings, in your own words. Each {words.one} is added under one, with the plus beside it.</p>
+        </div>
       ) : null}
 
       {notice ? (
@@ -299,11 +334,60 @@ export function MenuManager({
           <Loader2 aria-hidden className="size-4 animate-spin" />
           Loading the menu…
         </p>
-      ) : dishes.length ? (
+      ) : groups.length ? (
         <div className="flex flex-col gap-5">
-          {byCourse(dishes, foodType).map((group) => (
-            <section key={group.course}>
-              <h4 className="mb-2 text-xs font-semibold tracking-label text-muted uppercase">{group.label}</h4>
+          {groups.map((group) => (
+            <section key={group.section || "(none)"}>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                {renaming && renaming.from === group.section ? (
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      aria-label="Category name"
+                      autoFocus
+                      className="h-8 w-56 text-sm"
+                      maxLength={100}
+                      onChange={(event) => setRenaming({ from: renaming.from, to: event.target.value })}
+                      onKeyDown={(event) => {
+                        if (event.key === "Escape") setRenaming(null);
+                        if (event.key !== "Enter") return;
+                        event.preventDefault();
+                        void renameHeading(renaming.from, renaming.to);
+                      }}
+                      value={renaming.to}
+                    />
+                    <IconButton label="Save the name" onClick={() => void renameHeading(renaming.from, renaming.to)}>
+                      <Check aria-hidden className="size-3.5" />
+                    </IconButton>
+                    <IconButton label="Keep the old name" onClick={() => setRenaming(null)}>
+                      <X aria-hidden className="size-3.5" />
+                    </IconButton>
+                  </div>
+                ) : (
+                  <h4 className="text-xs font-semibold tracking-label text-muted uppercase">{group.section || `Without a category`}</h4>
+                )}
+                {canEdit && !renaming ? (
+                  <span className="flex items-center gap-1">
+                    <IconButton label={`Add ${words.one} under ${group.section || "no category"}`} onClick={() => start(group.section)}>
+                      <Plus aria-hidden className="size-3.5" />
+                    </IconButton>
+                    {group.section ? (
+                      <IconButton label={`Rename ${group.section}`} onClick={() => setRenaming({ from: group.section, to: group.section })}>
+                        {busy === group.section ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <Pencil aria-hidden className="size-3.5" />}
+                      </IconButton>
+                    ) : null}
+                    {group.section && !group.dishes.length ? (
+                      <IconButton danger label={`Remove the empty category ${group.section}`} onClick={() => removeHeading(group.section)}>
+                        <Trash2 aria-hidden className="size-3.5" />
+                      </IconButton>
+                    ) : null}
+                  </span>
+                ) : null}
+              </div>
+              {!group.dishes.length ? (
+                <p className="rounded-md border border-dashed border-line-strong bg-sand px-3 py-2 text-xs text-muted">
+                  Nothing under {group.section} yet. Add a {words.one} with the plus beside it.
+                </p>
+              ) : null}
               <ul className="flex flex-col gap-2">
                 {(group.dishes as readonly Dish[]).map((item) => {
                   const keys = Array.isArray(item.values.photoKeys) ? item.values.photoKeys : [];
@@ -359,14 +443,6 @@ export function MenuManager({
   );
 }
 
-function Metric({ label, value }: { readonly label: string; readonly value: string }) {
-  return (
-    <div className="bg-paper px-3 py-2">
-      <dt className="text-xs text-muted">{label}</dt>
-      <dd className="text-base font-semibold text-ink tabular-nums">{value}</dd>
-    </div>
-  );
-}
 
 function IconButton({
   label,
@@ -394,110 +470,3 @@ function IconButton({
   );
 }
 
-/**
- * The board this kind of place usually sells: tick what is on it, write each
- * price, and they all go on the menu together. A coffee shop is the reason it
- * exists — its board is a dozen drinks, and each one used to be a form.
- */
-function QuickAdd({ templates, words, currency, foodType, adding, onAdd, onBlank }: {
-  readonly templates: readonly DishTemplate[];
-  readonly words: MenuWords;
-  readonly currency: string;
-  readonly foodType: string;
-  readonly adding: boolean;
-  readonly onAdd: (chosen: readonly { readonly template: DishTemplate; readonly price: string }[]) => void;
-  readonly onBlank: () => void;
-}) {
-  /* Ticked items, each with the price typed beside it. */
-  const [picked, setPicked] = useState<Record<string, string>>({});
-  const chosen = Object.keys(picked);
-  const groups = courseOrder(foodType).flatMap((course) => {
-    const under = templates.filter((template) => (typeof template.values.course === "string" ? template.values.course : "MAIN") === course);
-    return under.length ? [{ course, label: courseLabel(course), under }] : [];
-  });
-
-  function toggle(id: string, on: boolean) {
-    setPicked((current) => {
-      const next = { ...current };
-      if (on) next[id] = next[id] ?? "";
-      else delete next[id];
-      return next;
-    });
-  }
-
-  return (
-    <section aria-labelledby="quick-add" className="rounded-lg border border-line">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2">
-        <p className="flex items-center gap-1.5 text-xs font-medium text-ink-soft" id="quick-add">
-          <Sparkles aria-hidden className="size-3.5 text-muted" />
-          What this kind of place usually sells — tick yours, write the price, add them together
-        </p>
-        <span className="text-xs text-muted tabular-nums">{chosen.length} ticked</span>
-      </header>
-
-      <div className="flex flex-col gap-3 p-3">
-        {groups.map((group) => (
-          <div key={group.course}>
-            <h4 className="mb-1.5 text-2xs font-semibold text-muted">{group.label}</h4>
-            <ul className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
-              {group.under.map((template) => {
-                const on = template.id in picked;
-                const local = typeof template.values.localName === "string" ? template.values.localName : "";
-                return (
-                  <li
-                    className={cn(
-                      "flex items-center gap-2 rounded-md border px-2 py-1.5 transition-colors",
-                      on ? "border-teal bg-teal-soft/40" : "border-line",
-                    )}
-                    key={template.id}
-                  >
-                    <Checkbox
-                      checked={on}
-                      id={`pick-${template.id}`}
-                      onChange={(event) => toggle(template.id, event.target.checked)}
-                    />
-                    <label className="min-w-0 flex-1 cursor-pointer" htmlFor={`pick-${template.id}`}>
-                      <span className="block truncate text-sm text-ink">{template.title}</span>
-                      {local ? <span className="block truncate text-2xs text-muted">{local}</span> : null}
-                    </label>
-                    <Input
-                      aria-label={`Price for ${template.title}`}
-                      className="h-7 w-20 text-sm"
-                      inputMode="decimal"
-                      onChange={(event) => setPicked((current) => ({ ...current, [template.id]: event.target.value }))}
-                      placeholder={currency}
-                      value={picked[template.id] ?? ""}
-                    />
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-      </div>
-
-      <footer className="flex flex-wrap items-center gap-2 border-t border-line px-3 py-2">
-        <Button
-          disabled={!chosen.length || adding}
-          onClick={() => {
-            onAdd(chosen.flatMap((id) => {
-              const template = templates.find((each) => each.id === id);
-              return template ? [{ template, price: picked[id] ?? "" }] : [];
-            }));
-            setPicked({});
-          }}
-          size="sm"
-          type="button"
-        >
-          {adding ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <Plus aria-hidden className="size-3.5" />}
-          Add {chosen.length ? `${chosen.length} ` : ""}{chosen.length === 1 ? words.one : words.many}
-        </Button>
-        <Button onClick={onBlank} size="sm" type="button" variant="ghost">
-          <Plus aria-hidden className="size-3.5" />
-          Something else
-        </Button>
-        <p className="text-2xs text-muted">A photo, what is in it and how spicy it is are added on the {words.one} itself.</p>
-      </footer>
-    </section>
-  );
-}

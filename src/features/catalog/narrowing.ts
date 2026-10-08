@@ -65,6 +65,39 @@ export function mainRegion(regions: readonly ReferenceOption[], theme: string | 
   return [own?.value ?? chosenIds[0]];
 }
 
+/**
+ * The API's kind of a stay or a food listing, by the interest it is filed
+ * under — the Stays and Food shelves of the mind map, nothing else. The API's
+ * other kinds (guesthouse, hostel, villa, cafe as such, other) are never given.
+ */
+export const KIND_BY_INTEREST: Readonly<Record<string, string>> = {
+  "Luxury Hotel": "HOTEL",
+  Homestay: "HOMESTAY",
+  Resorts: "RESORT",
+  "Private Island": "RESORT",
+  "Eco Lodge": "RESORT",
+  Restaurants: "RESTAURANT",
+  Markets: "MARKET",
+  Drinks: "CAFE",
+  Streetfood: "STREET_FOOD",
+  "Traditional Food": "RESTAURANT",
+  Skybar: "RESTAURANT",
+};
+
+/**
+ * A stay's or a food listing's kind: that of the first interest ticked, kept
+ * as it is while an interest still says so — the API hands interests back in
+ * its own order, and the kind must not change with it. `current` stays while
+ * nothing is ticked, so an opened record is not blanked.
+ */
+export function kindOf(interests: readonly ReferenceOption[], chosenIds: readonly string[], current: string): string {
+  const kinds = chosenIds
+    .map((id) => KIND_BY_INTEREST[interests.find((option) => option.value === id)?.label ?? ""])
+    .filter((kind): kind is string => Boolean(kind));
+  if (!kinds.length) return current;
+  return kinds.includes(current) ? current : kinds[0]!;
+}
+
 /** An attraction's theme: the code of the tourism region chosen for it, "" while none is. */
 export function themeOf(regions: readonly ReferenceOption[], chosenIds: readonly string[]): string {
   const chosen = chosenIds[0];

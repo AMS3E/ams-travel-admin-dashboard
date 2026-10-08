@@ -428,6 +428,35 @@
   filter: var(--map-tiles);
 }
 
+/* The listing pin's landing: a ring at its tip that swells and fades, twice, while the icon is marked `landed`. */
+.pin-pulse {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 24px;
+  height: 24px;
+  margin: 0 0 -10px -12px;
+  border-radius: 9999px;
+  background: rgb(11 107 242 / 0.35);
+  opacity: 0;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .landed .pin-pulse {
+    animation: pin-pulse 1.1s ease-out 2;
+  }
+}
+@keyframes pin-pulse {
+  from {
+    opacity: 0.8;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 0;
+    transform: scale(3);
+  }
+}
+
 .leaflet-container {
   font-family: var(--font-sans);
 }

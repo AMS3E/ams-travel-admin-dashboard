@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
-import { BedDouble, Building2, Check, Coffee, LayoutGrid, Maximize2, Mountain, ShowerHead, Users } from "lucide-react";
+import { BedDouble, Building2, Coffee, LayoutGrid, Maximize2, Mountain, ShowerHead, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { FormValues } from "@/features/catalog/resource";
 import { ROOM_AMENITIES } from "@/features/catalog/resources";
-import { bedLine, cancellationLabel, floorLabel, hasOwnLayout, layoutLine, roomTypeLabel, sleepsOf, viewLabel } from "@/features/catalog/rooms";
+import { bedLine, floorLabel, hasOwnLayout, layoutLine, roomTypeLabel, sleepsOf, viewLabel } from "@/features/catalog/rooms";
 import { cn } from "@/lib/utils";
 
 /** A price in the stay's currency, or the bare figure for a code Intl does not know. */
@@ -55,12 +55,10 @@ export function RoomCard({ values, currency, photoUrl, badge, actions, layout = 
   const price = Number(text(values.pricePerNight));
   const priced = text(values.pricePerNight) !== "" && Number.isFinite(price);
   const amenities = (Array.isArray(values.amenities) ? values.amenities : []).map((slug) => AMENITY_LABELS.get(slug) ?? slug);
-  const cancellation = cancellationLabel(values.freeCancellationDays);
   const layoutOf = hasOwnLayout(values) ? layoutLine(values) : "";
   const floor = floorLabel(values.floor);
   const weekly = Number(text(values.weeklyPrice));
   const monthly = Number(text(values.monthlyPrice));
-  const refundable = cancellation !== "Non-refundable";
 
   return (
     <div className={cn("@container", className)}>
@@ -171,10 +169,6 @@ export function RoomCard({ values, currency, photoUrl, badge, actions, layout = 
               Breakfast included
             </p>
           ) : null}
-          <p className={cn("inline-flex items-start gap-1 text-xs", refundable ? "text-success" : "text-muted")}>
-            {refundable ? <Check aria-hidden className="mt-px size-3.5 shrink-0" /> : null}
-            {cancellation}
-          </p>
           {actions ? <div className="mt-auto flex flex-wrap gap-1 pt-1 @2xl:justify-end">{actions}</div> : null}
         </div>
       </div>

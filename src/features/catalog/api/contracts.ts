@@ -143,6 +143,11 @@ export interface StayResponse {
   readonly starRating: number | null;
   readonly shortDescription: string | null;
   readonly description: string | null;
+  readonly slogan: string | null;
+  readonly sloganBy: string | null;
+  readonly provinceId: string | null;
+  readonly isFeatured: boolean;
+  readonly policies: string | null;
   /** `HH:mm[:ss]` local time, as the property states it; no date is involved. */
   readonly checkInFrom: string | null;
   readonly checkOutUntil: string | null;
@@ -184,6 +189,9 @@ export interface FoodResponse {
   readonly type: FoodType;
   readonly shortDescription: string | null;
   readonly description: string | null;
+  readonly slogan: string | null;
+  readonly sloganBy: string | null;
+  readonly provinceId: string | null;
   readonly address: string | null;
   readonly latitude: number | null;
   readonly longitude: number | null;

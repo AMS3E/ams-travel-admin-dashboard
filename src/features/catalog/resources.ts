@@ -187,14 +187,15 @@ export const LANGUAGES: readonly EnumOption[] = [
 
 /** Everything a guest checks before booking, beyond the rooms. */
 const stayRules: readonly ResourceField[] = [
-  { name: "checkInUntil", label: "Latest check-in", kind: "time", section: "House rules", hint: "After this hour nobody can check in. Leave empty if someone is at the desk all night." },
-  { name: "checkOutFrom", label: "Earliest check-out", kind: "time", section: "House rules", hint: "Only if guests cannot leave before a certain hour. Usually left empty." },
-  { name: "minCheckInAge", label: "Youngest guest who can check in alone", kind: "number", min: 0, max: 99, section: "House rules", hint: "In years, e.g. 18. Leave empty if there is no such rule." },
-  { name: "childrenAllowed", label: "Children welcome", kind: "boolean", initial: "true", section: "House rules" },
-  { name: "petsPolicy", label: "Pets", kind: "enum", options: PETS_POLICIES, scale: true, section: "House rules" },
-  { name: "smokingPolicy", label: "Smoking", kind: "enum", options: SMOKING_POLICIES, scale: true, section: "House rules" },
-  { name: "partiesAllowed", label: "Guests may hold parties or events", kind: "boolean", section: "House rules" },
+  { derived: true, name: "checkInUntil", label: "Latest check-in", kind: "time", section: "House rules", hint: "After this hour nobody can check in. Leave empty if someone is at the desk all night." },
+  { derived: true, name: "checkOutFrom", label: "Earliest check-out", kind: "time", section: "House rules", hint: "Only if guests cannot leave before a certain hour. Usually left empty." },
+  { derived: true, name: "minCheckInAge", label: "Youngest guest who can check in alone", kind: "number", min: 0, max: 99, section: "House rules", hint: "In years, e.g. 18. Leave empty if there is no such rule." },
+  { derived: true, name: "childrenAllowed", label: "Children welcome", kind: "boolean", initial: "true", section: "House rules" },
+  { derived: true, name: "petsPolicy", label: "Pets", kind: "enum", options: PETS_POLICIES, scale: true, section: "House rules" },
+  { derived: true, name: "smokingPolicy", label: "Smoking", kind: "enum", options: SMOKING_POLICIES, scale: true, section: "House rules" },
+  { derived: true, name: "partiesAllowed", label: "Guests may hold parties or events", kind: "boolean", section: "House rules" },
   {
+    derived: true,
     name: "quietHours",
     label: "Quiet hours",
     kind: "text",
@@ -205,9 +206,11 @@ const stayRules: readonly ResourceField[] = [
   },
 ];
 
+/* No longer asked: breakfast and parking are chips in the facilities list, as the app shows them. Kept as they are on a record. */
 const stayServices: readonly ResourceField[] = [
-  { name: "breakfastOption", label: "Breakfast", kind: "enum", options: BREAKFAST_OPTIONS, scale: true, section: "Services" },
+  { derived: true, name: "breakfastOption", label: "Breakfast", kind: "enum", options: BREAKFAST_OPTIONS, scale: true, section: "Services" },
   {
+    derived: true,
     name: "breakfastTypes",
     label: "What breakfast is served",
     kind: "enums",
@@ -217,6 +220,7 @@ const stayServices: readonly ResourceField[] = [
     visibleWhen: { field: "breakfastOption", values: ["INCLUDED", "EXTRA_CHARGE"] },
   },
   {
+    derived: true,
     name: "breakfastPrice",
     label: "Breakfast price, per person",
     kind: "decimal",
@@ -225,8 +229,9 @@ const stayServices: readonly ResourceField[] = [
     section: "Services",
     visibleWhen: { field: "breakfastOption", values: ["EXTRA_CHARGE"] },
   },
-  { name: "parkingOption", label: "Parking", kind: "enum", options: PARKING_OPTIONS, section: "Services" },
+  { derived: true, name: "parkingOption", label: "Parking", kind: "enum", options: PARKING_OPTIONS, section: "Services" },
   {
+    derived: true,
     name: "parkingPrice",
     label: "Parking price, per day",
     kind: "decimal",
@@ -238,8 +243,8 @@ const stayServices: readonly ResourceField[] = [
 ];
 
 const stayPayments: readonly ResourceField[] = [
-  { name: "paymentMethods", label: "Ways to pay", kind: "enums", options: PAYMENT_METHODS, span: 2, section: "Payments", hint: "Travellers from abroad look for cards; most guests here pay with KHQR or cash." },
-  { name: "languagesSpoken", label: "Languages the staff speak", kind: "enums", options: LANGUAGES, span: 2, section: "Payments", hint: "So a guest knows they can be helped in their own language." },
+  { derived: true, name: "paymentMethods", label: "Ways to pay", kind: "enums", options: PAYMENT_METHODS, span: 2, section: "Payments", hint: "Travellers from abroad look for cards; most guests here pay with KHQR or cash." },
+  { derived: true, name: "languagesSpoken", label: "Languages the staff speak", kind: "enums", options: LANGUAGES, span: 2, section: "Payments", hint: "So a guest knows they can be helped in their own language." },
 ];
 
 const stayTrust: readonly ResourceField[] = [
@@ -419,8 +424,7 @@ export const DIETARY_BY_KIND: Readonly<Record<string, readonly string[]>> = {
 
 /**
  * What one person spends, said the way each kind of place is bought from:
- * nobody buys a meal in a cafe or a plate in a bar. Read through
- * FOOD_FIELD_LABELS, with everything else each kind is called.
+ * nobody buys a meal in a cafe or a plate in a bar.
  */
 export const AVERAGE_PRICE_LABEL: Readonly<Record<string, string>> = {
   RESTAURANT: "A meal usually costs",
@@ -462,202 +466,6 @@ export const FOOD_INTERESTS_BY_KIND = foodRows({
   MARKET: ["markets", "streetfood", "traditional-food"],
 });
 
-/**
- * The examples under the first fields, per kind: what a cafe's name and its
- * one line might be, and where a stall's address is. A kind named nowhere
- * keeps the field's own hint.
- */
-export const FOOD_FIELD_HINTS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
-  name: {
-    RESTAURANT: "For example: Riverside Khmer Kitchen, or Lotus Rooftop Bar.",
-    CAFE: "For example: Mekong Morning Coffee, or Sunrise Bakery.",
-    STREET_FOOD: "What people call it, for example: Auntie Srey's noodle cart.",
-    MARKET: "For example: Phsar Chas Night Market.",
-  },
-  description: {
-    RESTAURANT: "The story: who cooks, since when, and the first three dishes to order.",
-    CAFE: "The story: where the beans come from, what comes out of the oven, what people order, and the best seat.",
-    STREET_FOOD: "The story: who cooks, how long the stall has been there, and what to order.",
-    MARKET: "What it is like: the stalls worth finding, and the best time to come.",
-  },
-  address: {
-    RESTAURANT: "Street, number and area, e.g. No. 12, Sisowath Quay, Phnom Penh.",
-    CAFE: "Street, number and area, e.g. No. 8, Street 240, Phnom Penh.",
-    STREET_FOOD: "Where it stands, e.g. corner of Street 13 and 178, opposite the pagoda.",
-    MARKET: "The street or landmark, e.g. Street 108, by the riverside.",
-  },
-  cuisines: {
-    RESTAURANT: "What the kitchen is known for. Two or three beat a list of ten — a traveller searches by these.",
-    CAFE: "Beyond the coffee: what else people come in for.",
-    STREET_FOOD: "The one or two things the stall is known for.",
-    MARKET: "What the food stalls cook between them.",
-  },
-  dietary: {
-    RESTAURANT: "Only what the kitchen can promise on any day, not what it could do if asked nicely.",
-    CAFE: "Only what the board can promise on any day — oat milk counts as vegan only if it is always there.",
-    STREET_FOOD: "Only what the cook can promise on any day.",
-    MARKET: "Only what several stalls can promise on any day.",
-  },
-  menuLanguages: {
-    RESTAURANT: "So a traveller knows whether they can read the menu before they sit down.",
-    CAFE: "So a traveller knows whether they can read the board before they queue.",
-    STREET_FOOD: "So a traveller knows whether they can read the sign, or should point.",
-    MARKET: "So a traveller knows whether they can read the stalls' signs, or should point.",
-  },
-  priceRange: {
-    RESTAURANT: "$ is a Khmer canteen, $$$$ is fine dining.",
-    CAFE: "$ is a roadside iced coffee, $$$$ a specialty roaster.",
-    STREET_FOOD: "Most stalls are $.",
-    MARKET: "Most markets are $; a food hall may be $$.",
-  },
-  averageMealPrice: {
-    RESTAURANT: "What one person spends on an ordinary meal — the figure a traveller budgets by.",
-    CAFE: "What one person spends sitting down with a coffee and something to eat.",
-    STREET_FOOD: "What one person pays for a plate at the stall.",
-    MARKET: "What one person pays for a plate at one of the food stalls.",
-  },
-  priceFrom: {
-    RESTAURANT: "The lowest a diner pays for one dish. Once the menu has prices, this follows the cheapest dish by itself.",
-    CAFE: "The lowest price on the board. Once the menu has prices, this follows the cheapest item by itself.",
-    STREET_FOOD: "The lowest a plate costs. Once the menu has prices, this follows the cheapest dish by itself.",
-    MARKET: "The lowest a plate costs at the stalls. Once the menu has prices, this follows the cheapest dish by itself.",
-  },
-  openingHours: {
-    RESTAURANT: "For example 11:00-22:00. Leave a day empty when the restaurant is closed.",
-    CAFE: "For example 06:30-18:00. Leave a day empty when the cafe is closed.",
-    STREET_FOOD: "When the stall is out, for example 05:30-10:00. Leave a day empty when it does not come out.",
-    MARKET: "For example 17:00-23:00 for a night market. Leave a day empty when the market does not open.",
-  },
-  phone: {
-    RESTAURANT: "The number that takes table bookings.",
-    CAFE: "The number that takes orders.",
-    STREET_FOOD: "The cook's number, if they take orders by phone.",
-    MARKET: "The market office, if it has one.",
-  },
-  facebookUrl: {
-    RESTAURANT: "Where the restaurant posts today's dishes.",
-    CAFE: "Where the cafe posts today's cakes and events.",
-    STREET_FOOD: "Where the stall says whether it is out today.",
-    MARKET: "Where the market posts its events.",
-  },
-  categoryIds: {
-    RESTAURANT: "Only the categories a restaurant is filed under are offered. What the kitchen cooks comes in the next step.",
-    CAFE: "Only the categories a cafe is filed under are offered. Its coffee and drinks comes in the next step.",
-    STREET_FOOD: "Only the categories a stall is filed under are offered. What it cooks comes in the next step.",
-    MARKET: "Only the categories a market is filed under are offered. What its stalls cook comes in the next step.",
-  },
-  tagIds: {
-    RESTAURANT: "Only the words travellers search by for a restaurant.",
-    CAFE: "Only the words travellers search by for a cafe.",
-    STREET_FOOD: "Only the words travellers search by for a stall.",
-    MARKET: "Only the words travellers search by for a market.",
-  },
-  interestIds: {
-    RESTAURANT: "A traveller browsing one of these meets the restaurant on its page. Tick every one that fits.",
-    CAFE: "A traveller browsing one of these meets the cafe on its page. Tick every one that fits.",
-    STREET_FOOD: "A traveller browsing one of these meets the stall on its page. Tick every one that fits.",
-    MARKET: "A traveller browsing one of these meets the market on its page. Tick every one that fits.",
-  },
-  isLocalSpecialty: {
-    RESTAURANT: "Crab with Kampot pepper in Kep, fish amok by the river — the website marks the restaurant with it.",
-    CAFE: "Mondulkiri coffee, palm-sugar drinks — the website marks the cafe with it.",
-    STREET_FOOD: "Num banh chok, Battambang rice noodles — the website marks the stall with it.",
-    MARKET: "The crab market's crab, the pepper market's pepper — the website marks the market with it.",
-  },
-};
-
-/**
- * What each field is called for each kind of place, so a restaurant's form
- * reads as a restaurant's and a bar's as a bar's. A kind left out keeps the
- * field's own label — "Other" mostly does. Applied by `forKind` below.
- */
-export const FOOD_FIELD_LABELS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
-  name: {
-    RESTAURANT: "Restaurant name", CAFE: "Cafe name", STREET_FOOD: "Stall name", MARKET: "Market name",
-  },
-  description: {
-    RESTAURANT: "The restaurant's story", CAFE: "The cafe's story", STREET_FOOD: "The stall's story",
-    MARKET: "What the market is like",
-  },
-  address: {
-    RESTAURANT: "Restaurant address", CAFE: "Cafe address", STREET_FOOD: "Where the stall stands", MARKET: "Market address",
-  },
-  cuisines: {
-    RESTAURANT: "Cuisines the kitchen cooks", CAFE: "What it is known for", STREET_FOOD: "What kind of food",
-    MARKET: "What the stalls cook",
-  },
-  mealsServed: {
-    RESTAURANT: "Meals the kitchen serves", CAFE: "People come for", STREET_FOOD: "When it sells",
-    MARKET: "When the food stalls sell",
-  },
-  dietary: {
-    RESTAURANT: "Diets the kitchen can cook for", CAFE: "Diets the board suits", STREET_FOOD: "Diets the stall can cook for",
-    MARKET: "Diets the stalls can cook for",
-  },
-  alcohol: {
-    RESTAURANT: "Alcohol with the meal", CAFE: "Alcohol at the cafe", STREET_FOOD: "Beer at the stall",
-    MARKET: "Alcohol at the market",
-  },
-  menuLanguages: {
-    RESTAURANT: "The menu is written in", CAFE: "The board is written in", STREET_FOOD: "The stall's sign is written in",
-    MARKET: "Stall signs are written in",
-  },
-  amenities: {
-    RESTAURANT: "What the restaurant has", CAFE: "What the cafe has", STREET_FOOD: "What the stall has",
-    MARKET: "What the market has",
-  },
-  serviceOptions: {
-    RESTAURANT: "Ways to eat here", CAFE: "Ways to order", STREET_FOOD: "Ways to eat from the stall",
-    MARKET: "Ways to eat at the market",
-  },
-  goodFor: {
-    RESTAURANT: "Who the restaurant suits", CAFE: "Who the cafe suits", STREET_FOOD: "Who the stall suits",
-    MARKET: "Who the market suits",
-  },
-  parkingOption: {
-    RESTAURANT: "Parking for diners", CAFE: "Parking for customers", STREET_FOOD: "Parking near the stall",
-    MARKET: "Parking at the market",
-  },
-  reservations: { RESTAURANT: "Do diners need to book a table?" },
-  deliveryPartners: {
-    RESTAURANT: "Apps that deliver from the restaurant", CAFE: "Apps that deliver from the cafe",
-    STREET_FOOD: "Apps that deliver from the stall", MARKET: "Apps that deliver from the stalls",
-  },
-  priceRange: {
-    RESTAURANT: "How expensive the restaurant feels", CAFE: "How expensive the cafe feels",
-    STREET_FOOD: "How expensive the stall feels", MARKET: "How expensive the market feels",
-  },
-  averageMealPrice: AVERAGE_PRICE_LABEL,
-  priceFrom: {
-    RESTAURANT: "Cheapest dish or drink", CAFE: "Cheapest drink or bake", STREET_FOOD: "Cheapest plate", MARKET: "Cheapest plate",
-  },
-  paymentMethods: {
-    RESTAURANT: "Ways to pay the bill", CAFE: "Ways to pay at the counter", STREET_FOOD: "Ways to pay at the stall",
-    MARKET: "Ways to pay the stalls",
-  },
-  languagesSpoken: {
-    RESTAURANT: "Languages the waiters speak", CAFE: "Languages the baristas speak", STREET_FOOD: "Languages the cook speaks",
-    MARKET: "Languages the stall holders speak",
-  },
-  openingHours: { STREET_FOOD: "Selling hours", MARKET: "Market days and hours" },
-  phone: {
-    RESTAURANT: "Phone for bookings", CAFE: "Phone for orders", STREET_FOOD: "Phone for orders", MARKET: "Market office phone",
-  },
-  isLocalSpecialty: {
-    RESTAURANT: "Cooks a dish this area is known for", CAFE: "Serves a drink this area is known for",
-    STREET_FOOD: "Sells a dish this area is known for", MARKET: "Sells what this area is known for",
-  },
-};
-
-type KindWords = Readonly<Record<string, Readonly<Record<string, string>>>>;
-
-/** A field in its kind's own words — the label and the examples — from a listing's two tables. */
-const inKindWords = (labels: KindWords, hints: KindWords, kindField = "type") => (field: ResourceField): ResourceField => ({
-  ...field,
-  ...(labels[field.name] ? { labelFor: { field: kindField, labels: labels[field.name] } } : {}),
-  ...(hints[field.name] ? { hintFor: { field: kindField, hints: hints[field.name] } } : {}),
-});
-
 /*
  * --- an attraction's theme ---------------------------------------------------
  *
@@ -676,75 +484,6 @@ export const DESTINATION_THEMES: readonly EnumOption[] = [
   { value: "ECO-COMMUNITY", label: "Eco-Community Tourism" },
   { value: "LUXURY-TOURISM", label: "Luxury Tourism" },
 ];
-
-/**
- * What only one kind of place has — the API's `FoodSpecialties`, in its order,
- * checked against the Java file by a test. Labelled `Group · Name` like the
- * facilities, so the grouped picker shows each kind's headings.
- */
-const FOOD_SPECIALTY_GROUPS: readonly (readonly [string, readonly (readonly [string, readonly (readonly [string, string])[]])[]])[] = [
-  ["CAFE", [
-    ["Coffee", [["khmer-iced-coffee", "Khmer iced coffee"], ["espresso", "Espresso"], ["cappuccino-latte", "Cappuccino & latte"],
-      ["pour-over", "Pour-over & drip"], ["cold-brew", "Cold brew"]]],
-    ["Other drinks", [["tea", "Tea"], ["matcha", "Matcha"], ["smoothies", "Smoothies"], ["fresh-juice", "Fresh juice"],
-      ["fresh-coconut", "Fresh coconut"]]],
-    ["Beans", [["mondulkiri-beans", "Mondulkiri beans"], ["ratanakiri-beans", "Ratanakiri beans"],
-      ["imported-beans", "Imported beans"], ["roasted-in-house", "Roasted in-house"]]],
-    ["Milk", [["condensed-milk", "Condensed milk"], ["fresh-milk", "Fresh milk"], ["oat-milk", "Oat milk"],
-      ["soy-milk", "Soy milk"], ["almond-milk", "Almond milk"]]],
-    /* A bakery is a cafe that bakes, so its three groups end the cafe's list. */
-    ["Baked here", [["bread", "Bread"], ["baguettes", "Baguettes"], ["pastries", "Pastries"], ["cakes", "Cakes"],
-      ["khmer-sweets", "Khmer sweets"], ["cookies", "Cookies"], ["savoury-pies", "Savoury pies"]]],
-    ["Orders", [["cakes-to-order", "Cakes made to order"], ["whole-cakes", "Whole cakes to take away"], ["party-trays", "Party trays"]]],
-    ["Freshness", [["baked-every-morning", "Baked every morning"], ["baked-twice-a-day", "Baked twice a day"]]],
-  ]],
-  ["STREET_FOOD", [
-    ["Cooked on", [["charcoal-grill", "Charcoal grill"], ["wok", "Wok"], ["steamer", "Steamer"], ["broth-pot", "Pot of broth"],
-      ["griddle", "Griddle"], ["deep-fryer", "Deep fryer"]]],
-    ["Sold from", [["cart", "A cart"], ["stall", "A stall"], ["motorbike-cart", "A motorbike cart"], ["night-market-pitch", "A night-market pitch"]]],
-    ["Selling times", [["mornings-only", "Mornings only"], ["evenings-only", "Evenings only"], ["all-day", "All day"]]],
-  ]],
-  ["MARKET", [
-    ["Kind of market", [["day-market", "Day market"], ["night-market", "Night market"], ["wet-market", "Wet market"],
-      ["food-hall", "Food hall"], ["floating-market", "Floating market"]]],
-    ["Also sells", [["fresh-produce", "Fresh produce"], ["souvenirs", "Souvenirs"], ["clothes", "Clothes"], ["crafts", "Crafts"],
-      ["spices", "Spices"]]],
-    ["Size", [["under-20-stalls", "Under 20 food stalls"], ["20-to-50-stalls", "20 to 50 food stalls"], ["over-50-stalls", "Over 50 food stalls"]]],
-  ]],
-  ["RESTAURANT", [
-    ["How it is served", [["family-style", "Family style — dishes to share"], ["a-la-carte", "À la carte"], ["set-menu", "Set menu"],
-      ["tasting-menu", "Tasting menu"], ["cook-at-table", "Cook at the table — hot pot or tabletop grill"]]],
-    ["Cooking", [["wood-fired", "Wood-fired"], ["chefs-table", "Chef's table"], ["khmer-home-cooking", "Khmer home cooking"],
-      ["royal-khmer-recipes", "Royal Khmer recipes"], ["live-seafood", "Choose your fish or seafood from the tank"],
-      ["own-garden", "Grows its own herbs and vegetables"]]],
-    ["Groups & events", [["banquets", "Weddings and banquets"], ["group-set-menus", "Set menus for groups"],
-      ["birthday-parties", "Birthday parties"], ["cooking-classes", "Cooking classes"]]],
-    /* A bar is a restaurant that pours, so its groups end the restaurant's list. */
-    ["Drinks", [["draught-beer", "Draught beer"], ["craft-beer", "Craft beer"], ["signature-cocktails", "Signature cocktails"],
-      ["wine", "Wine"], ["spirits", "Spirits"], ["khmer-rice-wine", "Khmer rice wine"], ["mocktails", "Mocktails"]]],
-    ["Nights", [["happy-hour", "Happy hour"], ["live-band", "Live band"], ["dj-nights", "DJ nights"],
-      ["sports-screenings", "Sports on screen"], ["quiz-night", "Quiz night"]]],
-    ["Dress code", [["dress-casual", "Casual"], ["dress-smart-casual", "Smart casual"], ["dress-formal", "Formal"],
-      ["over-18-only", "18 and over only"], ["smart-dress", "A dress code is kept at the door"]]],
-  ]],
-];
-
-export const FOOD_SPECIALTIES: readonly EnumOption[] = FOOD_SPECIALTY_GROUPS.flatMap(([, groups]) =>
-  groups.flatMap(([group, entries]) => entries.map(([value, label]) => ({ value, label: `${group} · ${label}` }))),
-);
-
-/** Each kind's own slugs; "Other" has none of its own. */
-export const SPECIALTIES_BY_KIND: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
-  FOOD_SPECIALTY_GROUPS.map(([kind, groups]) => [kind, groups.flatMap(([, entries]) => entries.map(([value]) => value))]),
-);
-
-/** What the field is called for each kind: it holds what only that kind has. */
-export const SPECIALTY_LABEL: Readonly<Record<string, string>> = {
-  CAFE: "Your coffee, drinks, beans, milk and what you bake",
-  STREET_FOOD: "How and where you cook",
-  MARKET: "What kind of market it is",
-  RESTAURANT: "How you serve, cook, host and pour",
-};
 
 /** A kitchen with no bar serves beer at most; a bar pours everything. */
 export const ALCOHOL_BY_KIND: Readonly<Record<string, readonly string[]>> = {
@@ -1075,67 +814,6 @@ export const STAY_AMENITIES: readonly EnumOption[] = STAY_AMENITY_GROUPS.flatMap
   entries.map(([value, label]) => ({ value, label: `${group} · ${label}` })),
 );
 
-/*
- * --- each kind of stay, its own ------------------------------------------------
- *
- * The mirror of the food tables: what only a hotel, a hostel or a homestay has
- * (the API's `StaySpecialties`, checked against the Java file by a test), the
- * facilities and breakfasts each kind is offered, and every field in its words.
- * Only the form narrows — the API keeps one vocabulary, so a changed type loses nothing.
- */
-const STAY_SPECIALTY_GROUPS: readonly (readonly [string, readonly (readonly [string, readonly (readonly [string, string])[]])[]])[] = [
-  ["HOTEL", [
-    ["Kind of hotel", [["boutique-hotel", "Boutique hotel"], ["business-hotel", "Business hotel"], ["heritage-building", "In a heritage building"], ["riverfront-hotel", "On the riverfront"], ["airport-hotel", "Near the airport"]]],
-    ["At the front desk", [["concierge", "Concierge"], ["porter", "Porter for the luggage"], ["express-check-in", "Express check-in"], ["currency-exchange", "Currency exchange"], ["sim-cards", "SIM cards sold"], ["visa-help", "Help with visas"]]],
-    ["Meetings & events", [["meeting-rooms", "Meeting rooms"], ["business-centre", "Business centre"], ["event-hall", "Wedding and event hall"], ["executive-lounge", "Executive lounge"]]],
-  ]],
-  ["GUESTHOUSE", [
-    ["The house", [["family-run", "Family-run"], ["hosts-on-site", "The owners live on site"], ["guest-kitchen", "A kitchen guests can use"], ["common-room", "Common room"], ["rooftop-terrace", "Rooftop terrace"]]],
-    ["The hosts can arrange", [["tuk-tuk-drivers", "Tuk-tuks and drivers"], ["bus-boat-tickets", "Bus and boat tickets"], ["bicycle-hire", "Bicycle hire"], ["motorbike-hire", "Motorbike hire"], ["visa-extensions", "Visa extensions"]]],
-    ["Kind of guesthouse", [["budget-guesthouse", "Budget"], ["colonial-house", "In an old colonial house"], ["garden-bungalows", "Bungalows in a garden"]]],
-  ]],
-  ["HOSTEL", [
-    ["Beds", [["mixed-dorms", "Mixed dorms"], ["female-dorms", "Female-only dorms"], ["pod-beds", "Pod beds with curtains"], ["private-rooms-too", "Private rooms as well"]]],
-    ["Social life", [["party-hostel", "Party hostel"], ["quiet-hostel", "Quiet hostel"], ["shared-dinners", "Shared dinners"], ["pub-crawls", "Pub crawls"], ["free-walking-tours", "Free walking tours"]]],
-    ["For backpackers", [["hostel-kitchen", "A kitchen guests can use"], ["travel-desk", "Bus, boat and visa desk"], ["book-exchange", "Book exchange"], ["coworking-corner", "Co-working corner"]]],
-  ]],
-  ["RESORT", [
-    ["Setting", [["beachfront", "On the beach"], ["private-island", "On its own island"], ["jungle-setting", "In the jungle"], ["riverside-setting", "By the river"], ["hills-setting", "In the hills"]]],
-    ["Meal plans", [["all-inclusive", "All-inclusive"], ["full-board", "Full board"], ["half-board", "Half board"]]],
-    ["Activities", [["kids-club", "Kids' club"], ["water-sports", "Water sports"], ["diving", "Diving and snorkelling"], ["kayaks", "Kayaks"], ["yoga", "Yoga classes"], ["nature-walks", "Guided nature walks"]]],
-    ["Getting there", [["boat-transfer", "Boat transfer"], ["resort-shuttle", "Shuttle from town"]]],
-  ]],
-  ["HOMESTAY", [
-    ["The home", [["stilt-house", "Traditional Khmer stilt house"], ["village-setting", "In a village"], ["rice-field-view", "View over the rice fields"], ["meals-with-family", "Meals with the family"]]],
-    ["Join in", [["cook-with-hosts", "Cook with the hosts"], ["farm-work", "Help on the farm"], ["village-crafts", "Village crafts — weaving, pottery"], ["fishing-trips", "Fishing with the family"], ["ox-cart-rides", "Ox-cart rides"], ["village-walks", "Village walks"]]],
-    ["Community", [["community-tourism", "Community-based tourism"], ["money-to-village", "Money goes to the village"]]],
-  ]],
-  ["VILLA", [
-    ["The villa", [["whole-villa", "The whole villa is yours"], ["villa-pool", "Private pool"], ["villa-garden", "Private garden"], ["villa-bbq", "Barbecue"], ["villa-kitchen", "Full kitchen"]]],
-    ["Staff", [["housekeeper", "Housekeeper"], ["private-chef", "Private chef"], ["driver", "Driver"], ["night-guard", "Night guard"]]],
-    ["Where the villa is", [["villa-beach", "By the beach"], ["villa-countryside", "In the countryside"], ["villa-town", "In town"]]],
-  ]],
-];
-
-export const STAY_SPECIALTIES: readonly EnumOption[] = STAY_SPECIALTY_GROUPS.flatMap(([, kindGroups]) =>
-  kindGroups.flatMap(([group, entries]) => entries.map(([value, label]) => ({ value, label: `${group} · ${label}` }))),
-);
-
-/** Each kind's own slugs; "Other" has none of its own. */
-export const STAY_SPECIALTIES_BY_KIND: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
-  STAY_SPECIALTY_GROUPS.map(([kind, kindGroups]) => [kind, kindGroups.flatMap(([, entries]) => entries.map(([value]) => value))]),
-);
-
-/** What the field is called for each kind of stay: it holds what only that kind has. */
-export const STAY_SPECIALTY_LABEL: Readonly<Record<string, string>> = {
-  HOTEL: "What kind of hotel, its desk and its events",
-  GUESTHOUSE: "Your house, and what the hosts arrange",
-  HOSTEL: "Your beds and your social life",
-  RESORT: "Its setting, meal plans and activities",
-  HOMESTAY: "Your home, and what guests join in",
-  VILLA: "The villa, its staff and where it is"
-};
-
 /** The facilities each kind of stay is offered: a homestay is not asked about its gym or its lift. */
 export const STAY_FACILITIES_BY_KIND: Readonly<Record<string, readonly string[]>> = {
   HOTEL: ["wifi", "wifi-free", "workspace", "parking", "parking-free", "airport-shuttle", "car-hire", "pool", "spa", "gym", "garden", "terrace", "breakfast", "restaurant", "bar", "room-service", "air-conditioning", "heating", "private-bathroom", "balcony", "tv", "safe", "front-desk-24h", "laundry", "housekeeping", "luggage-storage", "tours", "family-rooms", "cot", "pets-allowed", "step-free-access", "lift", "accessible-bathroom"],
@@ -1156,233 +834,6 @@ export const BREAKFAST_BY_KIND: Readonly<Record<string, readonly string[]>> = {
 
 /** Star ratings are official, and only hotels, guesthouses and resorts get one. */
 const STAR_RATED = ["HOTEL", "GUESTHOUSE", "RESORT", "OTHER"];
-
-/**
- * What each stay field is called for each kind, so a hotel's form reads as a
- * hotel's and a homestay's as a homestay's. A kind left out keeps the field's
- * own label — "Other" mostly does.
- */
-export const STAY_FIELD_LABELS: KindWords = {
-  name: {
-    HOTEL: "Hotel name",
-    GUESTHOUSE: "Guesthouse name",
-    HOSTEL: "Hostel name",
-    RESORT: "Resort name",
-    HOMESTAY: "Homestay name",
-    VILLA: "Villa name",
-  },
-  starRating: {
-    HOTEL: "Official star rating",
-    GUESTHOUSE: "Official star rating",
-    RESORT: "Official star rating",
-  },
-  description: {
-    HOTEL: "The hotel's story",
-    GUESTHOUSE: "The guesthouse and its hosts",
-    HOSTEL: "What the hostel is like",
-    RESORT: "A day at the resort",
-    HOMESTAY: "Life with the family",
-    VILLA: "A stay at the villa",
-  },
-  interestIds: {
-    HOTEL: "Trips the hotel suits",
-    GUESTHOUSE: "Trips the guesthouse suits",
-    HOSTEL: "Trips the hostel suits",
-    RESORT: "Trips the resort suits",
-    HOMESTAY: "Trips the homestay suits",
-    VILLA: "Trips the villa suits",
-  },
-  address: {
-    HOTEL: "Hotel address",
-    GUESTHOUSE: "Guesthouse address",
-    HOSTEL: "Hostel address",
-    RESORT: "Resort address",
-    HOMESTAY: "Village and address",
-    VILLA: "Villa address",
-  },
-  phone: {
-    HOTEL: "Front desk phone",
-    GUESTHOUSE: "The hosts' phone",
-    HOSTEL: "Reception phone",
-    RESORT: "Reservations phone",
-    HOMESTAY: "The family's phone",
-    VILLA: "Villa manager's phone",
-  },
-  amenities: {
-    HOTEL: "What the hotel has",
-    GUESTHOUSE: "What the guesthouse has",
-    HOSTEL: "What the hostel has",
-    RESORT: "What the resort has",
-    HOMESTAY: "What the home has",
-    VILLA: "What the villa has",
-  },
-  breakfastOption: {
-    HOTEL: "Breakfast at the hotel",
-    GUESTHOUSE: "Breakfast at the guesthouse",
-    HOSTEL: "Breakfast at the hostel",
-    RESORT: "Breakfast at the resort",
-    HOMESTAY: "Breakfast with the family",
-    VILLA: "Breakfast in the villa",
-  },
-  breakfastTypes: {
-    HOTEL: "What the hotel serves for breakfast",
-    GUESTHOUSE: "What the hosts serve for breakfast",
-    HOSTEL: "What the hostel serves for breakfast",
-    RESORT: "What the resort serves for breakfast",
-    HOMESTAY: "What the family cooks for breakfast",
-    VILLA: "What is cooked for breakfast",
-  },
-  parkingOption: {
-    HOTEL: "Hotel parking",
-    GUESTHOUSE: "Guesthouse parking",
-    HOSTEL: "Hostel parking",
-    RESORT: "Resort parking",
-    HOMESTAY: "Parking at the house",
-    VILLA: "Parking at the villa",
-  },
-  priceFrom: {
-    HOTEL: "Cheapest room, per night",
-    GUESTHOUSE: "Cheapest room, per night",
-    HOSTEL: "Cheapest bed, per night",
-    RESORT: "Cheapest room or villa, per night",
-    HOMESTAY: "One night in the home",
-    VILLA: "The villa, per night",
-  },
-  checkInFrom: {
-    HOMESTAY: "Earliest arrival",
-    VILLA: "Earliest arrival",
-  },
-  checkInUntil: {
-    HOMESTAY: "Latest arrival",
-    VILLA: "Latest arrival",
-    HOSTEL: "Latest check-in at reception",
-  },
-  checkOutFrom: {
-    HOMESTAY: "Earliest departure",
-    VILLA: "Earliest departure",
-  },
-  checkOutUntil: {
-    HOMESTAY: "Latest departure",
-    VILLA: "Latest departure",
-  },
-  minCheckInAge: {
-    HOTEL: "Youngest guest who can check in alone",
-    GUESTHOUSE: "Youngest guest who can stay alone",
-    HOSTEL: "Youngest guest in the dorms",
-    RESORT: "Youngest guest who can check in alone",
-    HOMESTAY: "Youngest guest who can stay alone",
-    VILLA: "Youngest guest who can book",
-  },
-  childrenAllowed: {
-    HOSTEL: "Children welcome (in private rooms)",
-    HOMESTAY: "Children welcome in the home",
-    VILLA: "Children welcome at the villa",
-  },
-  partiesAllowed: {
-    HOSTEL: "Guests may hold their own parties",
-    HOMESTAY: "Guests may hold parties in the home",
-    VILLA: "Guests may hold parties at the villa",
-  },
-  quietHours: {
-    GUESTHOUSE: "When the house is quiet",
-    HOSTEL: "Quiet hours in the dorms",
-    HOMESTAY: "When the family sleeps",
-    VILLA: "Quiet hours for the neighbours",
-  },
-  paymentMethods: {
-    HOTEL: "Ways to pay the hotel",
-    GUESTHOUSE: "Ways to pay the hosts",
-    HOSTEL: "Ways to pay at reception",
-    RESORT: "Ways to pay the resort",
-    HOMESTAY: "Ways to pay the family",
-    VILLA: "Ways to pay for the villa",
-  },
-  languagesSpoken: {
-    HOTEL: "Languages the front desk speaks",
-    GUESTHOUSE: "Languages the hosts speak",
-    HOSTEL: "Languages reception speaks",
-    RESORT: "Languages the resort staff speak",
-    HOMESTAY: "Languages the family speaks",
-    VILLA: "Languages the villa manager speaks",
-  },
-};
-
-/** The examples under the stay fields, per kind. */
-export const STAY_FIELD_HINTS: KindWords = {
-  name: {
-    HOTEL: "For example: Riverside Palace Hotel.",
-    GUESTHOUSE: "For example: Srey's Garden Guesthouse.",
-    HOSTEL: "For example: Lucky Backpackers Hostel.",
-    RESORT: "For example: Saracen Bay Beach Resort.",
-    HOMESTAY: "For example: Mr Sok's Family Homestay, Chi Phat.",
-    VILLA: "For example: Villa Lotus Kep.",
-  },
-  description: {
-    HOTEL: "The story: what the hotel is known for, the best rooms, and what is close by.",
-    GUESTHOUSE: "Who runs it, what the house is like, and what the hosts help with.",
-    HOSTEL: "The crowd it draws, the dorms and the common spaces, and what happens in the evening.",
-    RESORT: "The setting, what a day there looks like, and how guests get there.",
-    HOMESTAY: "The family, the house, the village, and what guests do with them each day.",
-    VILLA: "How many it sleeps, what comes with it, and what the area is like.",
-  },
-  address: {
-    HOTEL: "Street, number and area, e.g. No. 12, Sisowath Quay, Phnom Penh.",
-    GUESTHOUSE: "Street and village, e.g. Street 19, Wat Bo village, Siem Reap.",
-    HOSTEL: "Street, number and area, e.g. No. 8, Street 172, Phnom Penh.",
-    RESORT: "The beach, island or area, e.g. Saracen Bay, Koh Rong Samloem.",
-    HOMESTAY: "Village, commune and province, e.g. Chi Phat village, Chi Phat commune, Koh Kong.",
-    VILLA: "Road and area, e.g. Kep Beach road, Kep.",
-  },
-  starRating: {
-    HOTEL: "The Ministry of Tourism's official rating, 1 to 5. Leave it empty if the hotel is not rated.",
-    GUESTHOUSE: "Only if the guesthouse has an official rating. Most do not — leave it empty.",
-    RESORT: "The Ministry of Tourism's official rating, 1 to 5. Leave it empty if the resort is not rated.",
-  },
-  amenities: {
-    HOTEL: "Everything a hotel guest can use. Guests filter hotels by these, so tick only what is really there.",
-    GUESTHOUSE: "Everything a guest can use in the house. Guests filter by these, so tick only what is really there.",
-    HOSTEL: "Everything a backpacker can use. Only a hostel’s facilities are offered.",
-    RESORT: "Everything a resort guest can use without leaving. Guests filter resorts by these.",
-    HOMESTAY: "What the home really has. A shared bathroom and a fan are fine when guests know.",
-    VILLA: "Everything that comes with the villa. Guests filter villas by these.",
-  },
-  priceFrom: {
-    HOTEL: "One night in the cheapest room. Once the rooms have prices, this follows the cheapest room by itself.",
-    GUESTHOUSE: "One night in the cheapest room, fan rooms included. Once the rooms have prices, this follows the cheapest by itself.",
-    HOSTEL: "One bed for one night in the cheapest dorm. Once the dorms have prices, this follows the cheapest bed by itself.",
-    RESORT: "One night in the cheapest room or bungalow. Once they have prices, this follows the cheapest by itself.",
-    HOMESTAY: "One night in the home. Say in the description whether dinner with the family is included.",
-    VILLA: "One night for the whole villa, not per person. Once the villa has a price, this follows it by itself.",
-  },
-  phone: {
-    HOTEL: "The front desk, which answers day and night.",
-    GUESTHOUSE: "The number the hosts answer.",
-    HOSTEL: "Reception, for late arrivals.",
-    RESORT: "Reservations, and the boat transfer.",
-    HOMESTAY: "The family, or the community office that books for them.",
-    VILLA: "The manager who hands over the keys.",
-  },
-  facebookUrl: {
-    HOTEL: "The hotel's page, where it posts offers.",
-    GUESTHOUSE: "The guesthouse's page, where guests leave reviews.",
-    HOSTEL: "The hostel's page, where it posts tonight's events.",
-    RESORT: "The resort's page, where it posts the boat times.",
-    HOMESTAY: "The homestay's or the community's page.",
-    VILLA: "The villa's page, with more photos.",
-  },
-  quietHours: {
-    GUESTHOUSE: "When guests must keep the noise down, e.g. 22:00-07:00. Leave empty if there are none.",
-    HOSTEL: "When the dorms go quiet, e.g. 23:00-07:00 — the rooftop can stay open later.",
-    HOMESTAY: "When the family goes to bed and gets up, e.g. 21:00-05:00.",
-    VILLA: "When the pool and music must go quiet for the neighbours, e.g. 22:00-08:00.",
-  },
-};
-
-/** A stay field in its kind's own words (see STAY_FIELD_LABELS and STAY_FIELD_HINTS). */
-const forStayKind = inKindWords(STAY_FIELD_LABELS, STAY_FIELD_HINTS);
-
-/** A food field in its kind's own words (see FOOD_FIELD_LABELS and FOOD_FIELD_HINTS). */
-const forFoodKind = inKindWords(FOOD_FIELD_LABELS, FOOD_FIELD_HINTS);
 
 const classification: readonly ResourceField[] = [
   { name: "categoryIds", label: "Categories", kind: "refs", ref: "categories", span: 2, section: "Classification" },
@@ -1529,12 +980,13 @@ const regionsOf = (noun: string, field: "categoryIds" | "tagIds" | "interestIds"
   hint: `The regions this ${noun} belongs to. It is offered only on their pages and to the destinations in them.`,
 });
 
-/** The same two price fields, with the hint written for the kind of listing. */
+/** The same two price fields, with the hint written for the kind of listing. The from-price is never asked: the API sets it from the cheapest room or dish. */
 const priceFor = (hint: string): readonly ResourceField[] =>
   pricing.map((field) => (field.name === "priceFrom" ? { ...field, hint } : field));
 
 const pricing: readonly ResourceField[] = [
   {
+    derived: true,
     name: "priceFrom",
     label: "Price from",
     kind: "decimal",
@@ -1570,6 +1022,8 @@ const pinnedLocation: readonly ResourceField[] = location.map((field) => {
       hint: "Travellers see it on the page of every destination within 50 km of the pin.",
     };
   }
+  /* The address sits beside the province, under the map. */
+  if (field.name === "address") return { ...field, span: 1 };
   return field.name === "longitude" ? { ...field, required: true } : field;
 });
 
@@ -1578,34 +1032,46 @@ const pinnedLocation: readonly ResourceField[] = location.map((field) => {
  * shelf (Stays, Food), each of whose pages lists it next to the destinations.
  * The one matching its type is chosen for it, when such an interest exists.
  */
-const shelfInterests = (
-  group: "Stays" | "Food",
-  noun: string,
-  labels: Readonly<Record<string, readonly string[]>>,
-): ResourceField => ({
+const shelfInterests = (group: "Stays" | "Food", noun: string): ResourceField => ({
   name: "interestIds",
-  label: "Kinds of trip it suits",
+  /* The type IS the interest: the taxonomy's shelf, which the app browses by. The API's own kind follows from the first one (see kindOf). */
+  label: "Type",
   kind: "refs",
   ref: "interests",
   span: 2,
+  required: true,
   section: "Classification",
   optionGroup: group,
-  presetBy: { field: "type", labels },
-  hint: `A traveller browsing for one of these sees this ${noun} on its page. Tick every one that fits.`,
+  hint: `What travellers browse by: a traveller looking for one of these finds this ${noun} on its page. Tick every one that fits.`,
 });
 
-const STAY_INTERESTS = shelfInterests("Stays", "stay", {
-  HOTEL: ["Hotel", "Hotels"],
-  GUESTHOUSE: ["Guesthouse", "Guesthouses", "Guest house", "Guest houses"],
-  HOSTEL: ["Hostel", "Hostels"],
-  RESORT: ["Resort", "Resorts"],
-  HOMESTAY: ["Homestay", "Homestays"],
-  VILLA: ["Villa", "Villas"],
-});
+const STAY_INTERESTS = shelfInterests("Stays", "stay");
+const FOOD_INTERESTS = shelfInterests("Food", "place");
 
 
 const listingName: ResourceField = { ...name(), maxLength: 255, span: 2 };
 const listingSlug: ResourceField = { ...slug, maxLength: 150 };
+/* The quote at the top of a listing's page on the app, and who said it: the same on every kind of listing. */
+const listingSlogan: ResourceField = {
+  name: "slogan",
+  label: "Slogan",
+  kind: "text",
+  maxLength: 300,
+  span: 2,
+  hint: "One line someone said about it. The app quotes it at the top of the page, e.g. “Angkor Wat, the crown jewel of Cambodia, emanates history and awe in equal measure.”",
+};
+const listingSloganBy: ResourceField = {
+  name: "sloganBy",
+  label: "Said by",
+  kind: "text",
+  maxLength: 120,
+  hint: "Optional. Who said it, e.g. Gail Gutradt, shown under the quote. Leave it empty for a slogan of its own.",
+};
+/* The province a stay or a food listing is in: filled from its pin, never what finds it. */
+const pinProvince: ResourceField = ref("provinceId", "Province", "provinces", {
+  section: "Placement",
+  hint: "Filled in from the map pin, for you to check. Travellers find this listing by its pin, not by the province.",
+});
 /*
  * No longer asked on any listing: the app shows the slogan and the first lines
  * of About instead. Kept as it is on a record, since the API writes the column
@@ -1706,7 +1172,8 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
      * Where it appears, and its categories and tags are that region's own.
      */
     fields: [
-      listingName,
+      /* Not the whole row: Featured sits at its right. */
+      { ...listingName, span: 1 },
       listingSlug,
       listingShortDescription,
       {
@@ -1715,21 +1182,8 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         rich: true,
         hint: "The full story. The app shows its first lines on the page and all of it under Read more. Headings, bold, lists and links come through.",
       },
-      {
-        name: "slogan",
-        label: "Slogan",
-        kind: "text",
-        maxLength: 300,
-        span: 2,
-        hint: "One line someone said about it. The app quotes it at the top of the page, e.g. “Angkor Wat, the crown jewel of Cambodia, emanates history and awe in equal measure.”",
-      },
-      {
-        name: "sloganBy",
-        label: "Said by",
-        kind: "text",
-        maxLength: 120,
-        hint: "Optional. Who said it, e.g. Gail Gutradt, shown under the quote. Leave it empty for a slogan of its own.",
-      },
+      listingSlogan,
+      listingSloganBy,
       /* Chosen among its gallery's photos, never asked on its own: the gallery writes it. */
       { ...cover("destination"), derived: true },
       ref("provinceId", "Province", "provinces", {
@@ -1755,11 +1209,11 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       ...Object.values(ancientSiteFilters),
       /* Its address sits beside its province, under the map. */
       ...location.map((field): ResourceField => (field.name === "address" ? { ...field, span: 1 } : field)),
+      /* Beside the name in About: one of the headline places, or not. */
       {
         name: "isFeatured",
         label: "Featured",
         kind: "boolean",
-        section: "Standing",
         hint: "On: always shown in the homepage's Recommended and Popular lists, first. Off: it gets there only by being browsed.",
       },
     ] satisfies readonly ResourceField[],
@@ -1809,11 +1263,19 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     /*
      * Ordered the way a property is described, and the way a guest reads one:
      * what it is, where it is, what it offers, what it looks like, what it
-     * costs and how to reach it. Every field in its kind's words.
+     * costs and how to reach it. The same words for every kind of property.
      */
-    fields: ([
+    fields: [
       listingName,
-      { name: "type", label: "Property type", kind: "enum", options: STAY_TYPES, required: true, initial: "HOTEL" },
+      /* Beside the name in About: one of the headline places, or not. */
+      {
+        name: "isFeatured",
+        label: "Featured",
+        kind: "boolean",
+        hint: "On: always shown in the homepage's Recommended and Popular lists, first. Off: it gets there only by being browsed.",
+      },
+      /* Never asked: it follows the first Type ticked (see kindOf). The names stay for the API's lists. */
+      { name: "type", label: "Kind (API)", kind: "enum", options: STAY_TYPES, derived: true },
       {
         name: "starRating",
         label: "Star rating",
@@ -1824,27 +1286,23 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         visibleWhen: { field: "type", values: STAR_RATED },
       },
       listingShortDescription,
-      { ...description, rich: true },
+      {
+        ...description,
+        label: "About",
+        rich: true,
+        hint: "The full story: who runs it, what the rooms and the place are like, what is nearby. The app shows its first lines on the page and all of it under Read more.",
+      },
+      listingSlogan,
+      listingSloganBy,
       STAY_INTERESTS,
       ref("ownerUserId", "Owner account", "users", {
         section: "Placement",
         hint: "The account this stay is listed for — the partner, or the contributor who looks after it. Leave it empty when your own team does; whoever writes their own is filled in for them.",
       }),
+      pinProvince,
       ...pinnedLocation,
-      {
-        name: "specialties",
-        label: "What only this kind of stay has",
-        labelFor: { field: "type", labels: STAY_SPECIALTY_LABEL },
-        kind: "enums",
-        options: STAY_SPECIALTIES,
-        /* Written group by group, each group a sequence: kept as written, not A to Z. */
-        scale: true,
-        optionsFor: { field: "type", keep: STAY_SPECIALTIES_BY_KIND },
-        visibleWhen: { field: "type", values: Object.keys(STAY_SPECIALTY_LABEL) },
-        span: 2,
-        section: "Facilities",
-        hint: "Only this kind of stay is asked these. Guests read them on its page.",
-      },
+      /* No longer asked. Kept as it is on a record: the API writes the list from every save. */
+      { name: "specialties", label: "Specialties", kind: "enums", options: [], derived: true },
       {
         name: "amenities",
         label: "Facilities",
@@ -1856,15 +1314,15 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         hint: "Everything a guest can use. Guests filter stays by these, so tick only what is really there.",
       },
       { ...cover("stay"), derived: true },
-      ...priceFor("The lowest a guest pays for one night. Once the rooms have prices, this follows the cheapest room by itself."),
+      ...priceFor("The lowest a guest pays for one night. Once the rooms have prices, this follows the cheapest room by itself.").map((field): ResourceField => (field.name === "currency" ? { ...field, derived: true } : field)),
       {
-        name: "checkInFrom",
+        derived: true, name: "checkInFrom",
         label: "Earliest check-in",
         kind: "time",
         section: "Prices & policies",
         hint: "The time the first guest can arrive, e.g. 14:00 (2 pm).",
       },
-      { name: "checkOutUntil", label: "Latest check-out", kind: "time", section: "Prices & policies", hint: "The time rooms must be free by, e.g. 12:00 (midday)." },
+      { derived: true, name: "checkOutUntil", label: "Latest check-out", kind: "time", section: "Prices & policies", hint: "The time rooms must be free by, e.g. 12:00 (midday)." },
       ...contact(512),
       ...stayTrust,
       ...stayServices.map((field): ResourceField =>
@@ -1872,7 +1330,17 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       ),
       ...stayRules,
       ...stayPayments,
-    ] satisfies readonly ResourceField[]).map(forStayKind),
+      /* The policies in the host's own words, as Markdown; the app shows it under Stay policies. The one-box-per-rule fields above are kept, never asked. */
+      {
+        name: "policies",
+        label: "Stay policies",
+        kind: "textarea",
+        rich: true,
+        span: 2,
+        section: "House rules",
+        hint: "Check-in and check-out times, children, pets, smoking, how guests can pay — in your own words. Headings and lists come through.",
+      },
+    ] satisfies readonly ResourceField[],
   },
 
   "stay-media": {
@@ -1915,49 +1383,35 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     ],
     /*
      * One place that sells food, asked the same short set of questions — what
-     * it is, where it is, what is on the menu and what it costs — but asked
-     * them in its own kind's words: a cafe is never asked what a meal costs,
-     * and each kind is asked the one thing only it has (see FOOD_SPECIALTIES).
+     * it is, where it is, what is on the menu and what it costs — in the same
+     * words whatever kind of place it is.
      */
-    fields: ([
+    fields: [
       listingName,
-      {
-        name: "type",
-        label: "Kind of place",
-        kind: "enum",
-        options: FOOD_TYPES,
-        /* Read in the chooser's own order (see FOOD_TYPES), not A to Z. */
-        scale: true,
-        required: true,
-        initial: "RESTAURANT",
-        hint: "What a traveller would call it. The rest of the form is written for it: a cafe is asked about its coffee and its bakes, a stall about how it cooks.",
-      },
+      /* Never asked: it follows the first Type ticked (see kindOf). The names stay for the API's lists. */
+      { name: "type", label: "Kind (API)", kind: "enum", options: FOOD_TYPES, derived: true },
       listingShortDescription,
-      { ...description, rich: true },
+      {
+        ...description,
+        label: "About",
+        rich: true,
+        hint: "The full story: what it serves, what it is like inside, when to come. The app shows its first lines on the page and all of it under Read more.",
+      },
+      listingSlogan,
+      listingSloganBy,
+      FOOD_INTERESTS,
       ref("ownerUserId", "Owner account", "users", {
         section: "Placement",
         hint: "The account this listing is listed for — the partner, or the contributor who looks after it. Leave it empty when your own team does; whoever writes their own is filled in for them.",
       }),
+      pinProvince,
       ...pinnedLocation,
       { ...cover("food"), derived: true },
-      {
-        name: "specialties",
-        label: "What only this kind of place has",
-        labelFor: { field: "type", labels: SPECIALTY_LABEL },
-        kind: "enums",
-        options: FOOD_SPECIALTIES,
-        /* Written group by group, each group a sequence: kept as written, not A to Z. */
-        scale: true,
-        optionsFor: { field: "type", keep: SPECIALTIES_BY_KIND },
-        /* "Other" has no list of its own, so it is never asked, and its step is left out. */
-        visibleWhen: { field: "type", values: Object.keys(SPECIALTY_LABEL) },
-        span: 2,
-        section: "Known for",
-        hint: "Only this kind of place is asked these. Travellers read them on its page.",
-      },
+      /* No longer asked. Kept as it is on a record: the API writes the list from every save. */
+      { name: "specialties", label: "Specialties", kind: "enums", options: [], derived: true },
       {
         name: "priceRange",
-        label: "How expensive it feels",
+        label: "Price range",
         kind: "enum",
         options: PRICE_RANGES,
         scale: true,
@@ -1965,6 +1419,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         hint: "$ is a street stall, $$$$ is fine dining.",
       },
       {
+        derived: true,
         name: "averageMealPrice",
         label: "A meal usually costs",
         kind: "decimal",
@@ -1973,8 +1428,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         section: "Prices & policies",
         hint: "What one person spends on an ordinary visit — the figure a traveller budgets by.",
       },
-      /* Every named kind says this in its own words; "Other" reads the neutral one. */
-      ...priceFor("The lowest a visitor pays for one item. Once the menu has prices, this follows the cheapest by itself."),
+      ...priceFor("The lowest a visitor pays for one item. Once the menu has prices, this follows the cheapest by itself.").map((field): ResourceField => (field.name === "currency" ? { ...field, derived: true } : field)),
       { name: "paymentMethods", label: "Ways to pay", kind: "enums", options: PAYMENT_METHODS, span: 2, section: "Prices & policies" },
       {
         name: "openingHours",
@@ -1988,9 +1442,9 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { name: "telegram", label: "Telegram", kind: "text", maxLength: 100, section: "Contact", hint: "A handle such as @riversidegrill, or a t.me link." },
       { name: "whatsapp", label: "WhatsApp", kind: "text", maxLength: 50, section: "Contact", hint: "The number WhatsApp answers on, with the country code." },
       { name: "facebookUrl", label: "Facebook page", kind: "text", maxLength: 512, section: "Contact", hint: "Where most places here post today's dishes." },
-      { name: "isFeatured", label: "Show this place first", kind: "boolean", section: "Standing", hint: "Featured places lead the lists on the homepage and Explore. Keep it for the few worth crossing town for." },
-      { name: "isLocalSpecialty", label: "Known for a local speciality", kind: "boolean", section: "Standing", hint: "A dish this area is known for — the website marks the place with it." },
-    ] satisfies readonly ResourceField[]).map(forFoodKind),
+      /* Beside the name in About. "Known for a local speciality" is no longer asked; the API keeps a record's value when it is not sent. */
+      { name: "isFeatured", label: "Featured", kind: "boolean", hint: "Featured places lead the lists on the homepage and Explore. Keep it for the few worth crossing town for." },
+    ] satisfies readonly ResourceField[],
   },
 
   "food-menu-items": {
@@ -2015,15 +1469,17 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       ref("foodId", "Food listing", "foods", { required: true, section: "Dish" }),
       { name: "name", label: "Dish name", kind: "text", required: true, maxLength: 150, section: "Dish" },
       { name: "localName", label: "Name in Khmer", kind: "text", maxLength: 150, section: "Dish", hint: "What a traveller points at to order: អាម៉ុកត្រី." },
-      { name: "pronunciation", label: "How to say it", kind: "text", maxLength: 150, section: "Dish", hint: "Written the way it sounds: “amok trey”." },
+      { derived: true, name: "pronunciation", label: "How to say it", kind: "text", maxLength: 150, section: "Dish", hint: "Written the way it sounds: “amok trey”." },
+      /* The course is the API's fixed heading; it is kept filled but no longer chosen. The host's own heading is the category. */
       { name: "course", label: "Course", kind: "enum", options: MENU_COURSES, scale: true, required: true, initial: "MAIN", section: "Dish" },
+      { name: "section", label: "Category", kind: "text", maxLength: 100, section: "Dish", hint: "The heading it is printed under — Soups, Grill, Drinks — in your own words." },
       { name: "description", label: "Describe the dish", kind: "textarea", span: 2, section: "Dish", hint: "How it is cooked and what comes with it." },
       { name: "price", label: "Price", kind: "decimal", min: 0, step: 0.01, section: "Price & portion" },
-      { name: "portion", label: "What the price buys", kind: "text", maxLength: 60, section: "Price & portion", hint: "“One bowl”, “300 g”, “Serves 2”." },
-      { name: "serves", label: "How many people it feeds", kind: "number", min: 1, max: 20, initial: "1", section: "Price & portion", hint: "1 for a single plate; 2 or more for a dish meant to share." },
-      { name: "spiceLevel", label: "How spicy", kind: "number", min: 0, max: 3, initial: "0", section: "Price & portion", hint: "0 not spicy, 1 mild, 2 hot, 3 Khmer hot." },
-      { name: "labels", label: "Diet and allergens", kind: "enums", options: DISH_LABELS, span: 2, section: "Diet" },
-      { name: "isSignature", label: "The dish they are known for", kind: "boolean", section: "Diet" },
+      { derived: true, name: "portion", label: "What the price buys", kind: "text", maxLength: 60, section: "Price & portion", hint: "“One bowl”, “300 g”, “Serves 2”." },
+      { derived: true, name: "serves", label: "How many people it feeds", kind: "number", min: 1, max: 20, initial: "1", section: "Price & portion", hint: "1 for a single plate; 2 or more for a dish meant to share." },
+      { derived: true, name: "spiceLevel", label: "How spicy", kind: "number", min: 0, max: 3, initial: "0", section: "Price & portion", hint: "0 not spicy, 1 mild, 2 hot, 3 Khmer hot." },
+      { derived: true, name: "labels", label: "Diet and allergens", kind: "enums", options: DISH_LABELS, span: 2, section: "Diet" },
+      { derived: true, name: "isSignature", label: "The dish they are known for", kind: "boolean", section: "Diet" },
       {
         name: "photoKeys",
         label: "Photos",
@@ -2058,28 +1514,30 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     fields: [
       ref("stayId", "Stay", "stays", { required: true, section: "Room" }),
       { name: "name", label: "Room name", kind: "text", required: true, maxLength: 150, section: "Room" },
-      { name: "highlight", label: "Highlight", kind: "text", maxLength: 150, section: "Room", hint: "One line that makes this room stand out, e.g. Corner room with the sunset over the Mekong." },
+      /* The paragraph on the room's page: Markdown, like a listing's About. */
+      { name: "description", label: "About this room", kind: "textarea", rich: true, span: 2, section: "Room", hint: "What the room is like and what makes it the one to choose. The room's page shows all of it." },
+      { derived: true, name: "highlight", label: "Highlight", kind: "text", maxLength: 150, section: "Room", hint: "One line that makes this room stand out, e.g. Corner room with the sunset over the Mekong." },
       { name: "roomType", label: "Room type", kind: "enum", options: ROOM_TYPES, required: true, initial: "DOUBLE", section: "Room" },
-      { name: "roomCount", label: "How many rooms like this", kind: "number", min: 1, max: 500, initial: "1", section: "Room", hint: "Ten identical doubles are one room here, with 10 in this box." },
+      { derived: true, name: "roomCount", label: "How many rooms like this", kind: "number", min: 1, max: 500, initial: "1", section: "Room", hint: "Ten identical doubles are one room here, with 10 in this box." },
       ...ROOM_BEDS.map(
         (bed): ResourceField => ({ name: bed.name, label: bed.label, kind: "number", min: 0, max: 20, initial: "0", section: "Beds" }),
       ),
       { name: "maxAdults", label: "Adults", kind: "number", min: 1, max: 40, initial: "2", required: true, section: "Guests" },
       { name: "maxChildren", label: "Children", kind: "number", min: 0, max: 20, initial: "0", section: "Guests" },
       { name: "sizeSqm", label: "Size (m²)", kind: "decimal", min: 1, max: 9999, step: 0.5, section: "Room details" },
-      { name: "bedrooms", label: "Bedrooms", kind: "number", min: 0, max: 20, initial: "1", section: "Layout" },
-      { name: "livingRooms", label: "Living rooms", kind: "number", min: 0, max: 10, initial: "0", section: "Layout" },
-      { name: "bathroomCount", label: "Bathrooms", kind: "number", min: 0, max: 20, initial: "1", section: "Layout" },
-      { name: "floor", label: "Floor", kind: "number", min: -2, max: 200, section: "Layout", hint: "Ground floor is 0, first floor up is 1. Leave empty when these rooms are on different floors." },
-      { name: "liftAccess", label: "A lift reaches it", kind: "boolean", section: "Layout" },
-      { name: "housekeeping", label: "Cleaning", kind: "enum", options: ROOM_HOUSEKEEPING, scale: true, section: "Layout" },
+      { derived: true, name: "bedrooms", label: "Bedrooms", kind: "number", min: 0, max: 20, initial: "1", section: "Layout" },
+      { derived: true, name: "livingRooms", label: "Living rooms", kind: "number", min: 0, max: 10, initial: "0", section: "Layout" },
+      { derived: true, name: "bathroomCount", label: "Bathrooms", kind: "number", min: 0, max: 20, initial: "1", section: "Layout" },
+      { derived: true, name: "floor", label: "Floor", kind: "number", min: -2, max: 200, section: "Layout", hint: "Ground floor is 0, first floor up is 1. Leave empty when these rooms are on different floors." },
+      { derived: true, name: "liftAccess", label: "A lift reaches it", kind: "boolean", section: "Layout" },
+      { derived: true, name: "housekeeping", label: "Cleaning", kind: "enum", options: ROOM_HOUSEKEEPING, scale: true, section: "Layout" },
       { name: "view", label: "View", kind: "enum", options: ROOM_VIEWS, section: "Room details" },
-      { name: "bathroom", label: "Bathroom", kind: "enum", options: ROOM_BATHROOMS, initial: "PRIVATE", section: "Room details" },
+      { derived: true, name: "bathroom", label: "Bathroom", kind: "enum", options: ROOM_BATHROOMS, initial: "PRIVATE", section: "Room details" },
       { name: "smokingAllowed", label: "Smoking allowed", kind: "boolean", section: "Room details" },
-      { name: "hasWindow", label: "Has a window", kind: "boolean", initial: "true", section: "Room details" },
-      { name: "extraBeds", label: "Extra beds you can add", kind: "number", min: 0, max: 4, initial: "0", section: "Guests" },
+      { derived: true, name: "hasWindow", label: "Has a window", kind: "boolean", initial: "true", section: "Room details" },
+      { derived: true, name: "extraBeds", label: "Extra beds you can add", kind: "number", min: 0, max: 4, initial: "0", section: "Guests" },
       {
-        name: "extraBedPrice",
+        derived: true, name: "extraBedPrice",
         label: "Extra bed, per night",
         kind: "decimal",
         min: 0,
@@ -2087,9 +1545,9 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         section: "Guests",
         visibleWhen: { field: "extraBeds", values: ["1", "2", "3", "4"] },
       },
-      { name: "cots", label: "Cots you can add", kind: "number", min: 0, max: 4, initial: "0", section: "Guests" },
+      { derived: true, name: "cots", label: "Cots you can add", kind: "number", min: 0, max: 4, initial: "0", section: "Guests" },
       {
-        name: "cotPrice",
+        derived: true, name: "cotPrice",
         label: "Cot, per night",
         kind: "decimal",
         min: 0,
@@ -2098,18 +1556,18 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         visibleWhen: { field: "cots", values: ["1", "2", "3", "4"] },
         hint: "Leave empty when a cot is free.",
       },
-      { name: "childrenFreeUnderAge", label: "Children stay free under age", kind: "number", min: 0, max: 17, section: "Guests", hint: "In the beds already there. Empty when every child is charged." },
+      { derived: true, name: "childrenFreeUnderAge", label: "Children stay free under age", kind: "number", min: 0, max: 17, section: "Guests", hint: "In the beds already there. Empty when every child is charged." },
       { name: "amenities", label: "Facilities", kind: "enums", options: ROOM_AMENITIES, span: 2, section: "Facilities" },
       { name: "pricePerNight", label: "Price per night", kind: "decimal", min: 0, step: 0.01, section: "Price & policy" },
       { name: "breakfastIncluded", label: "Breakfast included", kind: "boolean", section: "Price & policy" },
-      { name: "highSeasonPrice", label: "High-season price (Nov–Apr)", kind: "decimal", min: 0, step: 0.01, section: "Price & policy", hint: "Leave empty when the price is the same all year." },
-      { name: "taxesIncluded", label: "Taxes included in the price", kind: "boolean", initial: "true", section: "Price & policy" },
-      { name: "minNights", label: "Shortest stay (nights)", kind: "number", min: 1, max: 60, initial: "1", section: "Price & policy", hint: "1 means a guest can book a single night." },
-      { name: "weeklyPrice", label: "Price per week", kind: "decimal", min: 0, step: 0.01, section: "Price & policy", hint: "Leave empty when there is no weekly rate." },
-      { name: "monthlyPrice", label: "Price per month", kind: "decimal", min: 0, step: 0.01, section: "Price & policy", hint: "Leave empty when there is no monthly rate." },
-      { name: "paymentTerms", label: "Payment", kind: "enum", options: ROOM_PAYMENT_TERMS, scale: true, initial: "PAY_AT_PROPERTY", section: "Price & policy" },
+      { derived: true, name: "highSeasonPrice", label: "High-season price (Nov–Apr)", kind: "decimal", min: 0, step: 0.01, section: "Price & policy", hint: "Leave empty when the price is the same all year." },
+      { derived: true, name: "taxesIncluded", label: "Taxes included in the price", kind: "boolean", initial: "true", section: "Price & policy" },
+      { derived: true, name: "minNights", label: "Shortest stay (nights)", kind: "number", min: 1, max: 60, initial: "1", section: "Price & policy", hint: "1 means a guest can book a single night." },
+      { derived: true, name: "weeklyPrice", label: "Price per week", kind: "decimal", min: 0, step: 0.01, section: "Price & policy", hint: "Leave empty when there is no weekly rate." },
+      { derived: true, name: "monthlyPrice", label: "Price per month", kind: "decimal", min: 0, step: 0.01, section: "Price & policy", hint: "Leave empty when there is no monthly rate." },
+      { derived: true, name: "paymentTerms", label: "Payment", kind: "enum", options: ROOM_PAYMENT_TERMS, scale: true, initial: "PAY_AT_PROPERTY", section: "Price & policy" },
       {
-        name: "depositPercent",
+        derived: true, name: "depositPercent",
         label: "Deposit (% of the stay)",
         kind: "number",
         min: 1,
@@ -2118,7 +1576,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         visibleWhen: { field: "paymentTerms", values: ["DEPOSIT"] },
       },
       {
-        name: "freeCancellationDays",
+        derived: true, name: "freeCancellationDays",
         label: "Free cancellation (days before arrival)",
         kind: "number",
         min: 0,

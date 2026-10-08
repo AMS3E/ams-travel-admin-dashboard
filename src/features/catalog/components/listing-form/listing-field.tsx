@@ -504,8 +504,7 @@ export function ListingField({ field: declared, options, locked = false, pathPre
 
         switch (field.kind) {
           case "textarea": {
-            /* A stay or a food listing shows its own kind's example under the field; a destination is visited, not stayed at. */
-            const prompt = declared.hintFor ? "The full story, in your own words." : "The full story: what to see, what to know, when to go.";
+            const prompt = "The full story, in your own words.";
             if (field.rich) {
               return (
                 <Controller
@@ -743,8 +742,9 @@ function PriceRangeInput({
   readonly onChange: (value: string) => void;
   readonly labelledBy: string;
 }) {
+  /* As wide as its words, not the row: the shell would otherwise stretch it. */
   return (
-    <div aria-labelledby={labelledBy} className="inline-flex max-w-full flex-wrap overflow-hidden rounded-md border border-line-strong bg-paper" role="radiogroup">
+    <div aria-labelledby={labelledBy} className="inline-flex max-w-full flex-wrap self-start overflow-hidden rounded-md border border-line-strong bg-paper" role="radiogroup">
       {[{ value: "", label: "—" }, ...options].map((option) => {
         const selected = option.value === value;
         return (
@@ -909,7 +909,8 @@ function ChipSelect({
         <div className="flex max-h-96 flex-col gap-3 overflow-y-auto">
           {sections.map((section) => (
             <div aria-label={section.name} key={section.name} role="group">
-              <p className="mb-1.5 text-2xs font-semibold tracking-wide text-muted uppercase">{section.name}</p>
+              {/* One shelf alone — a stay's, a food listing's — needs no heading; three do. */}
+              {sections.length > 1 ? <p className="mb-1.5 text-2xs font-semibold tracking-wide text-muted uppercase">{section.name}</p> : null}
               <ul className="flex flex-wrap gap-1.5">{section.options.map(chip)}</ul>
             </div>
           ))}
@@ -971,33 +972,34 @@ function groupSections(options: readonly ReferenceOption[]): { name: string; opt
   return [...sections].map(([name, list]) => ({ name, options: list }));
 }
 
-/** A yes-or-no setting: the label and what it means, with a switch. */
+/**
+ * A yes-or-no setting, laid out like any other field: its name with its help
+ * beside it, and under them the switch, as tall as a text box so it lines up
+ * with one on the same row.
+ */
 function ToggleRow({ field }: { readonly field: ResourceField }) {
-  const { register } = useFormContext<FormValues>();
+  const { control, register } = useFormContext<FormValues>();
+  const on = useWatch({ control, name: field.name }) === true;
 
   return (
-    <label
-      className={cn(
-        "flex cursor-pointer items-start gap-3 rounded-lg border border-line px-3 py-3 transition-colors hover:bg-sand has-disabled:cursor-not-allowed",
-        field.span === 2 && "md:col-span-2",
+    <FieldShell field={{ ...field, hint: field.hint ?? TOGGLE_HINTS[field.name] }}>
+      {({ id, describedBy }) => (
+        <label className="flex h-9 w-fit cursor-pointer items-center gap-2.5 has-disabled:cursor-not-allowed">
+          <span className="relative inline-flex shrink-0">
+            <input {...register(field.name)} aria-describedby={describedBy} className="peer sr-only" id={id} role="switch" type="checkbox" />
+            <span
+              aria-hidden
+              className="h-5 w-9 rounded-full bg-line-strong transition-colors peer-checked:bg-teal peer-focus-visible:ring-3 peer-focus-visible:ring-teal/25"
+            />
+            <span
+              aria-hidden
+              className="absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow-xs transition-transform peer-checked:translate-x-4"
+            />
+          </span>
+          <span className={cn("text-sm", on ? "font-medium text-ink" : "text-muted")}>{on ? "On" : "Off"}</span>
+        </label>
       )}
-    >
-      <span className="relative mt-0.5 inline-flex shrink-0">
-        <input {...register(field.name)} className="peer sr-only" role="switch" type="checkbox" />
-        <span
-          aria-hidden
-          className="h-5 w-9 rounded-full bg-line-strong transition-colors peer-checked:bg-teal peer-focus-visible:ring-3 peer-focus-visible:ring-teal/25"
-        />
-        <span
-          aria-hidden
-          className="absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow-xs transition-transform peer-checked:translate-x-4"
-        />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium text-ink">{field.label}</span>
-        <span className="mt-0.5 block text-xs text-muted">{field.hint ?? TOGGLE_HINTS[field.name] ?? ""}</span>
-      </span>
-    </label>
+    </FieldShell>
   );
 }
 

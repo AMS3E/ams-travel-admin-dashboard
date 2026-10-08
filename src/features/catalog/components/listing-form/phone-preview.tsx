@@ -4,19 +4,22 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import MarkdownIt from "markdown-it";
 import { ArrowLeft, Heart, ImageIcon, Images, MapPin, Quote, Share, Tag } from "lucide-react";
-import { mediaPath, type FormValues, type ReferenceOptions } from "@/features/catalog/resource";
+import { mediaPath, type FormValues, type ReferenceOption, type ReferenceOptions, type ResourceDefinition } from "@/features/catalog/resource";
 import { cn } from "@/lib/utils";
 
 /*
- * The destination's page as the app shows it, redrawn as the form fills in:
- * the cover with its gallery dots, the name, its categories, the slogan, the
- * description and the map with its pin. What travellers add — ratings,
- * reviews, nearby places — is not here, since the form cannot fill it.
+ * A listing's page as the app shows it, redrawn as the form fills in: the
+ * cover with its gallery dots, the name, what it is in a few words, an
+ * attraction's slogan, the long text and the map with its pin. What travellers
+ * add — ratings, reviews, nearby places — is not here, since the form cannot
+ * fill it. A stay and a place to eat are drawn on the attraction's screen,
+ * until the app has screens of their own to draw from.
  *
  * Drawn after the app's design, not the dashboard's: its purple, its cards.
  */
 
 interface PhonePreviewProps {
+  readonly definition: ResourceDefinition;
   readonly values: FormValues;
   readonly options: ReferenceOptions;
   /** Photos in the gallery, the cover among them, for the dots under the cover. */
@@ -93,7 +96,7 @@ function StillMap({ latitude, longitude, name, cover }: { latitude: number; long
   );
 }
 
-export function PhonePreview({ values, options, photos, className }: PhonePreviewProps) {
+export function PhonePreview({ definition, values, options, photos, className }: PhonePreviewProps) {
   const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
   const coverKey = text(values.coverKey);
   const cover = text(values.coverUrl) || (coverKey ? mediaPath(coverKey) : "");
@@ -104,9 +107,15 @@ export function PhonePreview({ values, options, photos, className }: PhonePrevie
   const sloganBy = text(values.sloganBy);
   const description = text(values.description);
   const story = useMemo(() => (description ? markdown.render(description) : ""), [description]);
-  const categories = (Array.isArray(values.categoryIds) ? values.categoryIds : [])
-    .map((id) => options.categories?.find((option) => option.value === id)?.label)
-    .filter((label): label is string => Boolean(label));
+  const labelsOf = (field: string, list: readonly ReferenceOption[] | undefined): string[] =>
+    (Array.isArray(values[field]) ? (values[field] as readonly string[]) : [])
+      .map((id) => list?.find((option) => option.value === id)?.label)
+      .filter((label): label is string => Boolean(label));
+  /* What it is, in a few words: an attraction's categories; a stay's or a place's kinds, from the taxonomy. */
+  const attraction = definition.key === "destinations";
+  const categories = attraction ? labelsOf("categoryIds", options.categories) : labelsOf("interestIds", options.interests);
+  const asksSlogan = definition.fields.some((field) => field.name === "slogan");
+  const untitled = attraction ? "Untitled destination" : definition.key === "stays" ? "Untitled stay" : "Untitled place";
   const latitude = coordinate(values.latitude, 90);
   const longitude = coordinate(values.longitude, 180);
   const dots = Math.min(8, Math.max(1, photos));
@@ -169,7 +178,7 @@ export function PhonePreview({ values, options, photos, className }: PhonePrevie
 
         {/* The page itself, rising over the cover. */}
         <div className="relative -mt-5 flex flex-col gap-3 rounded-t-[1.4rem] bg-white px-4 pt-4 pb-5">
-          <h3 className={cn("text-[19px] leading-tight font-bold", name ? "text-[#1d1d24]" : "text-[#9a9aa6]")}>{name || "Untitled destination"}</h3>
+          <h3 className={cn("text-[19px] leading-tight font-bold", name ? "text-[#1d1d24]" : "text-[#9a9aa6]")}>{name || untitled}</h3>
 
           <div className="flex flex-wrap gap-1.5">
             {categories.length ? (
@@ -180,7 +189,9 @@ export function PhonePreview({ values, options, photos, className }: PhonePrevie
                 </span>
               ))
             ) : (
-              <span className="rounded-full border border-dashed border-[#c9bdf0] px-2.5 py-1 text-[11px] text-[#9a9aa6]">Categories appear here</span>
+              <span className="rounded-full border border-dashed border-[#c9bdf0] px-2.5 py-1 text-[11px] text-[#9a9aa6]">
+                {attraction ? "Categories appear here" : "Its type appears here"}
+              </span>
             )}
             {categories.length > 3 ? (
               <span className="rounded-full px-2.5 py-1 text-[11px] font-medium text-white" style={{ backgroundColor: PURPLE }}>
@@ -189,13 +200,15 @@ export function PhonePreview({ values, options, photos, className }: PhonePrevie
             ) : null}
           </div>
 
-          <div className="flex gap-2 rounded-xl border border-[#cdbdf6] bg-[#f6f2ff] px-3 py-2.5">
-            <Quote aria-hidden className="mt-0.5 size-4 shrink-0 scale-x-[-1] text-[#8a6ff0]" />
-            <p className={cn("text-[12px] leading-snug", slogan ? "text-[#4b2fb5]" : "text-[#9a9aa6]")}>
-              <span className="italic">{slogan ? `“${slogan}”` : "A line someone said about it appears here."}</span>
-              {slogan && sloganBy ? <span className="mt-0.5 block font-semibold not-italic">— {sloganBy}</span> : null}
-            </p>
-          </div>
+          {asksSlogan ? (
+            <div className="flex gap-2 rounded-xl border border-[#cdbdf6] bg-[#f6f2ff] px-3 py-2.5">
+              <Quote aria-hidden className="mt-0.5 size-4 shrink-0 scale-x-[-1] text-[#8a6ff0]" />
+              <p className={cn("text-[12px] leading-snug", slogan ? "text-[#4b2fb5]" : "text-[#9a9aa6]")}>
+                <span className="italic">{slogan ? `“${slogan}”` : "A line someone said about it appears here."}</span>
+                {slogan && sloganBy ? <span className="mt-0.5 block font-semibold not-italic">— {sloganBy}</span> : null}
+              </p>
+            </div>
+          ) : null}
 
           <div className="rounded-xl border border-[#d9ccf7] px-3 py-2.5 text-[12px] leading-snug">
             {description ? (

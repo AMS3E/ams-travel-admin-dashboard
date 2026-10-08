@@ -55,7 +55,8 @@ const PIN = L.divIcon({
   className: "",
   iconSize: [30, 40],
   iconAnchor: [15, 38],
-  html: `<svg width="30" height="40" viewBox="0 0 30 40" aria-hidden="true" style="display:block;filter:drop-shadow(0 2px 2px rgb(16 24 40 / 0.3))">
+  /* The ring behind the tip pulses while the icon carries the `landed` class (see globals.css). */
+  html: `<span class="pin-pulse" aria-hidden="true"></span><svg width="30" height="40" viewBox="0 0 30 40" aria-hidden="true" style="display:block;position:relative;filter:drop-shadow(0 2px 2px rgb(16 24 40 / 0.3))">
     <path d="M15 1C7.3 1 1 7.1 1 14.7 1 25 15 39 15 39s14-14 14-24.3C29 7.1 22.7 1 15 1Z" fill="#0b6bf2" stroke="#ffffff" stroke-width="2"/>
     <circle cx="15" cy="14.5" r="5" fill="#ffffff"/>
   </svg>`,
@@ -191,7 +192,17 @@ export default function PinMap({ point, accuracy, focus, layer, readOnly, onPick
   }, [point, accuracy]);
 
   useEffect(() => {
-    if (focus) map.current?.setView(latLng(focus.point), focus.zoom);
+    if (!focus) return;
+    map.current?.setView(latLng(focus.point), focus.zoom);
+    /* A pin put down from outside the map — a link, a search, the device — pulses once, so the eye finds where it landed. */
+    const element = marker.current?.getElement();
+    if (!element) return;
+    element.classList.add("landed");
+    const timer = setTimeout(() => element.classList.remove("landed"), 2400);
+    return () => {
+      clearTimeout(timer);
+      element.classList.remove("landed");
+    };
   }, [focus]);
 
   return <div aria-label="Map: click to place the pin, or drag the pin" className="size-full" ref={container} role="application" />;

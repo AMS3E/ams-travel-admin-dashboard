@@ -246,7 +246,7 @@ const ROOMS: RoomWords = {
   what: "What kind of room is it?",
   like: "What is the room like?",
   none: "No rooms yet",
-  noneHint: "Add each kind of room once — how many you have of it is just a number on the room. Guests choose by beds, how many it sleeps, and price.",
+  noneHint: "Add each kind of room once. Guests choose by beds, how many it sleeps, and price.",
 };
 
 /** Each kind of stay's words: a hostel lets dorms and rooms, a resort rooms and villas, a villa itself. */
@@ -255,7 +255,7 @@ export const ROOM_WORDS: Readonly<Record<string, RoomWords>> = {
   GUESTHOUSE: {
     ...ROOMS,
     total: "Rooms in the house",
-    noneHint: "Add each kind of room once — a fan room and an air-con room are two. How many you have of each is just a number on the room.",
+    noneHint: "Add each kind of room once — a fan room and an air-con room are two.",
   },
   HOSTEL: {
     kinds: "Kinds of dorm and room",
@@ -414,7 +414,6 @@ export function roomChecklist(values: FormValues): readonly { readonly label: st
   const photos = Array.isArray(values.photoKeys) ? values.photoKeys.length : 0;
   return [
     { label: "Beds", done: bedsOf(values) > 0 },
-    { label: "Highlight", done: typeof values.highlight === "string" && values.highlight.trim().length > 0 },
     { label: "Price per night", done: price(values) !== null },
     { label: "Photos", done: photos > 0 },
     { label: "Size", done: typeof values.sizeSqm === "string" && values.sizeSqm.trim() !== "" },

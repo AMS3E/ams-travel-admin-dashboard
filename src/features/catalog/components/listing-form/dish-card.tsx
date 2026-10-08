@@ -42,20 +42,20 @@ export function DishCard({ values, currency, photoUrl, badge, actions, layout = 
   return (
     <div className={cn("@container", className)}>
       <article className={cn("flex overflow-hidden rounded-lg border border-line bg-paper", stacked && "flex-col")}>
-        <div className={cn("relative shrink-0 bg-sand-deep", stacked ? "aspect-video w-full" : "hidden w-28 @lg:block")}>
+        <div className={cn("relative shrink-0 bg-sand-deep", stacked ? "aspect-video w-full" : "w-16 self-stretch")}>
           {photoUrl ? (
-            <Image alt="" className="object-cover" fill sizes="112px" src={photoUrl} unoptimized />
+            <Image alt="" className="object-cover" fill sizes="64px" src={photoUrl} unoptimized />
           ) : (
             <span className="grid h-full place-items-center text-muted">
-              <UtensilsCrossed aria-hidden className="size-6" strokeWidth={1.5} />
+              <UtensilsCrossed aria-hidden className={stacked ? "size-6" : "size-4"} strokeWidth={1.5} />
             </span>
           )}
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-2 p-3 @2xl:flex-row @2xl:gap-4">
+        <div className={cn("flex min-w-0 flex-1", stacked ? "flex-col gap-2 p-3" : "items-center gap-3 px-3 py-2")}>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-2xs font-semibold tracking-wide text-teal-deep uppercase">{dishLine(values)}</span>
+              {stacked ? <span className="text-2xs font-semibold tracking-wide text-teal-deep uppercase">{dishLine(values)}</span> : null}
               {values.isSignature === true ? (
                 <span className="inline-flex items-center gap-1 text-2xs font-semibold text-gold-deep">
                   <Star aria-hidden className="size-3 fill-current" />
@@ -64,16 +64,17 @@ export function DishCard({ values, currency, photoUrl, badge, actions, layout = 
               ) : null}
               {badge}
             </div>
-            <h4 className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-sm font-semibold text-ink">
+            <h4 className={cn("flex flex-wrap items-baseline gap-x-2 text-sm font-semibold text-ink", stacked && "mt-0.5")}>
               {name}
               {localName ? <span className="text-xs font-medium text-ink-soft">{localName}</span> : null}
+              {!stacked && pronunciation ? <span className="text-xs font-normal text-muted italic">“{pronunciation}”</span> : null}
             </h4>
-            {pronunciation ? <p className="text-xs text-muted italic">“{pronunciation}”</p> : null}
+            {stacked && pronunciation ? <p className="text-xs text-muted italic">“{pronunciation}”</p> : null}
             {text(values.description) ? (
-              <p className="mt-1 line-clamp-2 text-xs text-muted">{text(values.description)}</p>
+              <p className={cn("text-xs text-muted", stacked ? "mt-1 line-clamp-2" : "line-clamp-1")}>{text(values.description)}</p>
             ) : null}
 
-            <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-2xs">
+            <ul className={cn("flex flex-wrap gap-x-3 gap-y-1 text-2xs", stacked ? "mt-1.5" : "mt-0.5 empty:hidden")}>
               {suits ? <li className="text-success">{suits}</li> : null}
               {warns ? <li className="text-gold-deep">{warns}</li> : null}
               {spicy > 0 ? (
@@ -86,18 +87,13 @@ export function DishCard({ values, currency, photoUrl, badge, actions, layout = 
             </ul>
           </div>
 
-          <div
-            className={cn(
-              "flex shrink-0 flex-col items-start gap-1 border-t border-line pt-2",
-              !stacked && "@2xl:w-32 @2xl:items-end @2xl:border-t-0 @2xl:border-l @2xl:pt-0 @2xl:pl-4 @2xl:text-right",
-            )}
-          >
+          <div className={cn("flex shrink-0", stacked ? "flex-col items-start gap-1 border-t border-line pt-2" : "items-center gap-3")}>
             {priced ? (
-              <p className="text-base font-semibold text-ink tabular-nums">{formatMoney(price, currency)}</p>
+              <p className={cn("font-semibold text-ink tabular-nums", stacked ? "text-base" : "text-sm")}>{formatMoney(price, currency)}</p>
             ) : (
               <p className="text-xs text-muted">No price yet</p>
             )}
-            {actions ? <div className="mt-auto flex flex-wrap gap-1 pt-1 @2xl:justify-end">{actions}</div> : null}
+            {actions ? <div className={cn("flex flex-wrap gap-1", stacked && "mt-auto pt-1")}>{actions}</div> : null}
           </div>
         </div>
       </article>

@@ -1,17 +1,14 @@
 import {
-  CalendarClock,
   FileText,
-  Hotel,
   ImagePlus,
   ListChecks,
   MapPin,
+  Phone,
   Rocket,
   Sparkles,
   Tags,
   BedDouble,
   ChefHat,
-  CupSoda,
-  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import type {
@@ -19,23 +16,6 @@ import type {
   ResourceDefinition,
   ResourceKey,
 } from "@/features/catalog/resource";
-import { STAY_CHECK_WORDS, STAY_WORDS } from "@/features/catalog/components/listing-form/stay-words";
-import { FOOD_CHECK_WORDS, FOOD_WORDS } from "@/features/catalog/components/listing-form/food-words";
-
-/** Each kind of stay or place to eat reads its own words on every step (see STAY_WORDS, FOOD_WORDS). */
-/** A step's words for one kind; `omit` leaves the step out for that kind. */
-type KindStepWords = Partial<Pick<ListingStep, "title" | "question" | "description" | "tip">> & {
-  readonly groupTitles?: Readonly<Record<string, string>>;
-  readonly omit?: boolean;
-};
-const KIND_WORDS: Partial<Record<ListingKey, Readonly<Record<string, Readonly<Record<string, KindStepWords>>>>>> = {
-  stays: STAY_WORDS,
-  foods: FOOD_WORDS,
-};
-const KIND_CHECK_WORDS: Partial<Record<ListingKey, Readonly<Record<string, Readonly<Record<string, string>>>>>> = {
-  stays: STAY_CHECK_WORDS,
-  foods: FOOD_CHECK_WORDS,
-};
 
 /**
  * The listing forms — a destination, a stay, a food — as one page of sections,
@@ -67,6 +47,14 @@ export interface StepGroup {
   readonly title?: string;
   readonly description?: string;
   readonly fields: readonly string[];
+  /**
+   * `fill-fit`: the first column takes the room and holds every field but the
+   * last, stacked; the last is as wide as what it holds, at the right edge — a
+   * switch beside a name and its web address. On a phone they follow in that
+   * order. `one`: a single column, every field the full width — a phone number
+   * and an e-mail under each other. Otherwise two equal columns.
+   */
+  readonly columns?: "fill-fit" | "one";
 }
 
 export interface ListingStep {
@@ -79,8 +67,19 @@ export interface ListingStep {
   readonly icon: LucideIcon;
   readonly tip: { readonly title: string; readonly body: string };
   readonly groups: readonly StepGroup[];
+  /**
+   * The navigator's lines for this section, in page order, each a field to
+   * jump to. When absent, the section's checks stand in for them.
+   */
+  readonly places?: readonly NavPlace[];
   /** The last section: whether it goes live, and what is still missing. */
   readonly review?: boolean;
+}
+
+/** One line of the navigator beside the form: a place on the page, and the field it scrolls to. */
+export interface NavPlace {
+  readonly label: string;
+  readonly field: string;
 }
 
 /** One line of the checklist — beside the form and in its last section — and the fields it looks at. */
@@ -102,9 +101,14 @@ export interface ReadinessCheck {
   readonly required?: boolean;
 }
 
-const about = (noun: string, withSlug: boolean): ListingStep => ({
+/** The quote at the top of the page, with who said it: asked on every kind of listing. */
+const SLOGAN_GROUP: StepGroup = { title: "Slogan", description: "A quote the app shows at the top of the page, with who said it if anyone did.", fields: ["slogan", "sloganBy"] };
+
+/** `has`: whether this kind of listing carries a web address (slug) and a Featured switch. */
+const about = (noun: string, has: { readonly slug?: boolean; readonly featured?: boolean } = {}): ListingStep => ({
   id: "about",
-  title: "About",
+  /* "Details", not "About": the app's word About is the long text's, and the section holds more than it. */
+  title: "Details",
   question: `What's this ${noun} called, and what's it like?`,
   description: "A name, and the full story.",
   icon: FileText,
@@ -113,8 +117,66 @@ const about = (noun: string, withSlug: boolean): ListingStep => ({
     body: "Lead with what makes it worth the trip. The app shows the first lines on the page; the rest opens under Read more.",
   },
   groups: [
-    { fields: withSlug ? ["name", "slug"] : ["name"] },
+    /* The name takes the row, its web address under it, and Featured at the right edge. */
+    {
+      fields: ["name", ...(has.slug ? ["slug"] : []), ...(has.featured ? ["isFeatured"] : [])],
+      columns: has.featured ? "fill-fit" : undefined,
+    },
+    SLOGAN_GROUP,
     { fields: ["description"] },
+  ],
+  /* What the navigator lists under Details: the three things written here, whether or not they are checks. */
+  places: [
+    { label: "Name", field: "name" },
+    { label: "Slogan", field: "slogan" },
+    { label: "About", field: "description" },
+  ],
+});
+
+/**
+ * Where it is, for every kind of listing: the link box, the map, and the
+ * province and address the pin fills in. `found` says how travellers come
+ * across this kind — a stay or a food listing by its pin, not by a page.
+ */
+const locationStep = (noun: string, found?: string): ListingStep => ({
+  id: "location",
+  title: "Location",
+  question: "Where is it?",
+  description: `Paste the ${noun}'s Google Maps link, or find it on the map. Its province and address are filled in from the pin, for you to check.`,
+  icon: MapPin,
+  tip: {
+    title: "Putting the pin on the place",
+    body: `${found ? `${found} ` : ""}Copy the ${noun}'s link in Google Maps (Share, then Copy link) and paste it here, or search it by name. Then switch to Satellite and drag the pin onto the entrance. At the place with a phone? Use the crosshair on the map. A pair of coordinates typed into the box works too.`,
+  },
+  /* One group, no line between: the map first, and under it the province and the address the pin fills in. */
+  groups: [{ fields: ["latitude", "longitude", "provinceId", "address"] }],
+});
+
+/** Who runs a stay or a food listing and how travellers reach it: the same three groups, every box the full width. */
+const contact = (noun: string): ListingStep => ({
+  id: "contact",
+  title: "Contact",
+  question: "Who runs it, and how do travellers get in touch?",
+  description: "Who looks after this listing, and the ways to reach it.",
+  icon: Phone,
+  tip: {
+    title: "One number that answers",
+    body: "A number that is answered beats three that are not. Put the one travellers should use, and the chat app it is on.",
+  },
+  groups: [
+    { title: "Who runs it", fields: ["ownerUserId"], columns: "one" },
+    { title: "Contact details", description: "Shown on the listing so travellers can ask before they go.", fields: ["phone", "contactEmail", "website"], columns: "one" },
+    {
+      title: "Messaging apps",
+      description: `Most travellers in Cambodia ask on Telegram or WhatsApp first; the ${noun}'s page opens a chat.`,
+      fields: ["telegram", "whatsapp", "facebookUrl"],
+      columns: "one",
+    },
+  ],
+  places: [
+    { label: "Who runs it", field: "ownerUserId" },
+    { label: "Contact details", field: "phone" },
+    { label: "Messaging apps", field: "telegram" },
   ],
 });
 
@@ -132,7 +194,7 @@ const photos = (noun: string): ListingStep => ({
   groups: [],
 });
 
-const review = (standing: readonly string[]): ListingStep => ({
+const review: ListingStep = {
   id: "review",
   title: "Review",
   question: "Ready to go live?",
@@ -142,63 +204,17 @@ const review = (standing: readonly string[]): ListingStep => ({
     title: "Nothing here is final",
     body: "A published listing appears on the website straight away. A draft stays in the dashboard until it is published, and either can be changed later.",
   },
-  groups: standing.length ? [{ title: "Standing", fields: standing }] : [],
+  /* No field of its own: the checklist is the section. Featured and the like are asked in About. */
+  groups: [],
   review: true,
-});
-
-/**
- * A stay or a food listing: a place in its own right, found by its map pin on
- * the page of every destination near it, so there is no destination to choose.
- */
-const whereAndContact = (noun: string, example: string): ListingStep => ({
-  id: "location",
-  title: "Location & contact",
-  question: "Where is it, and how do guests get in touch?",
-  description: `Pin the ${noun} on the map and add the ways to reach it.`,
-  icon: MapPin,
-  tip: {
-    title: "The pin puts it on the website",
-    body: `Travellers see this ${noun} on the page of every destination within 50 km of its pin — ${example} — so there is no destination to choose. At the place with a phone? Press Use my location.`,
-  },
-  groups: [
-    { title: "Address & map pin", fields: ["address", "latitude", "longitude"] },
-    { title: "Who runs it", fields: ["ownerUserId"] },
-    { title: "Contact details", description: "Shown on the listing so travellers can ask before they go.", fields: ["phone", "contactEmail", "website"] },
-    {
-      title: "Messaging apps",
-      description: "Most travellers in Cambodia ask on Telegram or WhatsApp first; the stay's page opens a chat.",
-      fields: ["telegram", "whatsapp", "facebookUrl"],
-    },
-  ],
-});
+};
 
 const STEPS: Readonly<Record<ListingKey, readonly ListingStep[]>> = {
   destinations: [
-    {
-      ...about("place", true),
-      /* The name, then the slogan — the quote at the top of the page — and then the full story. */
-      groups: [
-        about("place", true).groups[0]!,
-        { title: "Slogan", description: "A quote the app shows at the top of the page, with who said it if anyone did.", fields: ["slogan", "sloganBy"] },
-        ...about("place", true).groups.slice(1),
-      ],
-    },
-    {
-      id: "location",
-      title: "Location",
-      question: "Where is it?",
-      description: "Paste the place's Google Maps link, or find it on the map. Its province and address are filled in from the pin, for you to check.",
-      icon: MapPin,
-      tip: {
-        title: "Putting the pin on the place",
-        body: "Copy the place's link in Google Maps (Share, then Copy link) and paste it here, or search it by name. Then switch to Satellite and drag the pin onto the entrance. At the place with a phone? Use the crosshair on the map. A pair of coordinates typed into the box works too.",
-      },
-      groups: [
-        /* The map first: the pin knows the province and the address, so they come after it, already filled. */
-        { fields: ["latitude", "longitude"] },
-        { fields: ["provinceId", "address"] },
-      ],
-    },
+    about("place", { slug: true, featured: true }),
+    /* Photos right after the words: the cover is the first thing a traveller sees. */
+    photos("place"),
+    locationStep("place"),
     {
       id: "classification",
       title: "Where it appears",
@@ -221,51 +237,33 @@ const STEPS: Readonly<Record<ListingKey, readonly ListingStep[]>> = {
         { title: "Interests", description: "The Interests tab and province pages it is listed under.", fields: ["interestIds"] },
       ],
     },
-    photos("place"),
-    review(["isFeatured"]),
+    review,
   ],
 
   stays: [
-    {
-      id: "type",
-      title: "Property type",
-      question: "What kind of property is it?",
-      description: "Choose the closest match. Guests filter stays by this, and it decides which rooms you are offered later.",
-      icon: Hotel,
-      tip: {
-        title: "Not officially rated?",
-        body: "Leave the stars empty for guesthouses and homestays without an official rating. An honest listing earns more trust than an inflated one.",
-      },
-      groups: [
-        { fields: ["type"] },
-        { fields: ["starRating"] },
-        {
-          title: "Where guests will find it",
-          description: "The kinds of trip this stay suits. It is listed on the page of each one you tick, and on the Explore screen.",
-          fields: ["interestIds"],
-        },
-      ],
-    },
-    about("stay", false),
-    whereAndContact("stay", "a hotel in Siem Reap on Angkor Wat's page, say"),
+    about("stay", { featured: true }),
+    photos("stay"),
+    locationStep("stay", "Travellers see this stay on the page of every destination within 50 km of its pin — a hotel in Siem Reap on Angkor Wat's page, say."),
+    contact("stay"),
     {
       id: "facilities",
       title: "Facilities",
-      question: "What can guests use?",
-      description: "Tick everything a guest can use today. Guests filter stays by these.",
+      question: "What type of property is it, what can guests use, and what are the rules?",
+      description: "The type of property, everything a guest can use today, and the stay's policies.",
       icon: Sparkles,
       tip: {
         title: "Only list what is there",
-        body: "A guest who chooses a stay for its pool expects to find one. Leave out anything seasonal or on request.",
+        body: "A guest who chooses a stay for its pool expects to find one. Leave out anything seasonal or on request. Leave the stars empty for a guesthouse or homestay without an official rating.",
       },
       groups: [
-        { fields: ["specialties"] },
+        /* The type first — the Stays shelf of the taxonomy — then the stars: the type decides which rooms the stay is offered later. */
+        { fields: ["interestIds"] },
+        { fields: ["starRating"] },
+        /* Breakfast and parking are chips in this list, as the app shows them. */
         { fields: ["amenities"] },
-        { title: "Breakfast", description: "Whether it is served, what is on it, and what it costs.", fields: ["breakfastOption", "breakfastTypes", "breakfastPrice"] },
-        { title: "Parking", fields: ["parkingOption", "parkingPrice"] },
+        { title: "Stay policies", description: "Check-in and check-out, children, pets, smoking, how guests pay — written out, the way the app shows them.", fields: ["policies"] },
       ],
     },
-    photos("stay"),
     {
       id: "rooms",
       title: "Rooms",
@@ -274,120 +272,45 @@ const STEPS: Readonly<Record<ListingKey, readonly ListingStep[]>> = {
       icon: BedDouble,
       tip: {
         title: "One entry per kind of room",
-        body: "Ten identical doubles are one room, with 10 in “How many rooms like this”. Copy a room to make the next one like it. When a room cannot be booked for a while, hide it instead of deleting it. The cheapest bookable room sets the “From” price guests see.",
+        body: "Ten identical doubles are one room. Copy a room to make the next one like it. When a room cannot be booked for a while, hide it instead of deleting it. The cheapest bookable room sets the “From” price guests see.",
       },
       groups: [],
     },
-    {
-      id: "rules",
-      title: "House rules",
-      question: "What are the house rules?",
-      description: "When guests can arrive and must leave, and what they may bring and do. Guests read these before they book.",
-      icon: CalendarClock,
-      tip: {
-        title: "Rules that avoid surprises",
-        body: "Clear arrival times and a pets and smoking rule answer the questions guests otherwise send by message. Leave “Latest check-in” empty if someone is at the desk all night.",
-      },
-      groups: [
-        { title: "Check-in", fields: ["checkInFrom", "checkInUntil"] },
-        { title: "Check-out", fields: ["checkOutFrom", "checkOutUntil"] },
-        { title: "Guests", fields: ["minCheckInAge", "childrenAllowed"] },
-        { title: "Pets, smoking and parties", fields: ["petsPolicy", "smokingPolicy", "partiesAllowed"] },
-        { title: "Quiet hours", fields: ["quietHours"] },
-      ],
-    },
-    {
-      id: "policies",
-      title: "Prices & payments",
-      question: "What does a night cost, and how can guests pay?",
-      description: "The price guests see first, the ways they can pay, and the languages your staff speak.",
-      icon: Wallet,
-      tip: {
-        title: "Show the lowest honest price",
-        body: "“From” is one night in the cheapest room on an ordinary night, taxes included — a price a guest can really book. Once your rooms have prices, it follows the cheapest one on its own, so you can leave it alone.",
-      },
-      groups: [
-        { title: "Price", fields: ["priceFrom", "currency"] },
-        { title: "Ways to pay", fields: ["paymentMethods"] },
-        { title: "Languages spoken", fields: ["languagesSpoken"] },
-      ],
-    },
-    review([]),
+    review,
   ],
 
   foods: [
     {
-      id: "about",
-      title: "About",
-      question: "What is the place, and what is it like?",
-      description: "What it is called, what kind of place a traveller would call it, and its story.",
-      icon: FileText,
+      ...about("place", { featured: true }),
       tip: {
         title: "Lead with what people come for",
         body: "“Charcoal-grilled river fish, open late” tells a traveller more than “good food and friendly service”. The app shows the first lines on the page; the rest opens under Read more.",
       },
-      groups: [
-        /* The kind first: every label, hint and heading after it is written for what is picked here. */
-        { fields: ["type", "name"] },
-        { fields: ["description"] },
-      ],
     },
-    {
-      id: "location",
-      title: "Where & how to reach",
-      question: "Where is it, when is it open, and how do people reach it?",
-      description: "Pin it on the map, set the hours for each day, and add the ways to get in touch.",
-      icon: MapPin,
-      tip: {
-        title: "The pin puts it on the website",
-        body: "Travellers see this place on the page of every destination within 50 km of its pin — a noodle shop in Siem Reap on Angkor Wat's page, say — so there is no destination to choose. At the place with a phone? Press Use my location.",
-      },
-      groups: [
-        { title: "Address & map pin", fields: ["address", "latitude", "longitude"] },
-        { title: "Who runs it", fields: ["ownerUserId"] },
-        { title: "Opening hours", fields: ["openingHours"] },
-        { title: "Contact details", description: "Shown on the listing so travellers can ask before they go.", fields: ["phone", "contactEmail", "website"] },
-        {
-          title: "Messaging apps",
-          description: "Most travellers in Cambodia ask on Telegram or WhatsApp first; the place's page opens a chat.",
-          fields: ["telegram", "whatsapp", "facebookUrl"],
-        },
-      ],
-    },
-    {
-      /*
-       * What only this kind of place has — a cafe's beans, a bar's nights, a
-       * stall's fire. "Other" has no list of its own, so this step drops out
-       * for it on its own (see `omitted`).
-       */
-      id: "known",
-      title: "Known for",
-      question: "What is this place known for?",
-      description: "The few things only this kind of place has. Travellers read them on its page.",
-      icon: CupSoda,
-      tip: {
-        title: "Only what is true today",
-        body: "Tick only what a traveller will really find. This is the part of the page people scan before deciding to go.",
-      },
-      groups: [{ fields: ["specialties"] }],
-    },
+    photos("place"),
+    locationStep("place", "Travellers see this place on the page of every destination within 50 km of its pin — a noodle shop in Siem Reap on Angkor Wat's page, say."),
+    contact("place"),
     {
       id: "menu",
-      title: "Menu & prices",
-      question: "What is on the menu, and what does it cost?",
-      description: "Each dish once — what it is called, what is in it and what it costs — then what a meal comes to, and how people pay.",
+      title: "Food & drink",
+      question: "What does it serve, and what does it cost?",
+      description: "The type of place, its price range, how people pay, when it is open, and the menu — each dish once, under your own headings.",
       icon: ChefHat,
       tip: {
         title: "Five dishes beat fifty",
-        body: "Write the dishes people come for, with prices and their Khmer names — the Khmer name is what a traveller points at to order. When a dish is out of season, take it off the menu instead of deleting it. The cheapest dish on the menu sets the “From” price travellers see.",
+        body: "Write the dishes people come for, with prices and their Khmer names — the Khmer name is what a traveller points at to order. When a dish is out for a while, mark it unavailable instead of deleting it. The cheapest dish sets the “From” price travellers see.",
       },
       groups: [
-        { title: "What a meal costs", fields: ["priceRange", "averageMealPrice", "priceFrom", "currency"] },
-        { title: "Paying", fields: ["paymentMethods"] },
+        /* The type first — the Food shelf of the taxonomy. */
+        { fields: ["interestIds"] },
+        /* The price range alone: the from-price follows the cheapest dish by itself, and the currency stays at its default. */
+        { fields: ["priceRange"] },
+        { fields: ["paymentMethods"] },
+        /* Parked here for now: the hours left the Contact section and have no home of their own yet. */
+        { title: "Opening hours", fields: ["openingHours"] },
       ],
     },
-    photos("place"),
-    review(["isFeatured", "isLocalSpecialty"]),
+    review,
   ],
 };
 
@@ -395,38 +318,34 @@ const CHECKS: Readonly<Record<ListingKey, readonly ReadinessCheck[]>> = {
   destinations: [
     { label: "Tourism region", fields: ["tourismRegionIds"], required: true },
     { label: "Name", fields: ["name"], required: true },
-    { label: "Province", fields: ["provinceId"], required: true },
-    { label: "Cover photo", fields: ["coverKey"], step: "photos" },
+    /* In the navigator it is the row under the map — the province and the address — so it is named for the address. */
+    { label: "Address", fields: ["provinceId"], required: true },
+    { label: "Cover and gallery", fields: ["coverKey"], step: "photos" },
     { label: "Map pin", fields: ["latitude", "longitude"], all: true },
-    { label: "At least one category", fields: ["categoryIds"] },
-    { label: "At least one interest", fields: ["interestIds"] },
+    { label: "Categories", fields: ["categoryIds"] },
+    { label: "Interests", fields: ["interestIds"] },
   ],
   stays: [
-    { label: "Property type", fields: ["type"], required: true },
+    { label: "Type", fields: ["interestIds"], required: true },
     { label: "Name", fields: ["name"], required: true },
     { label: "Map pin", fields: ["latitude", "longitude"], all: true, required: true },
-    { label: "A kind of trip it suits, so guests can find it", fields: ["interestIds"] },
-    { label: "At least one room", fields: ["rooms"], virtual: true, step: "rooms", id: "rooms" },
-    { label: "What makes it this kind of stay", fields: ["specialties"], id: "own" },
-    { label: "Arrival and departure times", fields: ["checkInFrom", "checkOutUntil"], all: true },
-    { label: "Pets and smoking rules", fields: ["petsPolicy", "smokingPolicy"], all: true },
-    { label: "Ways to pay", fields: ["paymentMethods"] },
-    { label: "Languages spoken", fields: ["languagesSpoken"] },
-    { label: "Telegram, WhatsApp or Facebook", fields: ["telegram", "whatsapp", "facebookUrl"] },
-    { label: "Cover photo", fields: ["coverKey"], step: "photos" },
+    { label: "Address", fields: ["provinceId"] },
+    { label: "Rooms", fields: ["rooms"], virtual: true, step: "rooms", id: "rooms" },
+    { label: "Stay policies", fields: ["policies"] },
+    { label: "Messaging apps", fields: ["telegram", "whatsapp", "facebookUrl"] },
+    { label: "Cover and gallery", fields: ["coverKey"], step: "photos" },
     { label: "Facilities", fields: ["amenities"] },
-    { label: "Price from", fields: ["priceFrom"], id: "price" },
   ],
   foods: [
-    { label: "Kind of place", fields: ["type"], required: true },
+    { label: "Type", fields: ["interestIds"], required: true },
     { label: "Name", fields: ["name"], required: true },
     { label: "Map pin", fields: ["latitude", "longitude"], all: true, required: true },
-    { label: "At least one dish", fields: ["dishes"], virtual: true, step: "menu", id: "menu" },
-    { label: "What makes it this kind of place", fields: ["specialties"], id: "own" },
-    { label: "Cover photo", fields: ["coverKey"], step: "photos" },
+    { label: "Address", fields: ["provinceId"] },
+    { label: "Menu", fields: ["dishes"], virtual: true, step: "menu", id: "menu" },
+    { label: "Cover and gallery", fields: ["coverKey"], step: "photos" },
     { label: "Opening hours", fields: ["openingHours"] },
-    { label: "Telegram, WhatsApp or Facebook", fields: ["telegram", "whatsapp", "facebookUrl"] },
-    { label: "What a meal costs", fields: ["priceRange", "averageMealPrice"], id: "price" },
+    { label: "Messaging apps", fields: ["telegram", "whatsapp", "facebookUrl"] },
+    { label: "Price range", fields: ["priceRange"], id: "price" },
     { label: "Ways to pay", fields: ["paymentMethods"] },
   ],
 };
@@ -439,12 +358,9 @@ export function listingSteps(definition: ResourceDefinition, kind?: string): rea
   if (!isListing(definition.key)) return [];
   const declared = new Set(definition.fields.map((field) => field.name));
   const placed = new Set<string>();
-  /* A cafe is asked what it serves, a hostel about its dorms: the same steps, its own words. */
-  const words = kind ? (KIND_WORDS[definition.key]?.[kind] ?? {}) : {};
-
   /*
    * A field only some kinds are asked, and this kind is not one of them: a
-   * food listing of a kind with no Known for list of its own is not asked one.
+   * star rating is asked of a hotel, not of a homestay.
    */
   const kindField = definition.key === "destinations" ? "theme" : "type";
   const notAsked = (name: string) => {
@@ -457,32 +373,25 @@ export function listingSteps(definition: ResourceDefinition, kind?: string): rea
    */
   const omitted = (step: ListingStep) => {
     const names = step.groups.flatMap((group) => group.fields);
-    return Boolean(words[step.id]?.omit) || (names.length > 0 && names.every(notAsked));
+    return names.length > 0 && names.every(notAsked);
   };
   for (const step of STEPS[definition.key]) {
     if (omitted(step)) step.groups.forEach((group) => group.fields.forEach((name) => placed.add(name)));
   }
-  const steps = STEPS[definition.key].filter((step) => !omitted(step)).map((step) => {
-    const { groupTitles, title, question, description, tip } = words[step.id] ?? {};
-    return {
-      ...step,
-      ...(title === undefined ? {} : { title }),
-      ...(question === undefined ? {} : { question }),
-      ...(description === undefined ? {} : { description }),
-      ...(tip === undefined ? {} : { tip }),
-      groups: step.groups
-        .map((group) => ({
-          ...group,
-          title: groupTitles?.[group.fields[0] ?? ""] ?? group.title,
-          fields: group.fields.filter((name) => {
-            if (!declared.has(name)) return false;
-            placed.add(name);
-            return true;
-          }),
-        }))
-        .filter((group) => group.fields.length > 0),
-    };
-  });
+  /* The same sections, in the same words, whatever kind of stay or place it is. */
+  const steps = STEPS[definition.key].filter((step) => !omitted(step)).map((step) => ({
+    ...step,
+    groups: step.groups
+      .map((group) => ({
+        ...group,
+        fields: group.fields.filter((name) => {
+          if (!declared.has(name)) return false;
+          placed.add(name);
+          return true;
+        }),
+      }))
+      .filter((group) => group.fields.length > 0),
+  }));
 
   /* A field the form works out for itself is never asked. */
   const rest = definition.fields.filter((field) => !field.derived && !placed.has(field.name)).map((field) => field.name);
@@ -503,15 +412,12 @@ export function listingSteps(definition: ResourceDefinition, kind?: string): rea
 export function readinessChecks(definition: ResourceDefinition, kind?: string): readonly ReadinessCheck[] {
   if (!isListing(definition.key)) return [];
   const declared = new Set(definition.fields.map((field) => field.name));
-  /* A cafe has items on its board, a hostel dorms: the list reads in the kind's own words. */
-  const words = kind ? KIND_CHECK_WORDS[definition.key]?.[kind] : undefined;
-  /* A line about one field reads as that field does for this kind: "Cuisines the kitchen cooks". */
+  /* A line about one field reads as that field does, where a field still has a label of its kind's. */
   const labelFor = (name: string) =>
     kind ? definition.fields.find((field) => field.name === name)?.labelFor?.labels[kind] : undefined;
   return CHECKS[definition.key]
     .filter((check) => check.virtual || check.fields.every((name) => declared.has(name)))
     .map((check) => {
-      if (words && check.id && words[check.id] !== undefined) return { ...check, label: words[check.id] };
       const own = check.fields.length === 1 && !check.virtual ? labelFor(check.fields[0]) : undefined;
       return own ? { ...check, label: own } : check;
     })

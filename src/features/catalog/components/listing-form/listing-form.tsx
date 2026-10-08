@@ -17,7 +17,6 @@ import {
   CircleCheck,
   CircleDashed,
   FilePen,
-  Lightbulb,
   Loader2,
   Lock,
   Rocket,
@@ -57,11 +56,10 @@ import {
   readinessChecks,
   stepFields,
   type ListingKey,
-  type ListingStep,
   type ReadinessCheck,
 } from "@/features/catalog/components/listing-form/steps";
 import { listPageOf } from "@/features/catalog/all-destinations";
-import { mainRegion, themeOf } from "@/features/catalog/narrowing";
+import { kindOf, mainRegion, themeOf } from "@/features/catalog/narrowing";
 import { getResource } from "@/features/catalog/resources";
 import { progressLabel, useGalleryRows, type UploadProgress } from "@/features/catalog/use-image-upload";
 import {
@@ -112,16 +110,14 @@ interface ListingFormProps {
 /** One line of the checklist as the form stands: whether it is met, and the section it belongs to. */
 type CheckRow = ReadinessCheck & { readonly done: boolean; readonly at: number };
 
-/** A section as the checklist beside the form shows it. */
+/** A section as the navigator beside the form shows it. */
 interface SectionInfo {
   readonly id: string;
   readonly title: string;
-  /** The picture that stands for the section in the checklist. */
+  /** The picture that stands for the section in the navigator. */
   readonly icon: LucideIcon;
-  /** `done` once every check of its own is met; a section with none stays `todo`. */
-  readonly state: "done" | "error" | "todo";
-  /** Its checks still to do, listed under it. */
-  readonly missing: readonly CheckRow[];
+  /** The places on the page listed under it, whatever their state. */
+  readonly rows: readonly CheckRow[];
   /** Not on the page yet: a new listing's kind is still to be chosen. */
   readonly locked: boolean;
 }
@@ -272,7 +268,7 @@ export function ListingForm({
     defaultValues: openingValues(definition, record, presets, referenceOptions),
   });
   const values = useWatch({ control: form.control }) as FormValues;
-  const { errors, isSubmitting, isDirty } = form.formState;
+  const { isSubmitting, isDirty } = form.formState;
   /* What the form is written for: a food's or a stay's type, an attraction's theme. */
   const kindField = definition.key === "destinations" ? "theme" : "type";
   const kind = typeof values[kindField] === "string" && values[kindField] ? (values[kindField] as string) : undefined;
@@ -314,6 +310,27 @@ export function ListingForm({
     const current = form.getValues("theme");
     if ((typeof current === "string" ? current : "") !== themeCode) form.setValue("theme", themeCode, { shouldDirty: true });
   }, [themeCode, form]);
+
+  /*
+   * A stay's or a food listing's kind is not asked either: it follows the
+   * first Type ticked, kept for the API's lists.
+   */
+  const interestOptions = options.interests;
+  const derivesType = definition.fields.some((field) => field.name === "type" && field.derived);
+  const chosenInterests = values.interestIds;
+  const currentType = typeof values.type === "string" ? values.type : "";
+  const typeCode = useMemo(
+    () =>
+      derivesType && interestOptions
+        ? kindOf(interestOptions, Array.isArray(chosenInterests) ? chosenInterests.map(String) : [], currentType)
+        : null,
+    [derivesType, interestOptions, chosenInterests, currentType],
+  );
+  useEffect(() => {
+    if (typeCode === null) return;
+    const current = form.getValues("type");
+    if ((typeof current === "string" ? current : "") !== typeCode) form.setValue("type", typeCode, { shouldDirty: true });
+  }, [typeCode, form]);
   /* A cafe is asked what it serves, a bar what it pours: the steps follow the type chosen. */
   /* Someone who cannot publish is not asked whether it goes live, but whether to send it. */
   /* An attraction, a stay or a food listing: each goes to its author's reviewer the same way. */
@@ -339,9 +356,15 @@ export function ListingForm({
    * cheapest room on sale is the stay's "From" price, which the API also sets.
    * A saved stay's form is not made dirty by it — nothing is left to save.
    */
+  /*
+   * The rooms made and the dishes written, for the checklist. Counted here
+   * rather than kept among the form's values: counting them is not a change
+   * to save, and a listing must not open saying it has one.
+   */
+  const [made, setMade] = useState<{ readonly rooms: number; readonly dishes: number }>({ rooms: 0, dishes: 0 });
   const onRoomSummary = useCallback(
     (summary: RoomSummary) => {
-      form.setValue("rooms", summary.types ? String(summary.types) : "");
+      setMade((now) => (now.rooms === summary.types ? now : { ...now, rooms: summary.types }));
       if (summary.fromPrice !== null && form.getValues("priceFrom") !== String(summary.fromPrice)) {
         form.setValue("priceFrom", String(summary.fromPrice), { shouldDirty: !record });
       }
@@ -355,7 +378,7 @@ export function ListingForm({
    */
   const onMenuSummary = useCallback(
     (summary: MenuSummary) => {
-      form.setValue("dishes", summary.dishes ? String(summary.dishes) : "");
+      setMade((now) => (now.dishes === summary.dishes ? now : { ...now, dishes: summary.dishes }));
       if (summary.fromPrice !== null && form.getValues("priceFrom") !== String(summary.fromPrice)) {
         form.setValue("priceFrom", String(summary.fromPrice), { shouldDirty: !record });
       }
@@ -371,36 +394,48 @@ export function ListingForm({
   const gateAt = !editing && asksKind && !kind ? steps.findIndex((each) => stepFields(each).includes(kindField)) : -1;
   const gated = gateAt >= 0;
   const open = gated ? steps.slice(0, gateAt + 1) : steps;
-  /* Rooms and dishes need the room: a stay or a food listing has no preview column, and its tips come inline. */
-  const wide = hasRooms || hasMenu;
 
   function stepOf(names: readonly string[]): number {
     return steps.findIndex((each) => stepFields(each).some((name) => names.includes(name)));
   }
 
+  /* What the checks read: the form's values, with the rooms and dishes counted beside them. */
+  const checked: FormValues = { ...values, rooms: made.rooms ? String(made.rooms) : "", dishes: made.dishes ? String(made.dishes) : "" };
+
   /* Each check belongs to the section that holds what it asks for. */
   const checkRows: readonly CheckRow[] = checks.map((check) => ({
     ...check,
-    done: check.all ? check.fields.every((name) => isFilled(values[name])) : check.fields.some((name) => isFilled(values[name])),
+    done: check.all ? check.fields.every((name) => isFilled(checked[name])) : check.fields.some((name) => isFilled(checked[name])),
     at: Math.max(0, check.step ? steps.findIndex((each) => each.id === check.step) : stepOf(check.fields)),
   }));
 
   const sections: readonly SectionInfo[] = steps.map((each, index) => {
     const names = stepFields(each);
-    const own = checkRows.filter((row) => row.at === index);
-    const missing = own.filter((row) => !row.done);
-    const required = names.some((name) => fieldsByName.get(name)?.required && !isFilled(values[name]));
+    /* Where a place sits on the page, so the navigator lists them in the order they are met. */
+    const position = (row: CheckRow) => {
+      const at = names.indexOf(row.fields[0] ?? "");
+      return at === -1 ? names.length : at;
+    };
+    /* A section that names its own places lists those; the others list their checks, in page order. */
+    const own: readonly CheckRow[] | undefined = each.places
+      ?.filter((place) => fieldsByName.has(place.field))
+      .map((place) => ({
+        label: place.label,
+        fields: [place.field],
+        required: fieldsByName.get(place.field)?.required === true,
+        done: isFilled(checked[place.field]),
+        at: index,
+      }));
     return {
       id: each.id,
       title: each.title,
       icon: each.icon,
-      state:
-        names.some((name) => errors[name]) || (each.review && errors.status)
-          ? "error"
-          : own.length > 0 && missing.length === 0 && !required
-            ? "done"
-            : "todo",
-      missing,
+      /* Its places, always listed — except one that is the section itself, which its title already names. */
+      rows:
+        own ??
+        checkRows
+          .filter((row) => row.at === index && row.label !== each.title)
+          .sort((a, b) => position(a) - position(b)),
       locked: gated && index > gateAt,
     };
   });
@@ -472,7 +507,7 @@ export function ListingForm({
     const name =
       row.fields.includes("latitude") && row.fields.includes("longitude")
         ? "pin"
-        : (row.fields.find((each) => !isFilled(values[each])) ?? row.fields[0]);
+        : (row.fields.find((each) => !isFilled(checked[each])) ?? row.fields[0]);
     const section = document.getElementById(sectionDomId(steps[row.at].id));
     const holder = section?.querySelector(`[data-field="${name}"]`);
     /* A field's holder has no box of its own (`contents`): the field inside it is what is scrolled to. */
@@ -652,17 +687,16 @@ export function ListingForm({
   }
   const busy = isSubmitting || photosUploading;
   const busyLabel = saveProgress ? progressLabel(saveProgress) : isSubmitting ? "Saving…" : photosUploading ? "Waiting for photos…" : null;
-  /* Help behind an icon on the destination form; under the box on the others, until their screens are reviewed. */
-  const helpInIcon = definition.key === "destinations";
 
   return (
     <FormProvider {...form}>
-      <HelpStyleContext value={helpInIcon ? "icon" : "below"}>
+      {/* A field's help and a section's tip sit behind an info icon, on every listing form. */}
+      <HelpStyleContext value="icon">
         <form
           className={cn(
             "grid items-start gap-x-6 gap-y-4 lg:grid-cols-[12.5rem_minmax(0,1fr)]",
             /* The preview's column is as wide as the preview: nothing when it is put away. */
-            !wide && "xl:grid-cols-[12.5rem_minmax(0,1fr)_auto]",
+            "xl:grid-cols-[12.5rem_minmax(0,1fr)_auto]",
           )}
           noValidate
           onKeyDown={(event) => {
@@ -694,7 +728,7 @@ export function ListingForm({
               ) : !editing ? (
                 <Badge>Not saved yet</Badge>
               ) : null}
-              {!wide ? (
+              {
                 <button
                   aria-label={previewHidden ? "Show preview" : "Hide preview"}
                   aria-pressed={!previewHidden}
@@ -708,7 +742,7 @@ export function ListingForm({
                 >
                   {previewHidden ? <EyeOff aria-hidden className="size-4" /> : <Eye aria-hidden className="size-4" />}
                 </button>
-              ) : null}
+              }
               {canEdit && !gated ? (
                 <>
                   {secondary ? (
@@ -744,14 +778,7 @@ export function ListingForm({
           </div>
 
           <aside className="quiet-scroll sticky top-[7.5rem] hidden max-h-[calc(100dvh-8.5rem)] overflow-y-auto lg:block">
-            <SectionList
-              current={current.id}
-              done={checkRows.filter((row) => row.done).length}
-              onOpen={scrollToCheck}
-              onSelect={scrollToSection}
-              sections={sections}
-              total={checkRows.length}
-            />
+            <SectionList current={current.id} onOpen={scrollToCheck} onSelect={scrollToSection} sections={sections} />
           </aside>
 
           <div className="flex min-w-0 flex-col gap-4">
@@ -772,15 +799,16 @@ export function ListingForm({
                 key={each.id}
               >
                 <header className="border-b border-line px-5 py-4">
-                  <h2 className="heading flex items-center gap-1.5 text-lg font-semibold text-ink" id={`${sectionDomId(each.id)}-title`}>
-                    {each.title}
-                    {helpInIcon ? <HelpIcon id={`${sectionDomId(each.id)}-tip`} label={each.title} text={`${each.tip.title}. ${each.tip.body}`} /> : null}
-                  </h2>
+                  <div className="flex items-center gap-1.5">
+                    <h2 className="heading text-lg font-semibold text-ink" id={`${sectionDomId(each.id)}-title`}>
+                      {each.title}
+                    </h2>
+                    <HelpIcon id={`${sectionDomId(each.id)}-tip`} label={each.title} text={`${each.tip.title}. ${each.tip.body}`} />
+                  </div>
                   <p className="mt-0.5 text-sm text-muted">{each.description}</p>
                 </header>
 
                 <div className="divide-y divide-line">
-                  {helpInIcon ? null : <Tip className="px-5 py-3" step={each} />}
 
                   {each.review ? (
                     <>
@@ -816,9 +844,36 @@ export function ListingForm({
                     const titled = Boolean(group.title) && fieldsByName.get(group.fields[0] ?? "")?.label !== group.title;
                     /* The map pin: search, the map and the paste box first, then the two numbers they fill. */
                     const pinned = group.fields.includes("latitude") && group.fields.includes("longitude");
+                    /* A group whose every field is hidden for this kind — a homestay's star rating — leaves no empty band behind. */
+                    if (!pinned && !group.fields.some((name) => { const field = fieldsByName.get(name); return field && isShown(field, values, options); })) return null;
+                    const cell = (name: string) => {
+                      /* The pin is the coordinates: the map draws their two boxes itself, folded away. */
+                      if (pinned && (name === "latitude" || name === "longitude")) return null;
+                      const field = fieldsByName.get(name);
+                      if (!field || !isShown(field, values, options)) return null;
+                      return (
+                        /* Named, so a check can scroll to its field; `contents` leaves the grid to the field itself. */
+                        <div className="contents" data-field={name} key={name}>
+                          <ListingField
+                            field={field}
+                            locked={editing && field.createOnly === true}
+                            narrowing={narrowingOptions(field)}
+                            options={field.ref ? (options[field.ref] ?? []) : []}
+                            pathPrefix={`/${definition.key}/`}
+                            wide={group.columns !== "one" && group.fields.length === 1}
+                          />
+                        </div>
+                      );
+                    };
                     return (
                       <FormSection description={titled ? group.description : undefined} key={group.title ?? group.fields.join("-")} title={titled ? group.title : undefined}>
-                        <fieldset className="grid gap-x-4 gap-y-5 md:grid-cols-2" disabled={!canEdit}>
+                        <fieldset
+                          className={cn(
+                            "grid gap-y-5",
+                            group.columns === "fill-fit" ? "gap-x-6 md:grid-cols-[minmax(0,1fr)_auto]" : group.columns === "one" ? "md:grid-cols-1" : "gap-x-4 md:grid-cols-2",
+                          )}
+                          disabled={!canEdit}
+                        >
                           {pinned ? (
                             <div className="contents" data-field="pin">
                               <LocationMap
@@ -828,25 +883,15 @@ export function ListingForm({
                               />
                             </div>
                           ) : null}
-                          {group.fields.map((name) => {
-                            /* The pin is the coordinates: the map draws their two boxes itself, folded away. */
-                            if (pinned && (name === "latitude" || name === "longitude")) return null;
-                            const field = fieldsByName.get(name);
-                            if (!field || !isShown(field, values, options)) return null;
-                            return (
-                              /* Named, so a check can scroll to its field; `contents` leaves the grid to the field itself. */
-                              <div className="contents" data-field={name} key={name}>
-                                <ListingField
-                                  field={field}
-                                  locked={editing && field.createOnly === true}
-                                  narrowing={narrowingOptions(field)}
-                                  options={field.ref ? (options[field.ref] ?? []) : []}
-                                  pathPrefix={`/${definition.key}/`}
-                                  wide={group.fields.length === 1}
-                                />
-                              </div>
-                            );
-                          })}
+                          {group.columns === "fill-fit" ? (
+                            /* The first column stacks all but the last field, so they stay together on a phone too. */
+                            <>
+                              <div className="flex min-w-0 flex-col gap-3">{group.fields.slice(0, -1).map(cell)}</div>
+                              {group.fields.slice(-1).map(cell)}
+                            </>
+                          ) : (
+                            group.fields.map(cell)
+                          )}
                         </fieldset>
                       </FormSection>
                     );
@@ -870,7 +915,6 @@ export function ListingForm({
                   {hasMenu && each.id === "menu" ? (
                     <div className="px-5 py-5" data-field="dishes">
                       <MenuManager
-                        averageMealPrice={values.averageMealPrice}
                         canEdit={canEdit}
                         currency={typeof values.currency === "string" && values.currency.trim() ? values.currency.trim().toUpperCase() : "USD"}
                         foodId={record?.id ?? null}
@@ -917,9 +961,9 @@ export function ListingForm({
 
                   {each.review ? (
                     <>
-                      <div className={cn("flex flex-col items-center gap-2 px-5 py-5", !wide && "xl:hidden")}>
+                      <div className="flex flex-col items-center gap-2 px-5 py-5 xl:hidden">
                         <p className="self-start text-xs font-medium text-muted">Preview, as the app shows it</p>
-                        <PhonePreview options={options} photos={photoCount} values={values} />
+                        <PhonePreview definition={definition} options={options} photos={photoCount} values={values} />
                       </div>
                       {editing && canDelete ? (
                         <FormSection description="It is removed from the website and the dashboard for good. This cannot be undone." title={`Delete this ${noun}`}>
@@ -964,7 +1008,7 @@ export function ListingForm({
 
           </div>
 
-          {!wide ? (
+          {
             /* The preview slides in from the right edge and the form widens as it leaves; put away, its column is nothing. */
             <div
               aria-hidden={previewHidden}
@@ -975,10 +1019,10 @@ export function ListingForm({
               inert={previewHidden}
             >
               <div className="w-[21.5rem] pb-2">
-                <PhonePreview options={options} photos={photoCount} values={values} />
+                <PhonePreview definition={definition} options={options} photos={photoCount} values={values} />
               </div>
             </div>
-          ) : null}
+          }
         </form>
       </HelpStyleContext>
     </FormProvider>
@@ -1017,26 +1061,15 @@ interface SectionNavProps {
 }
 
 /**
- * The checklist beside the form: every section under its own picture, ticked
- * at the end of its row once its own checks are met, and under it what is
- * still missing. A section scrolls to itself, a missing line to its field.
+ * The navigator beside the form: every section under its own picture, and
+ * under it the places on the page worth jumping to, listed whether or not
+ * they are filled. A section scrolls to itself, a line to its field. What is
+ * still missing is the Review section's business, not this one's.
  */
-function SectionList({
-  sections,
-  current,
-  onSelect,
-  onOpen,
-  done,
-  total,
-}: SectionNavProps & { readonly onOpen: (row: CheckRow) => void; readonly done: number; readonly total: number }) {
+function SectionList({ sections, current, onSelect, onOpen }: SectionNavProps & { readonly onOpen: (row: CheckRow) => void }) {
   return (
     <nav aria-label="Form sections">
-      <p className="mb-2 flex items-baseline justify-between px-2 text-xs">
-        <span className="font-medium text-muted">Checklist</span>
-        <span className="font-medium text-ink tabular-nums">
-          {done} of {total} done
-        </span>
-      </p>
+      <p className="mb-2 px-2 text-xs font-medium text-muted">On this page</p>
 
       <ol className="flex flex-col gap-0.5">
         {sections.map((section) => {
@@ -1056,21 +1089,11 @@ function SectionList({
               >
                 <Icon aria-hidden className={cn("size-5 shrink-0 p-px", active ? "text-teal-deep" : "text-muted")} strokeWidth={1.75} />
                 <span className="min-w-0 flex-1 truncate">{section.title}</span>
-                {section.state === "error" ? (
-                  <CircleAlert aria-hidden className="size-4 shrink-0 text-heritage" />
-                ) : section.state === "done" ? (
-                  <span className="grid size-4 shrink-0 place-items-center rounded-full bg-success-strong text-white">
-                    <Check aria-hidden className="size-2.5" strokeWidth={3} />
-                  </span>
-                ) : null}
-                <span className="sr-only">
-                  {section.state === "error" ? ", needs attention" : section.state === "done" ? ", complete" : ""}
-                </span>
               </button>
 
-              {!section.locked && section.missing.length ? (
+              {!section.locked && section.rows.length ? (
                 <ul className="mt-0.5 mb-1.5 ml-4.5 flex flex-col border-l border-line pl-2">
-                  {section.missing.map((row) => (
+                  {section.rows.map((row) => (
                     <li key={row.label}>
                       <button
                         className="w-full rounded px-1.5 py-1 text-left text-xs leading-snug text-muted transition-colors hover:bg-sand-deep hover:text-ink"
@@ -1078,7 +1101,12 @@ function SectionList({
                         type="button"
                       >
                         {row.label}
-                        {row.required ? <span className="font-medium text-heritage"> · required</span> : null}
+                        {row.required ? (
+                          <span aria-hidden className="ml-0.5 text-heritage">
+                            *
+                          </span>
+                        ) : null}
+                        {row.required ? <span className="sr-only">, required</span> : null}
                       </button>
                     </li>
                   ))}
@@ -1092,7 +1120,7 @@ function SectionList({
   );
 }
 
-/** The sections as a row of chips that stays under the top bar, where there is no room for the checklist. */
+/** The sections as a row of chips that stays under the top bar, where there is no room for the navigator. */
 function SectionChips({ sections, current, onSelect }: SectionNavProps) {
   const list = useRef<HTMLOListElement>(null);
 
@@ -1116,18 +1144,12 @@ function SectionChips({ sections, current, onSelect }: SectionNavProps) {
                 aria-current={active ? "true" : undefined}
                 className={cn(
                   "inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-                  active
-                    ? "border-teal bg-teal-soft text-teal-deep"
-                    : section.state === "error"
-                      ? "border-heritage/30 bg-heritage-soft text-heritage"
-                      : "border-line bg-paper text-ink-soft enabled:hover:bg-sand",
+                  active ? "border-teal bg-teal-soft text-teal-deep" : "border-line bg-paper text-ink-soft enabled:hover:bg-sand",
                 )}
                 disabled={section.locked}
                 onClick={() => onSelect(section.id)}
                 type="button"
               >
-                {section.state === "done" ? <Check aria-hidden className="size-3 text-success" strokeWidth={3} /> : null}
-                {section.state === "error" ? <CircleAlert aria-hidden className="size-3" /> : null}
                 {section.title}
               </button>
             </li>
@@ -1138,18 +1160,6 @@ function SectionChips({ sections, current, onSelect }: SectionNavProps) {
   );
 }
 
-function Tip({ step, className }: { readonly step: ListingStep; readonly className?: string }) {
-  return (
-    <aside className={cn("flex gap-2.5", className)}>
-      <Lightbulb aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" strokeWidth={1.75} />
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-ink">{step.tip.title}</p>
-        <p className="mt-0.5 text-xs leading-relaxed text-muted">{step.tip.body}</p>
-      </div>
-    </aside>
-  );
-}
-
 /** The whole checklist in one place, before the listing is saved: what is met, and what is still missing. */
 function Readiness({ rows, onOpen }: { readonly rows: readonly CheckRow[]; readonly onOpen: (row: CheckRow) => void }) {
   const missingRequired = rows.filter((row) => row.required && !row.done).length;
@@ -1157,7 +1167,7 @@ function Readiness({ rows, onOpen }: { readonly rows: readonly CheckRow[]; reado
 
   return (
     <FormSection
-      description={`${done} of ${rows.length} checks done. Recommended details help travellers choose it.`}
+      description={`${done} of ${rows.length} details in place. The recommended ones help travellers choose it.`}
       title={missingRequired ? `${missingRequired} required detail${missingRequired === 1 ? "" : "s"} missing` : "Everything required is in place"}
     >
       <ul className="grid gap-x-6 sm:grid-cols-2">
