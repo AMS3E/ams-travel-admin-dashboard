@@ -132,7 +132,7 @@ const catalogueContent: NavGroup = {
     createDestination,
     tool("/drafts", "Drafts", FilePenLine, listingAccess, "Destinations that have not been published"),
     tool("/verification", "Verification", BadgeCheck, VERIFY_PERMISSIONS, "Verify destinations on evidence, renew it, or revoke it"),
-    catalog("/destination-media", "Destination Media", "destination-media", "Photos and videos on each destination page"),
+    catalog("/destination-media", "Destination Media", "destination-media", "Every photo on a destination page, in one gallery"),
     catalog("/corridors", "Tourism Corridors", "corridors", "Day-by-day travel plans with routes on the map"),
     catalog("/regions", "Tourism Regions", "regions", "The regions travellers discover Cambodia by, and their own lists"),
   ],
