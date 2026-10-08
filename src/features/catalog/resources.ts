@@ -1376,7 +1376,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { derived: true, name: "pronunciation", label: "How to say it", kind: "text", maxLength: 150, section: "Dish", hint: "Written the way it sounds: “amok trey”." },
       /* The course is the API's fixed heading; it is kept filled but no longer chosen. The host's own heading is the category. */
       { name: "course", label: "Course", kind: "enum", options: MENU_COURSES, scale: true, required: true, initial: "MAIN", section: "Dish" },
-      { name: "section", label: "Category", kind: "text", maxLength: 100, section: "Dish", hint: "The heading it is printed under — Soups, Grill, Drinks — in your own words." },
       { name: "description", label: "Describe the dish", kind: "textarea", span: 2, section: "Dish", hint: "How it is cooked and what comes with it." },
       { name: "price", label: "Price", kind: "decimal", min: 0, step: 0.01, section: "Price & portion" },
       { derived: true, name: "portion", label: "What the price buys", kind: "text", maxLength: 60, section: "Price & portion", hint: "“One bowl”, “300 g”, “Serves 2”." },
