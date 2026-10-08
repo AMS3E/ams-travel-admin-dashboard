@@ -57,12 +57,12 @@ function tool(href: string, label: string, icon: LucideIcon, permissions: readon
  * those two entries.
  */
 const destinations: NavItem = {
-  ...catalog("/destinations", "All Destinations", "destinations", "Every attraction, place to eat, stay and travel route, with a tab per main type"),
+  ...catalog("/destinations", "All Destinations", "destinations", "Every attraction, place to eat and stay, with a tab per main type"),
   aliases: ["/stays", "/foods"],
 };
-/* Asks the main type first — attraction, food, stay, travel route — then opens that form. */
+/* Asks the main type first — attraction, food, stay — then opens that form. */
 const createDestination: NavItem = {
-  ...tool("/create", "Create Destination", Plus, writing, "Choose the main type — attraction, food, stay or travel route — then fill in its form"),
+  ...tool("/create", "Create Destination", Plus, writing, "Choose the main type — attraction, food or stay — then fill in its form"),
   aliases: ["/destinations/new", "/stays/new", "/foods/new"],
   exact: true,
 };

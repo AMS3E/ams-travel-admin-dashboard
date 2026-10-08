@@ -34,8 +34,8 @@ import { submissionDesk } from "@/features/publishing/workflow";
 import { cn } from "@/lib/utils";
 
 /**
- * All Destinations — every attraction, place to eat, stay and travel route this
- * account works on, with a tab per main type. All reads them together; a type's
+ * All Destinations — every attraction, place to eat and stay this account
+ * works on, with a tab per main type. All reads them together; a type's
  * tab is that type's own table: its filters, publishing and deleting.
  *
  * Every listing with an open request says so, and one waiting on the viewer
@@ -96,7 +96,7 @@ export async function AllDestinationsPage({ roles, tab }: { readonly roles: read
             </Link>
           ) : null
         }
-        description={`Every attraction, place to eat, stay and travel route in one place. Open a tab to manage one type.${scoped ? " You are shown your own." : ""}`}
+        description={`Every attraction, place to eat and stay in one place. Open a tab to manage one type.${scoped ? " You are shown your own." : ""}`}
         eyebrow="Content Management"
         title="All Destinations"
       />

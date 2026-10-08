@@ -98,7 +98,7 @@ export function ResourceTable({
   const status = definition.status;
   const markOf = useMemo(() => new Map((marks ?? []).map((mark) => [mark.listingId, mark])), [marks]);
   const approvedBy = useMemo(() => new Map((approvals ?? []).map((mark) => [mark.listingId, mark])), [approvals]);
-  /* A row with a cover is recognised by it: attractions, stays, food listings and travel routes lead with theirs. */
+  /* A row with a cover is recognised by it: attractions, stays, food listings and corridors lead with theirs. */
   const thumbs = definition.fields.some((field) => field.name === "coverKey" && field.kind === "image");
   const [term, setTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");

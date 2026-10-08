@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BedDouble, ChevronLeft, ChevronRight, ImageIcon, Inbox, Loader2, MapPin, Pencil, Route, Search, Send, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { ArrowRight, BedDouble, ChevronLeft, ChevronRight, ImageIcon, Inbox, Loader2, MapPin, Pencil, Search, Send, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -22,13 +22,12 @@ const ICONS: Readonly<Record<DestinationTypeKey, LucideIcon>> = {
   destinations: MapPin,
   foods: UtensilsCrossed,
   stays: BedDouble,
-  corridors: Route,
 };
 
 const PAGE_SIZE = 20;
 
 /**
- * Every attraction, place to eat, stay and travel route together. Search,
+ * Every attraction, place to eat and stay together. Search,
  * narrow by status or by who created it, and open any row to edit it — its
  * own type's tab holds the rest of what can be done to it.
  *
