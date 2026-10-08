@@ -21,10 +21,8 @@ import { getBackendUserId, requireAdmin } from "@/features/auth/session";
 import { ListingForm } from "@/features/catalog/components/listing-form/listing-form";
 import { LISTING_GALLERIES, isListing } from "@/features/catalog/components/listing-form/steps";
 import { ResourceForm } from "@/features/catalog/components/resource-form";
-import { CoverageForm } from "@/features/heritage/components/coverage-form";
 import { getResource, isResourceKey } from "@/features/catalog/resources";
 import { shownRow, withoutField } from "@/features/catalog/resource";
-import { HeritagePanel } from "@/features/heritage/components/heritage-panel";
 import { PageHeader } from "@/features/shell/components/page-header";
 import {
   getVerificationHistory,
@@ -131,7 +129,7 @@ export default async function EditRecordPage(
     : [null, null];
 
   return (
-    <div className={`mx-auto flex flex-col gap-5 ${isListing(resource) || resource === "region-coverage" ? "max-w-7xl" : "max-w-4xl"}`}>
+    <div className={`mx-auto flex flex-col gap-5 ${isListing(resource) ? "max-w-7xl" : "max-w-4xl"}`}>
       <PageHeader
         backHref={reviewHref ?? listPageOf(resource)}
         backLabel={reviewHref ? "Back to the review" : listPageLabel(resource, definition.labelPlural)}
@@ -148,16 +146,7 @@ export default async function EditRecordPage(
         />
       ) : null}
 
-      {resource === "region-coverage" ? (
-        <CoverageForm
-          canDelete={canDeleteRecord(admin.roles, resource, record, userId)}
-          canEdit={canEdit}
-          /* Edit on another row of its list opens that one afresh. */
-          key={record.id}
-          record={record}
-          referenceOptions={referenceOptions}
-        />
-      ) : isListing(resource) ? (
+      {isListing(resource) ? (
         <ListingForm
           gallery={{
             canAdd: canCreateResource(admin.roles, LISTING_GALLERIES[resource]),
@@ -185,8 +174,6 @@ export default async function EditRecordPage(
         />
       )}
 
-      {/* Its ties are the destination's to change, so they are offered to whoever may edit it. */}
-      {isDestination && canEdit ? <HeritagePanel ancient={record.theme === "ANCIENT-CAPITALS"} destinationId={record.id} /> : null}
     </div>
   );
 }

@@ -752,15 +752,6 @@ const ref = (
   extra: Partial<ResourceField> = {},
 ): ResourceField => ({ name: field, label, kind: "ref", ref: target, ...extra });
 
-/** A year a period, a reign or a timeline moment is dated by. */
-const year = (field: string, label: string, section: string): ResourceField => ({
-  name: field,
-  label,
-  kind: "number",
-  section,
-  hint: "A year, e.g. 1113. Below zero is BCE.",
-});
-
 /** A region is either geography the provinces sit in, or a theme Discover browses by. */
 const REGION_KINDS = options(["ZONE", "TOURISM"]);
 
@@ -853,87 +844,6 @@ const regionClassification: readonly ResourceField[] = classification.map((field
       }
     : { ...field, narrowedBy: { field: "tourismRegionIds", links: field.name } },
 );
-
-/**
- * Ancient Capitals & Khmer Civilization's tags Century, King, Architecture
- * Style, Religion and Historical Period each ask which, once ticked: the
- * centuries, the kings… Unticked, the answer goes with the tag.
- */
-const askedByTag = (slug: string) => ({ field: "tagIds", values: [slug], bySlug: "tags" }) as const;
-
-const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th"}`;
-
-/** The 1st to the 21st century, oldest first. */
-export const CENTURIES: readonly EnumOption[] = Array.from({ length: 21 }, (_, index) => ({
-  value: String(index + 1),
-  label: `${ordinal(index + 1)} century`,
-}));
-
-/** The tag each heritage answer belongs to, by the tag's slug. */
-export const HERITAGE_TAGS: Readonly<Record<string, string>> = {
-  centuries: "century",
-  monarchIds: "king",
-  architectureStyleIds: "architecture-style",
-  religionIds: "religion",
-  historicalPeriodIds: "historical-period",
-};
-
-/** Which centuries, kings, styles, religions and periods — in the order of its tags. */
-const ancientSiteFilters: Readonly<Record<string, ResourceField>> = {
-  centuries: {
-    name: "centuries",
-    label: "Centuries",
-    kind: "enums",
-    options: CENTURIES,
-    scale: true,
-    numeric: true,
-    visibleWhen: askedByTag(HERITAGE_TAGS.centuries),
-    span: 2,
-    section: "Classification",
-    hint: "When it was built or in use. The reigns of its kings and the years on its timeline are added on the website too.",
-  },
-  monarchIds: {
-    name: "monarchIds",
-    label: "Kings",
-    kind: "refs",
-    ref: "monarchs",
-    ties: { path: "/destination-monarchs", by: "destinationId", list: "monarchs", key: "monarchId", keep: ["description"] },
-    visibleWhen: askedByTag(HERITAGE_TAGS.monarchIds),
-    span: 2,
-    section: "Classification",
-    hint: "The kings who built it or shaped it. What each one did is written under History & heritage, once it is saved.",
-  },
-  architectureStyleIds: {
-    name: "architectureStyleIds",
-    label: "Architecture styles",
-    kind: "refs",
-    ref: "architecture-styles",
-    visibleWhen: askedByTag(HERITAGE_TAGS.architectureStyleIds),
-    span: 2,
-    section: "Classification",
-    hint: "The style it was built in, such as Bayon or Angkor Wat.",
-  },
-  religionIds: {
-    name: "religionIds",
-    label: "Religions",
-    kind: "refs",
-    ref: "religions",
-    visibleWhen: askedByTag(HERITAGE_TAGS.religionIds),
-    span: 2,
-    section: "Classification",
-    hint: "The faith it was built for, such as Hinduism or Buddhism.",
-  },
-  historicalPeriodIds: {
-    name: "historicalPeriodIds",
-    label: "Historical periods",
-    kind: "refs",
-    ref: "historical-periods",
-    visibleWhen: askedByTag(HERITAGE_TAGS.historicalPeriodIds),
-    span: 2,
-    section: "Classification",
-    hint: "The era it belongs to. The periods on its timeline are added on the website too.",
-  },
-};
 
 const location: readonly ResourceField[] = [
   { name: "address", label: "Address", kind: "text", span: 2, section: "Location" },
@@ -1199,7 +1109,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       /* The region's code, for the API and the website's page: worked out from the choice above, never asked. */
       { name: "theme", label: "Theme", kind: "enum", options: DESTINATION_THEMES, derived: true },
       ...regionClassification,
-      ...Object.values(ancientSiteFilters),
       /* Its address sits beside its province, under the map. */
       ...location.map((field): ResourceField => (field.name === "address" ? { ...field, span: 1 } : field)),
       /* Beside the name in About: one of the headline places, or not. */
@@ -1654,14 +1563,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       },
       { ...description, label: "Overview", rich: true, hint: "The lines under its name on its Discover page, under Overview." },
       {
-        name: "historyIntro",
-        label: "History intro",
-        kind: "textarea",
-        span: 2,
-        visibleWhen: { field: "code", values: ["ANCIENT-CAPITALS"] },
-        hint: "The line above its historical coverage on its page. The royal capitals themselves are made under History & Heritage → Historical Coverage.",
-      },
-      {
         name: "categoryIds",
         label: "Categories",
         kind: "refs",
@@ -1984,196 +1885,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       },
     ],
   },
-
-  "historical-periods": {
-    key: "historical-periods",
-    label: "Historical period",
-    labelPlural: "Historical periods",
-    group: "Heritage",
-    description:
-      "The eras destinations and architecture styles are dated against. Deleting one leaves its styles and timeline entries in no period.",
-    titleField: "name",
-    searchFields: ["name", "description"],
-    orderField: "startYear",
-    columns: [
-      { name: "name", label: "Name" },
-      { name: "startYear", label: "From", kind: "number", secondary: true },
-      { name: "endYear", label: "To", kind: "number", secondary: true },
-    ],
-    /* The era's name — with the ones there already — and its years; no picture, which no page shows. */
-    fields: [
-      { ...name(), siblings: true, hint: "For example: Funan Period." },
-      year("startYear", "Starts in", "Dating"),
-      year("endYear", "Ends in", "Dating"),
-      { ...description, hint: "Optional. What the era is known for." },
-    ],
-  },
-
-  monarchs: {
-    key: "monarchs",
-    label: "King",
-    labelPlural: "Kings",
-    group: "Heritage",
-    description: "The kings a destination is tied to — who built it, or whose reign it belongs to.",
-    titleField: "name",
-    searchFields: ["name", "title", "description"],
-    orderField: "reignStartYear",
-    columns: [
-      { name: "name", label: "Name" },
-      { name: "title", label: "Title", secondary: true },
-      { name: "reignStartYear", label: "Reign from", kind: "number", secondary: true },
-      { name: "reignEndYear", label: "Reign to", kind: "number", secondary: true },
-    ],
-    /* The king — with the ones there already — his title and reign; no portrait, which no page shows. */
-    fields: [
-      { ...name(), siblings: true, hint: "For example: Jayavarman VII." },
-      { name: "title", label: "Title", kind: "text", hint: "Shown under the name on each site's page, e.g. King." },
-      year("reignStartYear", "Reign began", "Reign"),
-      year("reignEndYear", "Reign ended", "Reign"),
-      { ...description, hint: "Optional. What the reign is remembered for." },
-    ],
-  },
-
-  "architecture-styles": {
-    key: "architecture-styles",
-    label: "Architecture style",
-    labelPlural: "Architecture styles",
-    group: "Heritage",
-    description: "The building styles a destination can be attributed to, each within its historical period.",
-    titleField: "name",
-    searchFields: ["name", "description"],
-    columns: [
-      { name: "name", label: "Name" },
-      { name: "periodId", label: "Period", kind: "ref", ref: "historical-periods", secondary: true },
-    ],
-    /* Its era first, as cards with their years and the styles each already has; then its name. */
-    fields: [
-      ref("periodId", "Historical period", "historical-periods", {
-        tiles: true,
-        siblings: true,
-        hint: "The era the style belongs to.",
-      }),
-      { ...name(), hint: "For example: Bayon Style." },
-      { ...description, hint: "Optional. What sets the style apart." },
-    ],
-  },
-
-  religions: {
-    key: "religions",
-    label: "Religion",
-    labelPlural: "Religions",
-    group: "Heritage",
-    description: "The religious traditions a destination is associated with.",
-    titleField: "name",
-    searchFields: ["name", "description"],
-    columns: [
-      { name: "name", label: "Name" },
-      { name: "iconKey", label: "Icon", secondary: true },
-    ],
-    /* The faith — with the ones there already; no icon, which no page shows. */
-    fields: [{ ...name(), siblings: true, hint: "For example: Buddhism." }, { ...description, hint: "Optional." }],
-  },
-
-  /*
-   * A tourism region's Historical coverage: its royal capitals, numbered top
-   * to bottom on its page — Ishanapura, Mahendraparvata … Chaktomuk.
-   */
-  "region-coverage": {
-    key: "region-coverage",
-    label: "Capital",
-    labelPlural: "Historical coverage",
-    group: "Heritage",
-    description:
-      "The royal capitals a tourism region's page lists under Historical coverage, top to bottom, each with its dates, era and the site it opens.",
-    titleField: "title",
-    searchFields: ["title", "titleKm", "dateRange"],
-    orderField: "sortOrder",
-    siblingNoun: "capitals",
-    preview: "coverage",
-    columns: [
-      { name: "sortOrder", label: "#", kind: "number" },
-      { name: "title", label: "Name" },
-      { name: "dateRange", label: "Dates", secondary: true },
-      { name: "historicalPeriodId", label: "Period", kind: "ref", ref: "historical-periods", secondary: true },
-      { name: "destinationId", label: "Opens", kind: "ref", ref: "destinations", secondary: true },
-      { name: "regionId", label: "Region", kind: "ref", ref: "tourism-regions", secondary: true },
-    ],
-    /* Its region first, and where in that region's list it goes; then what the page says of it. */
-    fields: [
-      ref("regionId", "Tourism region", "tourism-regions", {
-        required: true,
-        tiles: true,
-        siblings: true,
-        hint: "Whose page lists it. Ancient Capitals & Khmer Civilization lists its royal capitals.",
-      }),
-      {
-        name: "sortOrder",
-        label: "Place in the list",
-        kind: "number",
-        placeAmong: "regionId",
-        span: 2,
-        hint: "Top to bottom, oldest first. The others move to make room.",
-      },
-      { name: "title", label: "Name", kind: "text", required: true, maxLength: 150, hint: "For example: Yasodharapura." },
-      { name: "titleKm", label: "Name in Khmer", kind: "text", maxLength: 150, hint: "Shown beside it, e.g. យសោធរបុរី." },
-      {
-        name: "dateRange",
-        label: "Dates",
-        kind: "text",
-        maxLength: 100,
-        hint: "As the page shows them: 802 – c. 835 CE, or 1866 CE – present. Write c. before a year that is not certain.",
-      },
-      ref("historicalPeriodId", "Historical period", "historical-periods", { tiles: true, hint: "The era its chip names." }),
-      { ...description, hint: "One or two sentences: who ruled there, and what it is remembered for." },
-      ref("destinationId", "View details opens", "ancient-sites", {
-        hint: "Optional. The site its View details link opens; leave it empty when the capital has no page of its own.",
-      }),
-    ],
-  },
-  "destination-histories": {
-    key: "destination-histories",
-    label: "Timeline moment",
-    labelPlural: "Timeline moments",
-    group: "Heritage",
-    description:
-      "The moments on each destination's timeline — when it was founded, rebuilt or rediscovered. Only an account that may edit the destination may change its timeline.",
-    titleField: "title",
-    searchFields: ["title", "description", "historicalPeriodName", "sourceReference"],
-    orderField: "eventYear",
-    columns: [
-      { name: "title", label: "Title" },
-      { name: "destinationId", label: "Destination", kind: "ref", ref: "destinations" },
-      { name: "historicalPeriodId", label: "Period", kind: "ref", ref: "historical-periods", secondary: true },
-      { name: "eventYear", label: "Year", kind: "number", secondary: true },
-      { name: "sourceReference", label: "Source", secondary: true },
-    ],
-    /*
-     * The site first — an Ancient Capitals site, with the moments its timeline
-     * already has — then its era, what happened and the year. No day-exact
-     * dates: a temple's history is told in years.
-     */
-    siblingNoun: "timeline moments",
-    fields: [
-      ref("destinationId", "Site", "ancient-sites", {
-        required: true,
-        tiles: true,
-        siblings: true,
-        hint: "The Ancient Capitals & Khmer Civilization site whose timeline it goes on.",
-      }),
-      ref("historicalPeriodId", "Historical period", "historical-periods", { tiles: true, hint: "The era it happened in." }),
-      { name: "title", label: "What happened", kind: "text", required: true, span: 2, hint: "For example: Built 1113 – 1150 CE." },
-      /* One block: a heading over a lone field of the same name says it twice. */
-      { ...year("eventYear", "Year", "When"), section: undefined },
-      { ...description, hint: "Optional. The story of that moment." },
-      {
-        name: "sourceReference",
-        label: "Source",
-        kind: "text",
-        span: 2,
-        hint: "Where this comes from — a book, an inscription, a link.",
-      },
-    ],
-  },
 };
 
 /** The registry, every field's choices A to Z (see `inAtoZ`). */
@@ -2197,7 +1908,6 @@ export const RESOURCE_GROUP_ORDER = [
   "Listings",
   "Places",
   "Taxonomy",
-  "Heritage",
   "Gamification",
 ] as const;
 

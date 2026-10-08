@@ -229,12 +229,8 @@ const STEPS: Readonly<Record<ListingKey, readonly ListingStep[]>> = {
       groups: [
         { title: "Tourism region", fields: ["tourismRegionIds"] },
         { title: "Categories", fields: ["categoryIds"] },
-        /*
-         * The region's own tags. Ancient Capitals & Khmer Civilization's Century,
-         * King, Architecture Style, Religion and Historical Period then ask which.
-         */
-        /* No heading of its own: the tags, and under them what a ticked tag asks. */
-        { fields: ["tagIds", "centuries", "monarchIds", "architectureStyleIds", "religionIds", "historicalPeriodIds"] },
+        /* The region's own tags, with no heading of their own. */
+        { fields: ["tagIds"] },
         { title: "Interests", description: "The Interests tab and province pages it is listed under.", fields: ["interestIds"] },
       ],
       places: [

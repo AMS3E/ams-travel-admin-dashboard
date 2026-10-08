@@ -3,7 +3,6 @@ import { canCreateResource, canManageResource } from "@/features/auth/permission
 import type { CatalogRecord } from "@/features/catalog/api/contracts";
 import { mediaPath, statusOption, statusValueOf } from "@/features/catalog/resource";
 import { byName, getResource } from "@/features/catalog/resources";
-import { HERITAGE_TAGS, HISTORICAL_COVERAGE, heritageListOf } from "@/features/heritage/heritage-tabs";
 
 /**
  * "All Destinations": every attraction, place to eat and stay in one list,
@@ -33,22 +32,19 @@ export const DESTINATION_TYPES: readonly DestinationType[] = [
 
 /**
  * The list a record of this table goes back to: a stay or a food listing to
- * its tab of All Destinations, a royal capital to Historical Coverage, a king
- * to its tab of Heritage Tags — where they are listed; anything else to its
+ * its tab of All Destinations, where they are listed; anything else to its
  * own page.
  */
 export function listPageOf(key: string): string {
   const type = DESTINATION_TYPES.find((each) => each.key === key && each.key !== "destinations");
-  return type ? `/destinations?type=${type.tab}` : (heritageListOf(key) ?? `/${key}`);
+  return type ? `/destinations?type=${type.tab}` : `/${key}`;
 }
 
-/** What that list is called, for a Back link: "All Destinations", "All Historical Coverage", "Heritage Tags", or its own name. */
+/** What that list is called, for a Back link: "All Destinations", or its own name. */
 export function listPageLabel(key: string, ownName: string): string {
   const page = listPageOf(key);
   const on = (list: string) => page === list || page.startsWith(`${list}?`);
-  if (on("/destinations")) return "All Destinations";
-  if (on(HISTORICAL_COVERAGE)) return "All Historical Coverage";
-  return on(HERITAGE_TAGS) ? "Heritage Tags" : ownName;
+  return on("/destinations") ? "All Destinations" : ownName;
 }
 
 /** The main types this account manages. */

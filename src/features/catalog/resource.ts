@@ -34,13 +34,7 @@ export type ResourceKey =
   | "tags"
   | "badge-definitions"
   | "badge-periods"
-  | "seasons"
-  | "historical-periods"
-  | "monarchs"
-  | "architecture-styles"
-  | "religions"
-  | "destination-histories"
-  | "region-coverage";
+  | "seasons";
 
 /**
  * What a `ref` field can point at: a resource's rows, or one of the lists made
@@ -48,14 +42,13 @@ export type ResourceKey =
  * attraction themes), the zones provinces sit in, and the ancient sites whose
  * history is told.
  */
-export type ReferenceKey = ResourceKey | "users" | "tourism-regions" | "zones" | "ancient-sites";
+export type ReferenceKey = ResourceKey | "users" | "tourism-regions" | "zones";
 
 export type ResourceGroup =
   | "Catalogue"
   | "Listings"
   | "Places"
   | "Taxonomy"
-  | "Heritage"
   | "Gamification";
 
 export type FieldKind =
@@ -158,7 +151,7 @@ export interface ResourceField {
    * list of choices is shown A to Z.
    */
   readonly scale?: boolean;
-  /** For `enums` — the values are whole numbers and go to the API as numbers: a site's centuries. */
+  /** For `enums` — the values are whole numbers and go to the API as numbers. */
   readonly numeric?: boolean;
   /**
    * The label this kind of row uses: a cafe is asked what a coffee and a cake
@@ -355,21 +348,7 @@ export interface ResourceDefinition {
   readonly preview?: "coverage" | "interest";
 }
 
-/**
- * The four vocabularies of Khmer history answer under one prefix, because one
- * service owns them: the eras, the kings, the building styles and the faiths
- * of the ancient capitals. Their keys here — and so their pages — are
- * unchanged; only where the API answers moved.
- */
-const HISTORICAL_COVERAGE: Partial<Record<ResourceKey, string>> = {
-  "historical-periods": "/historical-coverage/periods",
-  monarchs: "/historical-coverage/monarchs",
-  "architecture-styles": "/historical-coverage/styles",
-  religions: "/historical-coverage/religions",
-  "region-coverage": "/historical-coverage/regions",
-};
-
-/** The API path is the key, unless a service answers somewhere of its own. */
+/** The API path is the key, unless a gallery, which is the one media table. */
 /**
  * The same resource with one field left out, and its column with it: a stay's
  * or a food listing's owner is not asked of the account that is the owner — the
@@ -399,7 +378,7 @@ export function mediaOwnerType(key: ResourceKey): "DESTINATION" | "STAY" | "FOOD
 
 export function resourcePath(key: ResourceKey): string {
   if (MEDIA_OWNERS[key]) return "/media";
-  return HISTORICAL_COVERAGE[key] ?? `/${key}`;
+  return `/${key}`;
 }
 
 /** A photo set hung off one row: the picture, whose it is, and the order shown. */
@@ -450,7 +429,6 @@ export function isResourceOrder(value: unknown): value is ResourceOrder {
  */
 const ARRANGED: ReadonlySet<ResourceKey> = new Set([
   "destination-media", "stay-media", "food-media", "food-menu-items", "stay-rooms",
-  "historical-periods", "monarchs", "destination-histories", "region-coverage",
   "regions", "interests", "corridors",
 ]);
 

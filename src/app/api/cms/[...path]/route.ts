@@ -30,9 +30,6 @@ const reads = [
    * the API scopes them to the caller's desks.
    */
   path("destination-verifications(/(queue|status))?"),
-  /* One destination's heritage (`?destinationId=`): its timeline, and the monarchs tied to it. */
-  path("destination-histories"),
-  path("destination-monarchs"),
 ];
 const writes: Record<string, readonly RegExp[]> = {
   /*
@@ -51,7 +48,7 @@ const writes: Record<string, readonly RegExp[]> = {
    * replacing one destination's monarch ties — whoever may edit that
    * destination, which the API decides.
    */
-  PUT: [path("users/{id}"), path("reviews/{id}"), path("destination-monarchs/{id}")],
+  PUT: [path("users/{id}"), path("reviews/{id}")],
   /*
    * Deleting a customer for good (PERM_USER_MANAGE) and clearing the audit
    * log — all-or-nothing; the API demands full control.

@@ -41,7 +41,6 @@ export const baseApi = createApi({
     "Role",
     "Permission",
     "Verification",
-    "Heritage",
   ],
   refetchOnFocus: true,
   refetchOnReconnect: true,

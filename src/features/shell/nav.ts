@@ -1,8 +1,8 @@
 import {
   Award, BadgeCheck, BedDouble, BedSingle, Building2, CalendarRange, ChefHat, ClipboardCheck, Compass,
-  Crown, FileClock, FilePenLine, Flame, Flower2, Hourglass, Images,
-  Landmark, LayoutDashboard, ListOrdered, Map, MapPin, MessageSquare, Plus, Route,
-  ScrollText, Settings, Shapes, ShieldCheck, Sparkles, Star, Store, SunMedium, Tag, Tags,
+  FileClock, FilePenLine, Flame, Images,
+  LayoutDashboard, Map, MapPin, MessageSquare, Plus, Route,
+  Settings, Shapes, ShieldCheck, Sparkles, Star, Store, SunMedium, Tag,
   Users, UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
@@ -16,8 +16,6 @@ const ICONS: Readonly<Record<ResourceKey, LucideIcon>> = {
   provinces: Building2, interests: Compass, categories: Shapes, tags: Tag,
   "badge-definitions": Award,
   "badge-periods": CalendarRange, seasons: SunMedium,
-  "historical-periods": Hourglass, monarchs: Crown, "architecture-styles": Landmark,
-  religions: Flower2, "destination-histories": ScrollText, "region-coverage": ListOrdered,
 };
 export const resourceIcon = (key: ResourceKey) => ICONS[key];
 export interface NavItem {
@@ -66,41 +64,11 @@ const createDestination: NavItem = {
   aliases: ["/destinations/new", "/stays/new", "/foods/new"],
   exact: true,
 };
-/*
- * Asks which tourism region first, then builds that region's Historical
- * coverage step by step — No. 1, No. 2, No. 3 — as Create Destination asks the
- * main type first. A king, an era, a faith or a style is added from its tab
- * of Heritage Tags.
- */
-const createHeritage: NavItem = {
-  ...tool("/heritage/create", "Create Historical Coverage", Plus, ["PERM_TAXONOMY_MANAGE"], "Choose the tourism region, then build its Historical coverage step by step: No. 1, No. 2, No. 3…"),
-  aliases: ["/region-coverage/new"],
-  exact: true,
-};
-
 /** A new row's form belongs to its Create entry, not to its list: a new stay is Create Destination's. */
 const CREATE_PAGES: ReadonlySet<string> = new Set([
   createDestination.href,
-  createHeritage.href,
   ...(createDestination.aliases ?? []),
-  ...(createHeritage.aliases ?? []),
 ]);
-
-/* Each tourism region's Historical coverage, numbered as its page shows it; an entry's page sits under it. */
-const historicalCoverage: NavItem = {
-  ...tool("/heritage", "All Historical Coverage", ListOrdered, ["PERM_TAXONOMY_MANAGE"], "Each tourism region's Historical coverage, numbered as its website page shows it"),
-  aliases: ["/region-coverage"],
-};
-
-/*
- * The values an ancient site's heritage tags offer — architecture styles,
- * historical periods, kings and religions — a tab each. Their old list pages
- * open their tab, and a row's page, and a new one's, sit under it.
- */
-const heritageTags: NavItem = {
-  ...tool("/heritage-tags", "Heritage Tags", Tags, ["PERM_TAXONOMY_MANAGE"], "Architecture styles, historical periods, kings and religions an ancient site's tags offer, a tab each"),
-  aliases: ["/architecture-styles", "/historical-periods", "/monarchs", "/religions"],
-};
 
 /**
  * A partner's or a contributor's content: their own destinations — and, for
@@ -160,17 +128,6 @@ const taxonomy: NavGroup = {
     catalog("/interests", "Interests", "interests", "Ways for travelers to explore"),
     catalog("/provinces", "Provinces", "provinces", "Manage Cambodia's provinces"),
   ],
-};
-
-/**
- * All the history: the regions' Historical coverage as Content Management keeps
- * places — one list, and one Create that asks the region first — and the
- * Heritage Tags an ancient site is tagged with. A site's timeline is edited on
- * the site's own page.
- */
-const heritage: NavGroup = {
-  title: "History & Heritage",
-  items: [historicalCoverage, createHeritage, heritageTags],
 };
 
 /**
@@ -236,10 +193,10 @@ const administration: NavGroup = {
 const ROLE_GROUPS: Readonly<Record<BusinessRole, readonly NavGroup[]>> = {
   PARTNER: [ownContent, management("partner", true)],
   CONTRIBUTOR: [ownContent, management("contributor", true)],
-  EDITOR: [catalogueContent, homepage, taxonomy, heritage, management("contributor"), management("editor", true)],
-  BDO: [catalogueContent, homepage, taxonomy, heritage, management("partner"), management("bdo", true)],
+  EDITOR: [catalogueContent, homepage, taxonomy, management("contributor"), management("editor", true)],
+  BDO: [catalogueContent, homepage, taxonomy, management("partner"), management("bdo", true)],
   ADMIN: [
-    catalogueContent, homepage, taxonomy, heritage,
+    catalogueContent, homepage, taxonomy,
     management("partner"), management("contributor"), management("editor"), management("bdo"),
     administration,
   ],

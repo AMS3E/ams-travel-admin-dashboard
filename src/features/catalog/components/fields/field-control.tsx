@@ -2,7 +2,7 @@
 
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import dynamic from "next/dynamic";
-import { Hourglass, Landmark, TriangleAlert, type LucideIcon } from "lucide-react";
+import { TriangleAlert, type LucideIcon } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -56,10 +56,7 @@ export interface SiblingGroup {
 }
 
 /** The card icon of a list the tile tables do not know. */
-const TILE_ICONS: Partial<Record<string, LucideIcon>> = {
-  "historical-periods": Hourglass,
-  "ancient-sites": Landmark,
-};
+const TILE_ICONS: Partial<Record<string, LucideIcon>> = {};
 
 const DAY_LABELS: Readonly<Record<(typeof WEEKDAYS)[number], string>> = {
   mon: "Monday",
