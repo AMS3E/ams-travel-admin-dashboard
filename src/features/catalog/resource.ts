@@ -34,7 +34,8 @@ export type ResourceKey =
   | "tags"
   | "badge-definitions"
   | "badge-periods"
-  | "seasons";
+  | "seasons"
+  | "amenities";
 
 /**
  * What a `ref` field can point at: a resource's rows, or one of the lists made
@@ -145,6 +146,8 @@ export interface ResourceField {
    * table does not name is offered everything.
    */
   readonly optionsFor?: { readonly field: string; readonly keep: Readonly<Record<string, readonly string[]>> };
+  /** For `enums` read from the amenities taxonomy (`ref: "amenities"`): the level this picker stands at. */
+  readonly offeredAt?: "PROPERTY" | "ROOM";
   /**
    * For `enum` / `enums` — the options are a scale or a sequence — $ to $$,
    * breakfast to dinner — and keep the order they are written in. Every other
@@ -429,7 +432,7 @@ export function isResourceOrder(value: unknown): value is ResourceOrder {
  */
 const ARRANGED: ReadonlySet<ResourceKey> = new Set([
   "destination-media", "stay-media", "food-media", "food-menu-items", "stay-rooms",
-  "regions", "interests", "corridors",
+  "regions", "interests", "corridors", "amenities",
 ]);
 
 /** Whether a list's own order is its meaning, so its pickers and tables keep it rather than going A to Z. */
@@ -526,8 +529,12 @@ export interface ReferenceOption {
   readonly group?: string;
   /** The row's slug, when it has one: how `optionsFor` names a category or a tag. */
   readonly slug?: string;
-  /** One line about it on a card: a historical period's years. */
+  /** One line about it on a card. */
   readonly detail?: string;
+  /** Where an amenity is offered: PROPERTY, ROOM or BOTH. */
+  readonly level?: string;
+  /** The icon an amenity is drawn with, by name. */
+  readonly icon?: string;
 }
 
 /**

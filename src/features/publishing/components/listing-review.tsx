@@ -2,6 +2,7 @@ import Image from "next/image";
 import { ExternalLink, ImageIcon } from "lucide-react";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
 import type { FormValues, ReferenceOptions, ResourceDefinition } from "@/features/catalog/resource";
+import { amenityLabels } from "@/features/catalog/amenities";
 import { RoomBadge, RoomCard } from "@/features/catalog/components/listing-form/room-card";
 import { listingSteps, type ListingStep } from "@/features/catalog/components/listing-form/steps";
 import { reviewGroups, type ReviewRow } from "@/features/publishing/review";
@@ -40,6 +41,7 @@ interface ListingReviewProps {
  */
 export function ListingReview({ definition, kind, values, options, cover, photos, rooms, currency }: ListingReviewProps) {
   const steps = listingSteps(definition, kind).filter((step) => !step.review);
+  const labels = amenityLabels(options.amenities ?? []);
 
   return (
     <div className="flex min-w-0 flex-col gap-5">
@@ -49,6 +51,7 @@ export function ListingReview({ definition, kind, values, options, cover, photos
           <ItemsStep empty="No rooms added yet. A stay is booked by its rooms." items={rooms} key={step.id} step={step}>
             {(room) => (
               <RoomCard
+                amenityLabels={labels}
                 badge={room.values.status === "INACTIVE" ? <RoomBadge state="off-sale" /> : undefined}
                 currency={currency}
                 photoUrl={room.photoUrl}

@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { AmenityPicker } from "@/features/catalog/components/listing-form/amenity-picker";
+import { offeredAmenities, type AmenityOption } from "@/features/catalog/amenities";
 import { HoursEditor } from "@/features/catalog/components/listing-form/hours-editor";
 import { FieldControl } from "@/features/catalog/components/fields/field-control";
 import { HelpStyleContext } from "@/features/catalog/components/listing-form/help-style";
@@ -299,7 +300,8 @@ export function ListingField({ field: declared, options, locked = false, pathPre
       ...(declared.kind === "refs" ? {} : { options: offeredOptions(declared, around) }),
     };
   }, [declared, follows, kind, value]);
-  const offered = field.options ?? [];
+  /* A picker fed by the amenities taxonomy takes the active ones offered at its level; any other field its own choices. */
+  const offered = field.kind === "enums" && field.ref === "amenities" ? offeredAmenities(options, field.offeredAt) : (field.options ?? []);
   /* What is chosen in the field this one follows; this field's own value when it follows none. */
   const followed = useWatch({ control, name: field.narrowedBy?.field ?? field.name });
   const length = typeof value === "string" ? value.trim().length : 0;
@@ -798,7 +800,7 @@ function FacilitiesField({
   onChange,
   labelledBy,
 }: {
-  readonly options: readonly EnumOption[];
+  readonly options: readonly AmenityOption[];
   readonly value: readonly string[];
   readonly onChange: (value: string[]) => void;
   readonly labelledBy: string;

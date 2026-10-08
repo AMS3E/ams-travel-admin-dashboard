@@ -45,6 +45,7 @@ const TAXONOMY: ReadonlySet<ResourceKey> = new Set([
   "interests",
   "categories",
   "tags",
+  "amenities",
 ]);
 
 /**

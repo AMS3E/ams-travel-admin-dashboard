@@ -19,7 +19,8 @@ import { Input } from "@/components/ui/input";
 import dynamic from "next/dynamic";
 import type { SaveResult } from "@/features/catalog/form-state";
 import { mediaPath, resourceSchema, type FormValues, type ResourceDefinition } from "@/features/catalog/resource";
-import { ROOM_AMENITIES, ROOM_BEDS } from "@/features/catalog/resources";
+import { ROOM_BEDS } from "@/features/catalog/resources";
+import type { AmenityOption } from "@/features/catalog/amenities";
 import {
   ROOM_WORDS,
   capacityWarning,
@@ -48,6 +49,8 @@ export interface GalleryPhoto {
 
 interface RoomEditorProps {
   readonly definition: ResourceDefinition;
+  /** The amenities taxonomy as offered in a room. */
+  readonly amenityOptions: readonly AmenityOption[];
   readonly initial: FormValues;
 
   readonly currency: string;
@@ -75,6 +78,7 @@ interface RoomEditorProps {
  * photos are chosen from the stay's gallery rather than uploaded twice.
  */
 export function RoomEditor({
+  amenityOptions,
   definition,
   initial,
   currency,
@@ -323,7 +327,7 @@ export function RoomEditor({
                 <AmenityPicker
                   labelledBy="room-facilities"
                   onChange={(next) => update({ amenities: next })}
-                  options={ROOM_AMENITIES}
+                  options={amenityOptions}
                   popular={[]}
                   value={Array.isArray(field.value) ? field.value : []}
                 />

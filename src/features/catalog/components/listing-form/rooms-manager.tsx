@@ -14,6 +14,8 @@ import { galleryOf, mediaPath, toFormValues, type FormValues } from "@/features/
 import { getResource } from "@/features/catalog/resources";
 import { ROOM_WORDS, roomSummary, withBedsFor, type RoomSummary } from "@/features/catalog/rooms";
 import { RoomBadge, RoomCard } from "@/features/catalog/components/listing-form/room-card";
+import { amenityLabels, offeredAmenities } from "@/features/catalog/amenities";
+import type { ReferenceOption } from "@/features/catalog/resource";
 import { RoomEditor, type GalleryPhoto } from "@/features/catalog/components/listing-form/room-editor";
 import { apiErrorMessage } from "@/store/api/api-error";
 
@@ -32,6 +34,8 @@ interface Room {
 interface RoomsManagerProps {
   /** Null while the stay is being created. */
   readonly stayId: string | null;
+  /** The amenities taxonomy, as the stay form loaded it. */
+  readonly amenities: readonly ReferenceOption[];
   readonly currency: string;
   readonly pending: readonly RoomDraft[];
   readonly onPendingChange: Dispatch<SetStateAction<RoomDraft[]>>;
@@ -58,6 +62,7 @@ interface Editing {
  * on sale is the stay's "From" price.
  */
 export function RoomsManager({
+  amenities,
   stayId,
   currency,
   pending,
@@ -66,6 +71,8 @@ export function RoomsManager({
   canEdit,
   onSummaryChange,
 }: RoomsManagerProps) {
+  const roomAmenities = useMemo(() => offeredAmenities(amenities, "ROOM"), [amenities]);
+  const labels = useMemo(() => amenityLabels(amenities), [amenities]);
   const registered = getResource("stay-rooms");
   /* A new stay has no id for its rooms to name yet; it is filled in when the stay is saved. */
   const definition = useMemo(
@@ -217,6 +224,7 @@ export function RoomsManager({
               </IconButton>
             </div>
             <RoomEditor
+              amenityOptions={roomAmenities}
               currency={currency}
               definition={definition}
               initial={editing.values}
@@ -270,6 +278,7 @@ export function RoomsManager({
             return (
               <li key={room.id}>
                 <RoomCard
+                  amenityLabels={labels}
                   actions={
                     canEdit ? (
                       <>

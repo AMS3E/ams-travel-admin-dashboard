@@ -1,5 +1,5 @@
 import {
-  Award, BadgeCheck, BedDouble, BedSingle, Building2, CalendarRange, ChefHat, ClipboardCheck, Compass,
+  Award, BadgeCheck, BedDouble, BedSingle, Building2, CalendarRange, ChefHat, ClipboardCheck, Compass, ConciergeBell,
   FileClock, FilePenLine, Flame, Images,
   LayoutDashboard, Map, MapPin, MessageSquare, Plus, Route,
   Settings, Shapes, ShieldCheck, Sparkles, Star, Store, SunMedium, Tag,
@@ -13,7 +13,7 @@ import { canManageResource, hasAnyPermission, primaryRole, type BusinessRole } f
 const ICONS: Readonly<Record<ResourceKey, LucideIcon>> = {
   destinations: MapPin, "destination-media": Images, stays: BedDouble,
   "stay-media": Images, "stay-rooms": BedSingle, foods: UtensilsCrossed, "food-media": Images, "food-menu-items": ChefHat, corridors: Route, regions: Map,
-  provinces: Building2, interests: Compass, categories: Shapes, tags: Tag,
+  provinces: Building2, interests: Compass, categories: Shapes, tags: Tag, amenities: ConciergeBell,
   "badge-definitions": Award,
   "badge-periods": CalendarRange, seasons: SunMedium,
 };
@@ -125,6 +125,7 @@ const taxonomy: NavGroup = {
   items: [
     catalog("/categories", "Categories", "categories", "Organize your destination catalog"),
     catalog("/tags", "Tags", "tags", "Labels that connect your content"),
+    catalog("/amenities", "Amenities", "amenities", "What a stay offers, at the property and in the room"),
     catalog("/interests", "Interests", "interests", "Ways for travelers to explore"),
     catalog("/provinces", "Provinces", "provinces", "Manage Cambodia's provinces"),
   ],

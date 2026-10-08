@@ -1,3 +1,4 @@
+import { AMENITY_ICON_OPTIONS } from "@/features/catalog/amenity-icons";
 import type { ImageCategory } from "@/features/catalog/image-category";
 import type {
   EnumOption,
@@ -601,34 +602,6 @@ export const ROOM_BATHROOMS: readonly EnumOption[] = [
   { value: "SHARED", label: "Shared bathroom" },
 ];
 
-/**
- * What a room has — the API's `RoomAmenities`, beside the property's own
- * list above. Labelled `Group · Name`, as the stay's are, and checked against
- * the Java file by a test.
- */
-const ROOM_AMENITY_GROUPS: readonly (readonly [string, readonly (readonly [string, string])[]])[] = [
-  ["Comfort", [["air-conditioning", "Air conditioning"], ["fan", "Fan"], ["heating", "Heating"],
-    ["mosquito-net", "Mosquito net"], ["blackout-curtains", "Blackout curtains"], ["soundproofing", "Soundproofing"],
-    ["privacy-curtain", "Privacy curtain on the bed"], ["reading-light", "Reading light by the bed"]]],
-  ["Bathroom", [["hot-water", "Hot water"], ["shower", "Shower"], ["rain-shower", "Rain shower"], ["bathtub", "Bathtub"],
-    ["bidet", "Bidet"], ["hairdryer", "Hairdryer"], ["toiletries", "Free toiletries"], ["towels", "Towels"],
-    ["slippers", "Slippers"], ["bathrobes", "Bathrobes"]]],
-  ["Food & drink", [["kettle", "Kettle"], ["coffee-machine", "Coffee machine"], ["minibar", "Minibar"],
-    ["fridge", "Fridge"], ["kitchenette", "Kitchenette"], ["kitchen", "Full kitchen"], ["microwave", "Microwave"],
-    ["water-bottles", "Free drinking water"]]],
-  ["Tech & work", [["wifi", "Wi-Fi"], ["tv", "TV"], ["streaming", "Streaming service"], ["desk", "Desk"],
-    ["usb-sockets", "USB sockets"], ["phone", "Telephone"]]],
-  ["Space & outdoors", [["balcony", "Balcony"], ["terrace", "Terrace"], ["private-pool", "Private pool"],
-    ["seating-area", "Seating area"], ["wardrobe", "Wardrobe"], ["iron", "Iron"], ["clothes-rack", "Clothes rack"]]],
-  ["Safety & access", [["safe", "Safe"], ["lockers", "Lockers"], ["smoke-alarm", "Smoke alarm"], ["step-free", "Step-free access"],
-    ["accessible-bathroom", "Accessible bathroom"], ["ground-floor", "Ground floor"]]],
-  ["Family", [["cot-available", "Cot on request"], ["extra-bed-available", "Extra bed on request"]]],
-];
-
-export const ROOM_AMENITIES: readonly EnumOption[] = ROOM_AMENITY_GROUPS.flatMap(([group, entries]) =>
-  entries.map(([value, label]) => ({ value, label: `${group} · ${label}` })),
-);
-
 /** The bed counts a room holds, in the order a room card lists them — the API's columns. */
 export const ROOM_BEDS: readonly {
   readonly name: string;
@@ -768,45 +741,18 @@ const INTEREST_GROUPS: readonly EnumOption[] = [
   CORRIDOR_INTEREST_GROUP,
 ].map((value) => ({ value, label: value }));
 
-/**
- * What a stay offers, as the API's `StayAmenities` lists it.
- *
- * Amenities are a fixed list rather than free text, because typed ones cannot
- * be filtered on: "Wi-Fi", "wifi" and "Free WiFi" are three strings and one
- * facility. The group is only how a guest scans them — the slug is what a row
- * stores — so it is shown in the label. A test reads the Java file to prove
- * the two lists have not drifted.
- */
-const STAY_AMENITY_GROUPS: readonly (readonly [string, readonly (readonly [string, string])[]])[] = [
-  ["Internet", [["wifi", "Wi-Fi"], ["wifi-free", "Free Wi-Fi"], ["workspace", "Workspace"]]],
-  ["Parking & transport", [["parking", "Parking"], ["parking-free", "Free parking"],
-    ["airport-shuttle", "Airport shuttle"], ["car-hire", "Car hire"]]],
-  ["Wellbeing", [["pool", "Swimming pool"], ["spa", "Spa"], ["gym", "Gym"], ["garden", "Garden"],
-    ["terrace", "Terrace"]]],
-  ["Food & drink", [["breakfast", "Breakfast"], ["restaurant", "Restaurant"], ["bar", "Bar"],
-    ["room-service", "Room service"], ["kitchen", "Kitchen"]]],
-  ["Room", [["air-conditioning", "Air conditioning"], ["heating", "Heating"],
-    ["private-bathroom", "Private bathroom"], ["balcony", "Balcony"], ["tv", "TV"], ["safe", "Safe"]]],
-  ["Services", [["front-desk-24h", "24-hour front desk"], ["laundry", "Laundry"],
-    ["housekeeping", "Housekeeping"], ["luggage-storage", "Luggage storage"], ["tours", "Tour desk"]]],
-  ["Family & pets", [["family-rooms", "Family rooms"], ["cot", "Cot"], ["pets-allowed", "Pets allowed"]]],
-  ["Accessibility", [["step-free-access", "Step-free access"], ["lift", "Lift"],
-    ["accessible-bathroom", "Accessible bathroom"]]],
+/** The headings a stay's and a room's amenities are picked under, in the order the Amenities page lists them. */
+const AMENITY_GROUPS: readonly EnumOption[] = [
+  "Internet", "Parking & transport", "Wellbeing", "Food & drink", "Bathroom", "Comfort",
+  "Space & outdoors", "Tech & work", "Safety & access", "Services", "Family & pets", "Accessibility",
+].map((group) => ({ value: group, label: group }));
+
+/** Where an amenity is offered — the API's `AmenityLevel`. */
+const AMENITY_LEVELS: readonly EnumOption[] = [
+  { value: "PROPERTY", label: "At the property" },
+  { value: "ROOM", label: "In the room" },
+  { value: "BOTH", label: "Both" },
 ];
-
-export const STAY_AMENITIES: readonly EnumOption[] = STAY_AMENITY_GROUPS.flatMap(([group, entries]) =>
-  entries.map(([value, label]) => ({ value, label: `${group} · ${label}` })),
-);
-
-/** The facilities each kind of stay is offered: a homestay is not asked about its gym or its lift. */
-export const STAY_FACILITIES_BY_KIND: Readonly<Record<string, readonly string[]>> = {
-  HOTEL: ["wifi", "wifi-free", "workspace", "parking", "parking-free", "airport-shuttle", "car-hire", "pool", "spa", "gym", "garden", "terrace", "breakfast", "restaurant", "bar", "room-service", "air-conditioning", "heating", "private-bathroom", "balcony", "tv", "safe", "front-desk-24h", "laundry", "housekeeping", "luggage-storage", "tours", "family-rooms", "cot", "pets-allowed", "step-free-access", "lift", "accessible-bathroom"],
-  GUESTHOUSE: ["wifi", "wifi-free", "workspace", "parking", "parking-free", "airport-shuttle", "car-hire", "pool", "garden", "terrace", "breakfast", "restaurant", "bar", "kitchen", "air-conditioning", "private-bathroom", "balcony", "tv", "safe", "front-desk-24h", "laundry", "housekeeping", "luggage-storage", "tours", "family-rooms", "cot", "pets-allowed", "step-free-access", "lift", "accessible-bathroom"],
-  HOSTEL: ["wifi", "wifi-free", "workspace", "parking", "parking-free", "airport-shuttle", "pool", "garden", "terrace", "breakfast", "restaurant", "bar", "kitchen", "air-conditioning", "private-bathroom", "front-desk-24h", "laundry", "luggage-storage", "tours", "step-free-access", "lift", "accessible-bathroom"],
-  RESORT: ["wifi", "wifi-free", "workspace", "parking", "parking-free", "airport-shuttle", "car-hire", "pool", "spa", "gym", "garden", "terrace", "breakfast", "restaurant", "bar", "room-service", "air-conditioning", "private-bathroom", "balcony", "tv", "safe", "front-desk-24h", "laundry", "housekeeping", "luggage-storage", "tours", "family-rooms", "cot", "pets-allowed", "step-free-access", "lift", "accessible-bathroom"],
-  HOMESTAY: ["wifi", "wifi-free", "parking", "parking-free", "garden", "terrace", "breakfast", "kitchen", "air-conditioning", "private-bathroom", "balcony", "tv", "laundry", "luggage-storage", "tours", "family-rooms", "cot", "pets-allowed", "step-free-access"],
-  VILLA: ["wifi", "wifi-free", "workspace", "parking", "parking-free", "airport-shuttle", "car-hire", "pool", "garden", "terrace", "breakfast", "kitchen", "air-conditioning", "private-bathroom", "balcony", "tv", "safe", "laundry", "housekeeping", "luggage-storage", "cot", "pets-allowed", "step-free-access", "accessible-bathroom"],
-};
 
 /** The breakfasts each kind serves: a homestay cooks Khmer or Asian, not a buffet. */
 export const BREAKFAST_BY_KIND: Readonly<Record<string, readonly string[]>> = {
@@ -1209,11 +1155,13 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         name: "amenities",
         label: "Facilities",
         kind: "enums",
-        options: STAY_AMENITIES,
-        optionsFor: { field: "type", keep: STAY_FACILITIES_BY_KIND },
+        options: [],
+        /* The amenities taxonomy, as offered at the property. */
+        ref: "amenities",
+        offeredAt: "PROPERTY",
         span: 2,
         section: "Facilities",
-        hint: "Everything a guest can use. Guests filter stays by these, so tick only what is really there.",
+        hint: "Everything a guest can use. Guests filter stays by these, so tick only what is really there. The list itself is kept under Taxonomy › Amenities.",
       },
       { ...cover("stay"), derived: true },
       ...priceFor("The lowest a guest pays for one night. Once the rooms have prices, this follows the cheapest room by itself.").map((field): ResourceField => (field.name === "currency" ? { ...field, derived: true } : field)),
@@ -1460,7 +1408,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         hint: "Leave empty when a cot is free.",
       },
       { derived: true, name: "childrenFreeUnderAge", label: "Children stay free under age", kind: "number", min: 0, max: 17, section: "Guests", hint: "In the beds already there. Empty when every child is charged." },
-      { name: "amenities", label: "Facilities", kind: "enums", options: ROOM_AMENITIES, span: 2, section: "Facilities" },
+      { name: "amenities", label: "Facilities", kind: "enums", options: [], ref: "amenities", offeredAt: "ROOM", span: 2, section: "Facilities" },
       { name: "pricePerNight", label: "Price per night", kind: "decimal", min: 0, step: 0.01, section: "Price & policy" },
       { name: "breakfastIncluded", label: "Breakfast included", kind: "boolean", section: "Price & policy" },
       { derived: true, name: "highSeasonPrice", label: "High-season price (Nov–Apr)", kind: "decimal", min: 0, step: 0.01, section: "Price & policy", hint: "Leave empty when the price is the same all year." },
@@ -1769,6 +1717,69 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { ...regionsOf("tag", "tagIds"), tiles: true, siblings: true },
       { ...name(), hint: "The filter a traveller ticks on the region's page, e.g. Kayak." },
       { ...description, hint: "Optional. A line on when it applies." },
+    ],
+  },
+
+  amenities: {
+    key: "amenities",
+    label: "Amenity",
+    labelPlural: "Amenities",
+    group: "Taxonomy",
+    description:
+      "What a stay offers — a pool, free Wi-Fi, a hairdryer — at the property, in the room, or both. The stay form's Facilities and a room's Amenities read this one list.",
+    titleField: "name",
+    searchFields: ["name", "slug", "groupName"],
+    groupBy: { field: "groupName", order: AMENITY_GROUPS.map((option) => option.value) },
+    /* Numbered within the group: the pickers and the apps list them in this order. */
+    orderField: "sortOrder",
+    status: ACTIVE_FLAG,
+    columns: [
+      { name: "name", label: "Name" },
+      { name: "groupName", label: "Group", secondary: true },
+      { name: "level", label: "Offered", kind: "enum", options: AMENITY_LEVELS },
+      { name: "iconKey", label: "Icon", secondary: true },
+      { name: "sortOrder", label: "#", kind: "number", secondary: true },
+      { name: "status", label: "Status", kind: "status" },
+    ],
+    fields: [
+      { ...name(), span: 2, hint: "For example: Rooftop pool. Renaming keeps the link name, so saved stays keep their tick." },
+      {
+        name: "groupName",
+        label: "Group",
+        kind: "enum",
+        options: AMENITY_GROUPS,
+        required: true,
+        span: 2,
+        hint: "The heading it is picked under.",
+      },
+      {
+        name: "level",
+        label: "Offered",
+        kind: "enum",
+        options: AMENITY_LEVELS,
+        scale: true,
+        required: true,
+        initial: "PROPERTY",
+        span: 2,
+        hint: "At the property: every guest can use it, whatever room they book. In the room: it differs room by room. Both: the hotel has it, and a room can say so too.",
+      },
+      {
+        name: "sortOrder",
+        label: "Place in its group",
+        kind: "number",
+        placeAmong: "groupName",
+        spots: true,
+        span: 2,
+        hint: "Click between two, or use the arrows. The others move to make room.",
+      },
+      {
+        name: "iconKey",
+        label: "Icon",
+        kind: "enum",
+        options: AMENITY_ICON_OPTIONS,
+        span: 2,
+        hint: "The small picture beside its name on the apps. None draws a tick.",
+      },
     ],
   },
 

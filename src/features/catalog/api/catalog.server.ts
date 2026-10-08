@@ -217,6 +217,9 @@ function toOptions(
         : typeof record.code === "string" && record.code
           ? { slug: record.code }
           : {}),
+      /* An amenity's level and icon: the pickers offer by level and draw by icon. */
+      ...(typeof record.level === "string" && record.level ? { level: record.level } : {}),
+      ...(typeof record.iconKey === "string" && record.iconKey ? { icon: record.iconKey } : {}),
     };
   });
   /*

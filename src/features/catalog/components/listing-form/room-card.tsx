@@ -3,7 +3,6 @@ import Image from "next/image";
 import { BedDouble, Coffee, Maximize2, Mountain, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { FormValues } from "@/features/catalog/resource";
-import { ROOM_AMENITIES } from "@/features/catalog/resources";
 import { bedLine, sleepsOf, viewLabel } from "@/features/catalog/rooms";
 import { cn } from "@/lib/utils";
 
@@ -20,12 +19,14 @@ export function formatMoney(amount: number, currency: string): string {
   }
 }
 
-const AMENITY_LABELS = new Map(ROOM_AMENITIES.map((option) => [option.value, option.label.split(" · ").pop() ?? option.label]));
+const NO_LABELS: ReadonlyMap<string, string> = new Map();
 
 const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
 interface RoomCardProps {
   readonly values: FormValues;
+  /** Each amenity's name by its slug, from the taxonomy; a slug with no name is shown as it is. */
+  readonly amenityLabels?: ReadonlyMap<string, string>;
   readonly currency: string;
   /** The first photo's link; the card shows a bed where there is none. */
   readonly photoUrl?: string;
@@ -43,7 +44,8 @@ interface RoomCardProps {
  * beds, what it has, and the price with the terms that come with it. The same
  * card lists the rooms and previews the one being written.
  */
-export function RoomCard({ values, currency, photoUrl, badge, actions, layout = "row", className }: RoomCardProps) {
+export function RoomCard({
+  amenityLabels = NO_LABELS, values, currency, photoUrl, badge, actions, layout = "row", className }: RoomCardProps) {
   const stacked = layout === "stacked";
   const name = text(values.name) || "Untitled room";
   const beds = bedLine(values);
@@ -52,7 +54,7 @@ export function RoomCard({ values, currency, photoUrl, badge, actions, layout = 
   const view = viewLabel(values.view);
   const price = Number(text(values.pricePerNight));
   const priced = text(values.pricePerNight) !== "" && Number.isFinite(price);
-  const amenities = (Array.isArray(values.amenities) ? values.amenities : []).map((slug) => AMENITY_LABELS.get(slug) ?? slug);
+  const amenities = (Array.isArray(values.amenities) ? values.amenities : []).map((slug) => amenityLabels.get(slug) ?? slug);
 
   return (
     <div className={cn("@container", className)}>

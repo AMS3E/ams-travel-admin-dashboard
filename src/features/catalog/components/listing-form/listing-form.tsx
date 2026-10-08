@@ -865,6 +865,7 @@ export function ListingForm({
                         {hasRooms && group.rooms ? (
                           <div className="px-5 py-5" data-field="rooms">
                             <RoomsManager
+                              amenities={options.amenities ?? []}
                               canEdit={canEdit}
                               currency={typeof values.currency === "string" && values.currency.trim() ? values.currency.trim().toUpperCase() : "USD"}
                               onPendingChange={setPendingRooms}
