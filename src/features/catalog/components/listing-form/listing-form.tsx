@@ -42,8 +42,6 @@ import {
 } from "@/features/catalog/components/listing-form/gallery-manager";
 import { HelpIcon, ListingField } from "@/features/catalog/components/listing-form/listing-field";
 import { RoomsManager, type RoomDraft } from "@/features/catalog/components/listing-form/rooms-manager";
-import { MenuManager, type DishDraft } from "@/features/catalog/components/listing-form/menu-manager";
-import type { MenuSummary } from "@/features/catalog/menu";
 import type { RoomSummary } from "@/features/catalog/rooms";
 import { Badge } from "@/components/ui/badge";
 import { HelpStyleContext } from "@/features/catalog/components/listing-form/help-style";
@@ -247,11 +245,8 @@ export function ListingForm({
   const [photosUploading, setPhotosUploading] = useState(false);
   /* A new stay's rooms, written once the stay exists — as its gallery is. */
   const [pendingRooms, setPendingRooms] = useState<RoomDraft[]>([]);
-  /* A new food listing's dishes, likewise. */
-  const [pendingDishes, setPendingDishes] = useState<DishDraft[]>([]);
   const [saveRoom] = useSaveRecordMutation();
   const hasRooms = definition.key === "stays";
-  const hasMenu = definition.key === "foods";
   const galleryDefinition = getResource(LISTING_GALLERIES[definition.key as ListingKey]);
   const addGalleryRows = useGalleryRows(galleryDefinition, galleryOf(galleryDefinition)!);
   const canAddPhotos = Boolean(gallery?.canAdd && canEdit);
@@ -357,28 +352,14 @@ export function ListingForm({
    * A saved stay's form is not made dirty by it — nothing is left to save.
    */
   /*
-   * The rooms made and the dishes written, for the checklist. Counted here
-   * rather than kept among the form's values: counting them is not a change
-   * to save, and a listing must not open saying it has one.
+   * The rooms made, for the checklist. Counted here rather than kept among
+   * the form's values: counting them is not a change to save, and a stay must
+   * not open saying it has one.
    */
-  const [made, setMade] = useState<{ readonly rooms: number; readonly dishes: number }>({ rooms: 0, dishes: 0 });
+  const [made, setMade] = useState<{ readonly rooms: number }>({ rooms: 0 });
   const onRoomSummary = useCallback(
     (summary: RoomSummary) => {
       setMade((now) => (now.rooms === summary.types ? now : { ...now, rooms: summary.types }));
-      if (summary.fromPrice !== null && form.getValues("priceFrom") !== String(summary.fromPrice)) {
-        form.setValue("priceFrom", String(summary.fromPrice), { shouldDirty: !record });
-      }
-    },
-    [form, record],
-  );
-
-  /**
-   * The dishes' count for the checklist, and their price for the preview: the
-   * cheapest dish on the menu is the listing's "From" price, which the API also sets.
-   */
-  const onMenuSummary = useCallback(
-    (summary: MenuSummary) => {
-      setMade((now) => (now.dishes === summary.dishes ? now : { ...now, dishes: summary.dishes }));
       if (summary.fromPrice !== null && form.getValues("priceFrom") !== String(summary.fromPrice)) {
         form.setValue("priceFrom", String(summary.fromPrice), { shouldDirty: !record });
       }
@@ -399,8 +380,8 @@ export function ListingForm({
     return steps.findIndex((each) => stepFields(each).some((name) => names.includes(name)));
   }
 
-  /* What the checks read: the form's values, with the rooms and dishes counted beside them. */
-  const checked: FormValues = { ...values, rooms: made.rooms ? String(made.rooms) : "", dishes: made.dishes ? String(made.dishes) : "" };
+  /* What the checks read: the form's values, with the rooms counted beside them. */
+  const checked: FormValues = { ...values, rooms: made.rooms ? String(made.rooms) : "" };
 
   /* Each check belongs to the section that holds what it asks for. */
   const checkRows: readonly CheckRow[] = checks.map((check) => ({
@@ -505,7 +486,7 @@ export function ListingForm({
 
   /**
    * Scrolls to what a check asks for — its first field still empty, the map for
-   * a pin, the rooms or the menu — and marks it for a moment so the eye finds
+   * a pin, the rooms — and marks it for a moment so the eye finds
    * it. A field that is not on the page falls back to its section.
    */
   function scrollToCheck(row: CheckRow) {
@@ -568,25 +549,6 @@ export function ListingForm({
           setBanner(
             `The ${noun} was saved, but ${pendingPhotos.length - written.added} of ${pendingPhotos.length} gallery photos could not be added: ${written.error}`,
           );
-          return;
-        }
-      }
-      /* Its menu likewise, after the photos the dishes point at. */
-      if (!record && hasMenu && pendingDishes.length) {
-        const failed: string[] = [];
-        for (const [index, draft] of pendingDishes.entries()) {
-          setSaveProgress({ phase: "saving", done: index, total: pendingDishes.length });
-          try {
-            const written = await saveRoom({ resource: "food-menu-items", values: { ...draft.values, foodId: result.id } }).unwrap();
-            if (!written.ok) failed.push(`${String(draft.values.name)}: ${written.message}`);
-          } catch (error) {
-            failed.push(`${String(draft.values.name)}: ${apiErrorMessage(error)}`);
-          }
-        }
-        setSaveProgress(null);
-        if (failed.length) {
-          setSavedHref(`/${definition.key}/${result.id}`);
-          setBanner(`The ${noun} was saved, but ${failed.length} of ${pendingDishes.length} dishes could not be: ${failed.join("; ")}`);
           return;
         }
       }
@@ -916,22 +878,6 @@ export function ListingForm({
                       </Fragment>
                     );
                   })}
-
-
-                  {hasMenu && each.id === "menu" ? (
-                    <div className="px-5 py-5" data-field="dishes">
-                      <MenuManager
-                        canEdit={canEdit}
-                        currency={typeof values.currency === "string" && values.currency.trim() ? values.currency.trim().toUpperCase() : "USD"}
-                        foodId={record?.id ?? null}
-                        foodType={typeof values.type === "string" ? values.type : "OTHER"}
-                        onPendingChange={setPendingDishes}
-                        onSummaryChange={onMenuSummary}
-                        pending={pendingDishes}
-                        pendingPhotos={pendingPhotos.map((photo) => ({ key: photo.key, url: photo.url }))}
-                      />
-                    </div>
-                  ) : null}
 
                   {gallery && each.id === "photos" ? (
                     /* Named for the checklist's "Cover photo": the cover is chosen here, among the photos. */

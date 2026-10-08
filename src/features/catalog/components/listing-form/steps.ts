@@ -98,7 +98,7 @@ export interface ReadinessCheck {
   /** Needs every field, rather than any one of them. */
   readonly all?: boolean;
   /** For a line reworded per kind of place (see FOOD_CHECK_WORDS, STAY_CHECK_WORDS). */
-  readonly id?: "menu" | "price" | "own" | "rooms";
+  readonly id?: "price" | "own" | "rooms";
   readonly required?: boolean;
 }
 
@@ -296,11 +296,11 @@ const STEPS: Readonly<Record<ListingKey, readonly ListingStep[]>> = {
       id: "menu",
       title: "Food & drink",
       question: "What does it serve, and what does it cost?",
-      description: "The type of place, its price range, how people pay, when it is open, and the menu — each dish once, under your own headings.",
+      description: "The type of place, its price range, how people pay, and when it is open.",
       icon: ChefHat,
       tip: {
-        title: "Five dishes beat fifty",
-        body: "Write the dishes people come for, with prices and their Khmer names — the Khmer name is what a traveller points at to order. When a dish is out for a while, mark it unavailable instead of deleting it. The cheapest dish sets the “From” price travellers see.",
+        title: "What travellers check first",
+        body: "The type and the price range are what the app filters by, and the opening hours save a wasted trip. Today's dishes live on the place's Facebook page, which has its own box under Contact.",
       },
       groups: [
         /* The type first — the Food shelf of the taxonomy. */
@@ -316,7 +316,6 @@ const STEPS: Readonly<Record<ListingKey, readonly ListingStep[]>> = {
         { label: "Price range", field: "priceRange" },
         { label: "Ways to pay", field: "paymentMethods" },
         { label: "Opening hours", field: "openingHours" },
-        { label: "Menu", field: "dishes" },
       ],
     },
     review,
@@ -350,7 +349,6 @@ const CHECKS: Readonly<Record<ListingKey, readonly ReadinessCheck[]>> = {
     { label: "Name", fields: ["name"], required: true },
     { label: "Map pin", fields: ["latitude", "longitude"], all: true, required: true },
     { label: "Address", fields: ["provinceId"] },
-    { label: "Menu", fields: ["dishes"], virtual: true, step: "menu", id: "menu" },
     { label: "Cover and gallery", fields: ["coverKey"], step: "photos" },
     { label: "Opening hours", fields: ["openingHours"] },
     { label: "Messaging apps", fields: ["telegram", "whatsapp", "facebookUrl"] },

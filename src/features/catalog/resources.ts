@@ -492,13 +492,6 @@ export const ALCOHOL_BY_KIND: Readonly<Record<string, readonly string[]>> = {
   MARKET: ["NONE", "BEER_WINE"],
 };
 
-/** The headings a menu of each kind is printed under. */
-export const COURSES_BY_KIND: Readonly<Record<string, readonly string[]>> = {
-  CAFE: ["COFFEE", "DRINK", "SNACK", "DESSERT", "SALAD", "SET_MENU"],
-  STREET_FOOD: ["NOODLES", "RICE", "GRILL", "SOUP", "SNACK", "DESSERT", "DRINK"],
-  MARKET: ["NOODLES", "RICE", "SOUP", "SEAFOOD", "GRILL", "SNACK", "DESSERT", "DRINK"],
-};
-
 /** Whether a drink comes with the meal — the API's `AlcoholOption`. */
 export const ALCOHOL_OPTIONS: readonly EnumOption[] = [
   { value: "NONE", label: "No alcohol" },
@@ -1383,7 +1376,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     ],
     /*
      * One place that sells food, asked the same short set of questions — what
-     * it is, where it is, what is on the menu and what it costs — in the same
+     * it is, where it is and what it costs — in the same
      * words whatever kind of place it is.
      */
     fields: [
@@ -1430,7 +1423,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         section: "Prices & policies",
         hint: "What one person spends on an ordinary visit — the figure a traveller budgets by.",
       },
-      ...priceFor("The lowest a visitor pays for one item. Once the menu has prices, this follows the cheapest by itself.").map((field): ResourceField => (field.name === "currency" ? { ...field, derived: true } : field)),
+      ...priceFor("The lowest a visitor pays for one item. Set by the API, never asked here.").map((field): ResourceField => (field.name === "currency" ? { ...field, derived: true } : field)),
       { name: "paymentMethods", label: "Ways to pay", kind: "enums", options: PAYMENT_METHODS, span: 2, section: "Prices & policies" },
       {
         name: "openingHours",
@@ -1455,7 +1448,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     labelPlural: "Menu dishes",
     group: "Listings",
     description:
-      "The dishes each food listing serves — what a dish is in both languages, what is in it, how spicy it is and what it costs. Written in the listing's own Menu step; the cheapest dish sets its “From” price.",
+      "The dishes each food listing serves — what a dish is in both languages, what is in it, how spicy it is and what it costs. The listing form no longer asks for them; the API keeps what was written.",
     titleField: "name",
     searchFields: ["name", "localName"],
     orderField: "sortOrder",
