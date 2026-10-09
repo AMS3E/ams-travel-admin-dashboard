@@ -40,7 +40,7 @@ interface Notice {
 }
 
 /**
- * Destination Media as a picture gallery, the way a media library shows its
+ * The Media Library as a picture gallery, the way a media library shows its
  * files: every photo on a destination page as a tile, narrowed by destination,
  * cover or a word, and opened large to be captioned, moved, made the cover or
  * deleted. Photos are added by dropping them on the page. The table it
@@ -257,7 +257,7 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
         }
         description="Every photo on a destination page, in one gallery. Open a photo to caption it or make it the cover; drop new ones onto the page to add them."
         eyebrow="Content Management"
-        title="Destination Media"
+        title="Media Library"
       />
 
       {adding && canAdd ? (

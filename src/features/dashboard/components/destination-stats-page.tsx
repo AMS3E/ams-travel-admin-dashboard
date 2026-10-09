@@ -6,13 +6,14 @@ import { BadgeCheck, Eye, Star, ThumbsUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Surface, SurfaceHeader } from "@/components/ui/surface";
+import { Surface } from "@/components/ui/surface";
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from "@/components/ui/table";
 import { SearchField, SegmentedControl, Toolbar } from "@/components/ui/toolbar";
 import { useGetCatalogQuery } from "@/features/catalog/api/catalog-api";
 import { HelpIcon } from "@/features/catalog/components/listing-form/listing-field";
 import { byName } from "@/features/catalog/resources";
 import { QueryState } from "@/features/cms/components/query-state";
+import { formatDay } from "@/features/dashboard/format";
 import { BASIS_LABELS } from "@/features/verification/api/contracts";
 import { useGetDestinationStatsQuery } from "../api/dashboard-api";
 import type { DestinationStatsPeriod, DestinationStatsRow } from "../api/contracts";
@@ -136,11 +137,6 @@ export function DestinationStatsPage() {
       </StatGrid>
 
       <Surface aria-label="Destination stats">
-        <SurfaceHeader
-          actions={query.data ? <span className="text-xs text-muted tabular-nums">{count(rows.length)} of {count(inScope.length)}</span> : null}
-          description="What travellers make of each place, and what its Verified badge rests on. Browses count different signed-in visitors; views count every first open of a day. Verify or revoke on the Verification page."
-          title="Every destination"
-        />
         <Toolbar>
           <SegmentedControl label="Period" onChange={setPeriod} options={PERIODS} value={period} />
           {period === "custom" ? (
@@ -164,6 +160,14 @@ export function DestinationStatsPage() {
               />
             </span>
           ) : null}
+          {/* The days a period stands for, in plain dates, so Today and This week are never a guess. */}
+          {window.from || window.to ? (
+            <span className="text-xs text-muted" data-field="period-dates">
+              {window.from && window.to && window.from !== window.to
+                ? `${formatDay(window.from)} to ${formatDay(window.to)}`
+                : formatDay(window.from ?? window.to)}
+            </span>
+          ) : null}
           <SearchField label="Search destinations" onChange={setSearch} placeholder="Search by name…" value={search} />
           <SegmentedControl
             label="Which destinations"
@@ -181,6 +185,7 @@ export function DestinationStatsPage() {
               </option>
             ))}
           </Select>
+          {query.data ? <span className="ml-auto text-xs text-muted tabular-nums">{count(rows.length)} of {count(inScope.length)}</span> : null}
         </Toolbar>
 
         {query.isLoading || query.error ? (

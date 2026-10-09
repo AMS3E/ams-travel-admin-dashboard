@@ -1061,7 +1061,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
   "destination-media": {
     key: "destination-media",
     label: "Destination photo",
-    labelPlural: "Destination media",
+    labelPlural: "Media Library",
     group: "Catalogue",
     description: "The photographs and videos shown on a destination page.",
     titleField: "caption",

@@ -76,7 +76,7 @@ const CREATE_PAGES: ReadonlySet<string> = new Set([
  */
 const ownContent: NavGroup = {
   title: "Content Management",
-  items: [destinations, createDestination],
+  items: [destinations],
 };
 
 /**
@@ -88,20 +88,18 @@ const ownContent: NavGroup = {
 const VERIFY_PERMISSIONS = ["PERM_VERIFIED_BADGE_SET"];
 
 /**
- * The whole catalogue, for the desks that manage it: the list and its Create
- * first, then the work waiting on it — drafts to finish, places to verify —
- * then what the places are shown with, and last the regions, set up once.
+ * The whole catalogue, for the desks that manage it, in the user's order
+ * (2026-10-09): the list, which creates and filters drafts too; the corridors
+ * and regions it is shelved in; verifying; the photos; and the figures.
  */
 const catalogueContent: NavGroup = {
   title: "Content Management",
   items: [
     destinations,
-    createDestination,
-    tool("/drafts", "Drafts", FilePenLine, listingAccess, "Destinations that have not been published"),
-    tool("/verification", "Verification", BadgeCheck, VERIFY_PERMISSIONS, "Verified places show as Recommended by AMS Travel: file what it rests on, renew it, or revoke it"),
-    catalog("/destination-media", "Destination Media", "destination-media", "Every photo on a destination page, in one gallery"),
     catalog("/corridors", "Tourism Corridors", "corridors", "Day-by-day travel plans with routes on the map"),
     catalog("/regions", "Tourism Regions", "regions", "The regions travellers discover Cambodia by, and their own lists"),
+    tool("/verification", "Verification", BadgeCheck, VERIFY_PERMISSIONS, "Verified places show as Recommended by AMS Travel: file what it rests on, renew it, or revoke it"),
+    catalog("/destination-media", "Media Library", "destination-media", "Every photo in the catalogue, in one gallery"),
     /* Read-only: what travellers make of each place, and what its Verified badge rests on. */
     tool("/destination-stats", "Destination Stats", ChartColumn, ["PERM_DESTINATION_EDIT_ANY"], "Ratings, reviews, browses and the Verified standing of every destination"),
   ],
@@ -197,8 +195,14 @@ const ROLE_GROUPS: Readonly<Record<BusinessRole, readonly NavGroup[]>> = {
  */
 export const roleNavigation: Readonly<Record<BusinessRole, readonly NavGroup[]>> = ROLE_GROUPS;
 
-// Existing bookmarks remain reachable without adding extra sidebar items.
+/*
+ * Existing bookmarks remain reachable without adding extra sidebar items.
+ * Create Destination and Drafts left the sidebar on 2026-10-09: creating is
+ * the button on All Destinations, and drafts are its status filter.
+ */
 export const legacyNavigation: readonly NavGroup[] = [{ title: "Workspace", items: [
+  createDestination,
+  tool("/drafts", "Drafts", FilePenLine, listingAccess, "Destinations that have not been published"),
   tool("/publish-requests", "Publish Requests", ClipboardCheck, publishing, "Review submissions and track publication"),
   tool("/reviews", "Reviews", MessageSquare, ["PERM_REVIEW_MODERATE"], "Moderate traveler feedback"),
   tool("/partner-listings", "Partner Listings", Store, ["PERM_PARTNER_PUBLISH_APPROVE", "PERM_LISTING_EDIT_OWN"], "Listings submitted by travel partners"),

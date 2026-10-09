@@ -52,7 +52,8 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
   const [term, setTerm] = useState("");
   const [status, setStatus] = useState("all");
   const [mine, setMine] = useState(false);
-  const [newest, setNewest] = useState(false);
+  /* Newest first: what was just made is what someone came to see. */
+  const [newest, setNewest] = useState(true);
   const [page, setPage] = useState(0);
 
   /* The statuses these rows are in, A to Z by how they read. */
