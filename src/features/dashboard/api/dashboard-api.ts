@@ -1,5 +1,5 @@
 import { baseApi } from "@/store/api/base-api";
-import type { AdminOverviewResponse, AuditLogResponse, DestinationStatsResponse } from "./contracts";
+import type { AdminOverviewResponse, AuditLogResponse, DestinationStatsPeriod, DestinationStatsResponse } from "./contracts";
 import type { DestinationResponse, FoodResponse, StayResponse } from "@/features/catalog/api/contracts";
 import type { PublishRequestResponse } from "@/features/publishing/api/contracts";
 export interface DashboardResponse {
@@ -25,8 +25,11 @@ export const dashboardApi = baseApi.injectEndpoints({
       providesTags: ["Dashboard"],
     }),
     /** Every destination's ratings, reviews, browses, views and Verified standing, for Destination Stats. */
-    getDestinationStats: builder.query<DestinationStatsResponse, void>({
-      query: () => "cms/admin/destination-stats",
+    getDestinationStats: builder.query<DestinationStatsResponse, DestinationStatsPeriod>({
+      query: ({ from, to }) => ({
+        url: "cms/admin/destination-stats",
+        params: { ...(from ? { from } : {}), ...(to ? { to } : {}) },
+      }),
       providesTags: ["Dashboard", "Verification"],
     }),
     /**

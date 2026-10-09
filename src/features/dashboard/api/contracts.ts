@@ -109,12 +109,20 @@ export interface AuditLogResponse {
  * `GET /admin/destination-stats` — every destination's standing with
  * travellers and with the desks, in one read, for the Destination Stats
  * page. Browses are the different signed-in visitors who opened a place in
- * Popular's window; views every first open of a day, all time.
+ * the period, reviews and ratings the ones written in it; views, the
+ * Verified badge and the status are as of today whatever the period.
  */
 export interface DestinationStatsResponse {
-  /** How many days the browses are counted over, today included. */
-  readonly browseDays: number;
+  /** The period the browses, reviews and ratings cover, inclusive dates; both null for all time. */
+  readonly from: string | null;
+  readonly to: string | null;
   readonly places: readonly DestinationStatsRow[];
+}
+
+/** `?from=&to=`, inclusive dates; neither for all time. */
+export interface DestinationStatsPeriod {
+  readonly from?: string;
+  readonly to?: string;
 }
 
 export interface DestinationStatsRow {

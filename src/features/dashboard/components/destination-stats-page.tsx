@@ -4,20 +4,31 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { BadgeCheck, Eye, Star, ThumbsUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from "@/components/ui/table";
 import { SearchField, SegmentedControl, Toolbar } from "@/components/ui/toolbar";
 import { useGetCatalogQuery } from "@/features/catalog/api/catalog-api";
+import { HelpIcon } from "@/features/catalog/components/listing-form/listing-field";
 import { byName } from "@/features/catalog/resources";
 import { QueryState } from "@/features/cms/components/query-state";
 import { BASIS_LABELS } from "@/features/verification/api/contracts";
 import { useGetDestinationStatsQuery } from "../api/dashboard-api";
-import type { DestinationStatsRow } from "../api/contracts";
+import type { DestinationStatsPeriod, DestinationStatsRow } from "../api/contracts";
 import { StatGrid, StatTile } from "./stat-tile";
 
 type Scope = "published" | "all";
+type Period = "all" | "today" | "week" | "month" | "custom";
 type SortKey = "rating" | "reviews" | "browses" | "views" | "name";
+
+const PERIODS: readonly { readonly value: Period; readonly label: string }[] = [
+  { value: "all", label: "All time" },
+  { value: "today", label: "Today" },
+  { value: "week", label: "This week" },
+  { value: "month", label: "This month" },
+  { value: "custom", label: "Custom" },
+];
 
 const SORTS: readonly { readonly value: SortKey; readonly label: string }[] = [
   { value: "rating", label: "Rating, highest first" },
@@ -51,18 +62,50 @@ function compare(a: DestinationStatsRow, b: DestinationStatsRow, sort: SortKey):
 
 const count = (value: number) => value.toLocaleString();
 
+/** A calendar date as the API takes it, in the viewer's own day. */
+function isoDate(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** The dates a period stands for: today's, this week's from Monday, this month's from the 1st, or the ones typed. */
+function windowOf(period: Period, custom: DestinationStatsPeriod): DestinationStatsPeriod {
+  const now = new Date();
+  const today = isoDate(now);
+  switch (period) {
+    case "today":
+      return { from: today, to: today };
+    case "week": {
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+      return { from: isoDate(monday), to: today };
+    }
+    case "month":
+      return { from: `${today.slice(0, 7)}-01`, to: today };
+    case "custom":
+      return { ...(custom.from ? { from: custom.from } : {}), ...(custom.to ? { to: custom.to } : {}) };
+    default:
+      return {};
+  }
+}
+
 /**
  * Content Management → Destination Stats: what travellers make of each
- * destination, and what its Verified badge rests on. Read-only: the
- * figures come from the app's visitors, and verification is decided on
- * the Verification page. Nothing here is set by hand.
+ * destination, and what its Verified badge rests on. Browses, reviews and
+ * ratings follow the period chosen; views, the Verified badge and the status
+ * are as of today whatever the period, and say so. Read-only: the figures
+ * are the visitors', and verification is decided on the Verification page.
  */
 export function DestinationStatsPage() {
-  const query = useGetDestinationStatsQuery();
+  const [period, setPeriod] = useState<Period>("all");
+  const [custom, setCustom] = useState<DestinationStatsPeriod>({});
+  const window = windowOf(period, custom);
+  const query = useGetDestinationStatsQuery(window);
   const provinces = useGetCatalogQuery("provinces");
   const [scope, setScope] = useState<Scope>("published");
   const [sort, setSort] = useState<SortKey>("rating");
   const [search, setSearch] = useState("");
+  const allTime = period === "all";
 
   const places = useMemo(() => query.data?.places ?? [], [query.data]);
   const provinceName = useMemo(
@@ -74,23 +117,22 @@ export function DestinationStatsPage() {
   const rows = inScope.filter((row) => !needle || row.name.toLowerCase().includes(needle)).toSorted((a, b) => compare(a, b, sort));
 
   /* The figures, over the places in scope. */
-  const verified = inScope.filter((row) => row.verified);
+  const verified = inScope.filter((row) => row.verified).length;
   const traveler = inScope.filter((row) => row.travelerRecommended).length;
   const ratings = inScope.reduce((sum, row) => sum + row.ratingCount, 0);
   const average = ratings
     ? inScope.reduce((sum, row) => sum + (row.averageRating ?? 0) * row.ratingCount, 0) / ratings
     : null;
   const browses = inScope.reduce((sum, row) => sum + row.browses, 0);
-  const days = query.data?.browseDays ?? 30;
   const published = places.filter((row) => row.status === "PUBLISHED").length;
 
   return (
     <div className="flex flex-col gap-4">
       <StatGrid>
-        <StatTile icon={BadgeCheck} label="Verified" value={query.data ? count(verified.length) : null} />
+        <StatTile icon={BadgeCheck} label="Verified" value={query.data ? count(verified) : null} />
         <StatTile icon={ThumbsUp} label="Recommended by Traveler" value={query.data ? count(traveler) : null} />
         <StatTile icon={Star} label="Average rating" value={query.data ? (average == null ? "—" : average.toFixed(1)) : null} />
-        <StatTile icon={Eye} label={`Browses, last ${days} days`} value={query.data ? count(browses) : null} />
+        <StatTile icon={Eye} label="Browses" value={query.data ? count(browses) : null} />
       </StatGrid>
 
       <Surface aria-label="Destination stats">
@@ -100,6 +142,28 @@ export function DestinationStatsPage() {
           title="Every destination"
         />
         <Toolbar>
+          <SegmentedControl label="Period" onChange={setPeriod} options={PERIODS} value={period} />
+          {period === "custom" ? (
+            <span className="flex items-center gap-1.5 text-xs text-muted" data-field="custom-period">
+              <Input
+                aria-label="From"
+                className="h-8 w-36 text-sm"
+                max={custom.to}
+                onChange={(event) => setCustom((range) => ({ ...range, from: event.target.value || undefined }))}
+                type="date"
+                value={custom.from ?? ""}
+              />
+              to
+              <Input
+                aria-label="To"
+                className="h-8 w-36 text-sm"
+                min={custom.from}
+                onChange={(event) => setCustom((range) => ({ ...range, to: event.target.value || undefined }))}
+                type="date"
+                value={custom.to ?? ""}
+              />
+            </span>
+          ) : null}
           <SearchField label="Search destinations" onChange={setSearch} placeholder="Search by name…" value={search} />
           <SegmentedControl
             label="Which destinations"
@@ -111,7 +175,7 @@ export function DestinationStatsPage() {
             value={scope}
           />
           <Select aria-label="Sort" className="h-8 w-52 text-sm" onChange={(event) => setSort(event.target.value as SortKey)} value={sort}>
-            {SORTS.map((option) => (
+            {SORTS.filter((option) => allTime || option.value !== "views").map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -133,10 +197,20 @@ export function DestinationStatsPage() {
                   <TableHeaderCell>Name</TableHeaderCell>
                   <TableHeaderCell className="text-right">Rating</TableHeaderCell>
                   <TableHeaderCell className="text-right">Reviews</TableHeaderCell>
-                  <TableHeaderCell className="text-right">Browses, {days} days</TableHeaderCell>
-                  <TableHeaderCell className="text-right">Views</TableHeaderCell>
-                  <TableHeaderCell>Verified</TableHeaderCell>
-                  <TableHeaderCell>Status</TableHeaderCell>
+                  <TableHeaderCell className="text-right">Browses</TableHeaderCell>
+                  {allTime ? <TableHeaderCell className="text-right">Views</TableHeaderCell> : null}
+                  <TableHeaderCell>
+                    <span className="inline-flex items-center gap-1">
+                      Verified
+                      <HelpIcon id="stats-verified-help" label="Verified" text="As of today, whatever the period. A badge is never filtered by date." />
+                    </span>
+                  </TableHeaderCell>
+                  <TableHeaderCell>
+                    <span className="inline-flex items-center gap-1">
+                      Status
+                      <HelpIcon id="stats-status-help" label="Status" text="Today's status, whatever the period." />
+                    </span>
+                  </TableHeaderCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -156,7 +230,7 @@ export function DestinationStatsPage() {
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{count(row.reviewCount)}</TableCell>
                       <TableCell className="text-right tabular-nums">{count(row.browses)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{count(row.viewCount)}</TableCell>
+                      {allTime ? <TableCell className="text-right tabular-nums">{count(row.viewCount)}</TableCell> : null}
                       <TableCell>
                         <span className="flex flex-wrap items-center gap-1.5">
                           <Badge tone={row.verified ? "info" : "neutral"}>
