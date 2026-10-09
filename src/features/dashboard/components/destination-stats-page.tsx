@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { BadgeCheck, Eye, Star, ThumbsUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Surface } from "@/components/ui/surface";
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from "@/components/ui/table";
@@ -13,23 +12,14 @@ import { useGetCatalogQuery } from "@/features/catalog/api/catalog-api";
 import { HelpIcon } from "@/features/catalog/components/listing-form/listing-field";
 import { byName } from "@/features/catalog/resources";
 import { QueryState } from "@/features/cms/components/query-state";
-import { formatDay } from "@/features/dashboard/format";
 import { BASIS_LABELS } from "@/features/verification/api/contracts";
 import { useGetDestinationStatsQuery } from "../api/dashboard-api";
 import type { DestinationStatsPeriod, DestinationStatsRow } from "../api/contracts";
+import { PeriodControl, windowOf, type Period } from "./period-control";
 import { StatGrid, StatTile } from "./stat-tile";
 
 type Scope = "published" | "all";
-type Period = "all" | "today" | "week" | "month" | "custom";
 type SortKey = "rating" | "reviews" | "browses" | "views" | "name";
-
-const PERIODS: readonly { readonly value: Period; readonly label: string }[] = [
-  { value: "all", label: "All time" },
-  { value: "today", label: "Today" },
-  { value: "week", label: "This week" },
-  { value: "month", label: "This month" },
-  { value: "custom", label: "Custom" },
-];
 
 const SORTS: readonly { readonly value: SortKey; readonly label: string }[] = [
   { value: "rating", label: "Rating, highest first" },
@@ -62,33 +52,6 @@ function compare(a: DestinationStatsRow, b: DestinationStatsRow, sort: SortKey):
 }
 
 const count = (value: number) => value.toLocaleString();
-
-/** A calendar date as the API takes it, in the viewer's own day. */
-function isoDate(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-/** The dates a period stands for: today's, this week's from Monday, this month's from the 1st, or the ones typed. */
-function windowOf(period: Period, custom: DestinationStatsPeriod): DestinationStatsPeriod {
-  const now = new Date();
-  const today = isoDate(now);
-  switch (period) {
-    case "today":
-      return { from: today, to: today };
-    case "week": {
-      const monday = new Date(now);
-      monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-      return { from: isoDate(monday), to: today };
-    }
-    case "month":
-      return { from: `${today.slice(0, 7)}-01`, to: today };
-    case "custom":
-      return { ...(custom.from ? { from: custom.from } : {}), ...(custom.to ? { to: custom.to } : {}) };
-    default:
-      return {};
-  }
-}
 
 /**
  * Content Management → Destination Stats: what travellers make of each
@@ -138,36 +101,7 @@ export function DestinationStatsPage() {
 
       <Surface aria-label="Destination stats">
         <Toolbar>
-          <SegmentedControl label="Period" onChange={setPeriod} options={PERIODS} value={period} />
-          {period === "custom" ? (
-            <span className="flex items-center gap-1.5 text-xs text-muted" data-field="custom-period">
-              <Input
-                aria-label="From"
-                className="h-8 w-36 text-sm"
-                max={custom.to}
-                onChange={(event) => setCustom((range) => ({ ...range, from: event.target.value || undefined }))}
-                type="date"
-                value={custom.from ?? ""}
-              />
-              to
-              <Input
-                aria-label="To"
-                className="h-8 w-36 text-sm"
-                min={custom.from}
-                onChange={(event) => setCustom((range) => ({ ...range, to: event.target.value || undefined }))}
-                type="date"
-                value={custom.to ?? ""}
-              />
-            </span>
-          ) : null}
-          {/* The days a period stands for, in plain dates, so Today and This week are never a guess. */}
-          {window.from || window.to ? (
-            <span className="text-xs text-muted" data-field="period-dates">
-              {window.from && window.to && window.from !== window.to
-                ? `${formatDay(window.from)} to ${formatDay(window.to)}`
-                : formatDay(window.from ?? window.to)}
-            </span>
-          ) : null}
+          <PeriodControl custom={custom} onCustom={setCustom} onPeriod={setPeriod} period={period} />
           <SearchField label="Search destinations" onChange={setSearch} placeholder="Search by name…" value={search} />
           <SegmentedControl
             label="Which destinations"
@@ -224,7 +158,7 @@ export function DestinationStatsPage() {
                   return (
                     <TableRow data-destination-id={row.id} key={row.id}>
                       <TableCell>
-                        <Link className="font-medium text-ink hover:text-teal-deep hover:underline" href={`/destinations/${row.id}`}>
+                        <Link className="font-medium text-ink hover:text-teal-deep hover:underline" href={`/destination-stats/${row.id}`}>
                           {row.name}
                         </Link>
                         <p className="truncate text-xs text-muted">{(row.provinceId && provinceName.get(row.provinceId)) || row.slug}</p>

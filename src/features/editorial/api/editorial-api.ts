@@ -6,6 +6,16 @@ export const editorialApi = baseApi.injectEndpoints({
       query: () => "cms/reviews",
       providesTags: ["Review"],
     }),
+    /** One destination's reviews, newest first, every status a moderator may see; the API answers a page. */
+    getDestinationReviews: builder.query<ReviewResponse[], string>({
+      query: (destinationId) => ({
+        url: "cms/reviews",
+        params: { targetType: "DESTINATION", targetId: destinationId, size: 200 },
+      }),
+      transformResponse: (response: ReviewResponse[] | { readonly content: ReviewResponse[] }) =>
+        Array.isArray(response) ? response : response.content,
+      providesTags: ["Review"],
+    }),
     /** Moderation sends the status alone; the review itself is the traveller's. */
     moderateReview: builder.mutation<
       ReviewResponse,
@@ -26,5 +36,6 @@ export const editorialApi = baseApi.injectEndpoints({
 });
 export const {
   useGetReviewsQuery,
+  useGetDestinationReviewsQuery,
   useModerateReviewMutation,
 } = editorialApi;
