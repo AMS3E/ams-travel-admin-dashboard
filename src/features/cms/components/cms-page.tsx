@@ -7,6 +7,7 @@ import { canVerifyDestinations, primaryRole, reviewsDesk } from "@/features/auth
 import { DESKS, type Desk } from "@/features/shell/nav";
 import { STAFF_PAGES } from "@/features/publishing/workflow";
 import { VerificationQueue } from "@/features/verification/components/verification-queue";
+import { DestinationStatsPage } from "@/features/dashboard/components/destination-stats-page";
 import {
   CustomersPage,
   RolesPage,
@@ -73,6 +74,8 @@ export function CmsPage({
     case "verification":
       /* The route already found this page in the viewer's sidebar; this is the same rule, stated again. */
       return canVerifyDestinations(grants) ? <VerificationQueue grants={grants} /> : null;
+    case "destination-stats":
+      return <DestinationStatsPage />;
     case "users":
       return <CustomersPage grants={grants} />;
     case "roles":

@@ -1,5 +1,5 @@
 import {
-  Award, BadgeCheck, BedDouble, BedSingle, Building2, CalendarRange, ChefHat, ClipboardCheck, Compass, ConciergeBell,
+  Award, BadgeCheck, BedDouble, BedSingle, Building2, CalendarRange, ChartColumn, ChefHat, ClipboardCheck, Compass, ConciergeBell,
   FileClock, FilePenLine, Images,
   LayoutDashboard, Map, MapPin, MessageSquare, Plus, Route,
   Settings, Shapes, ShieldCheck, Store, SunMedium, Tag,
@@ -102,6 +102,8 @@ const catalogueContent: NavGroup = {
     catalog("/destination-media", "Destination Media", "destination-media", "Every photo on a destination page, in one gallery"),
     catalog("/corridors", "Tourism Corridors", "corridors", "Day-by-day travel plans with routes on the map"),
     catalog("/regions", "Tourism Regions", "regions", "The regions travellers discover Cambodia by, and their own lists"),
+    /* Read-only: what travellers make of each place, and what its Verified badge rests on. */
+    tool("/destination-stats", "Destination Stats", ChartColumn, ["PERM_DESTINATION_EDIT_ANY"], "Ratings, reviews, browses and the Verified standing of every destination"),
   ],
 };
 

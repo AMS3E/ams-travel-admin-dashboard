@@ -1,4 +1,5 @@
-import type { BadgePeriodResponse, MediaItemResponse } from "@/features/catalog/api/contracts";
+import type { VerificationBasis } from "@/features/verification/api/contracts";
+import type { BadgePeriodResponse, MediaItemResponse, PublicationStatus } from "@/features/catalog/api/contracts";
 
 /**
  * The JSON the back-office endpoints return — everything under `/admin`, plus
@@ -102,4 +103,35 @@ export interface AuditLogResponse {
   readonly ipAddress: string | null;
   readonly userAgent: string | null;
   readonly createdAt: string;
+}
+
+/**
+ * `GET /admin/destination-stats` — every destination's standing with
+ * travellers and with the desks, in one read, for the Destination Stats
+ * page. Browses are the different signed-in visitors who opened a place in
+ * Popular's window; views every first open of a day, all time.
+ */
+export interface DestinationStatsResponse {
+  /** How many days the browses are counted over, today included. */
+  readonly browseDays: number;
+  readonly places: readonly DestinationStatsRow[];
+}
+
+export interface DestinationStatsRow {
+  readonly id: string;
+  readonly name: string;
+  readonly slug: string;
+  readonly provinceId: string | null;
+  readonly status: PublicationStatus;
+  readonly browses: number;
+  readonly viewCount: number;
+  /** Star ratings so far; every review carries one. */
+  readonly ratingCount: number;
+  /** Their average, one decimal; null while unrated. */
+  readonly averageRating: number | null;
+  readonly reviewCount: number;
+  /** By a desk's decision or by the reviews. */
+  readonly verified: boolean;
+  readonly basis: VerificationBasis | null;
+  readonly travelerRecommended: boolean;
 }

@@ -14,7 +14,7 @@ function path(pattern: string): RegExp {
  * decides the body; this list is the screens that talk to the API directly.
  */
 const reads = [
-  path("admin/(overview|audit)"),
+  path("admin/(overview|audit|destination-stats)"),
   /* Back-office accounts in Keycloak (`?search=` for anyone in the realm); USER_MANAGE's. */
   path("staff"),
   /* Accounts in the `users` table: customers of the public site, and staff who have signed in. */
