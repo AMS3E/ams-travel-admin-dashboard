@@ -80,7 +80,6 @@ export function PartnerListingsPage() {
                 </span>
               </span>
               <Badge tone="neutral">{listingLabel(item.type)}</Badge>
-              {item.isFeatured && <Badge tone="info">Featured</Badge>}
               <Badge dot tone={item.status === "PUBLISHED" ? "success" : "neutral"}>
                 {item.status === "PUBLISHED" ? "Published" : item.status === "ARCHIVED" ? "Archived" : "Draft"}
               </Badge>

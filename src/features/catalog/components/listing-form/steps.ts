@@ -47,13 +47,11 @@ export interface StepGroup {
   readonly description?: string;
   readonly fields: readonly string[];
   /**
-   * `fill-fit`: the first column takes the room and holds every field but the
-   * last, stacked; the last is as wide as what it holds, at the right edge — a
-   * switch beside a name and its web address. On a phone they follow in that
-   * order. `one`: a single column, every field the full width — a phone number
-   * and an e-mail under each other. Otherwise two equal columns.
+   * `one`: a single column, every field the full width — a name and its web
+   * address, a phone number and an e-mail under each other. Otherwise two
+   * equal columns.
    */
-  readonly columns?: "fill-fit" | "one";
+  readonly columns?: "one";
   /** The stay's rooms block follows this group. */
   readonly rooms?: true;
 }
@@ -105,8 +103,8 @@ export interface ReadinessCheck {
 /** The quote at the top of the page, with who said it: asked on every kind of listing. */
 const SLOGAN_GROUP: StepGroup = { title: "Slogan", description: "A quote the app shows at the top of the page, with who said it if anyone did.", fields: ["slogan", "sloganBy"] };
 
-/** `has`: whether this kind of listing carries a web address (slug) and a Featured switch. */
-const about = (noun: string, has: { readonly slug?: boolean; readonly featured?: boolean } = {}): ListingStep => ({
+/** `has`: whether this kind of listing carries a web address (slug). */
+const about = (noun: string, has: { readonly slug?: boolean } = {}): ListingStep => ({
   id: "about",
   /* "Details", not "About": the app's word About is the long text's, and the section holds more than it. */
   title: "Details",
@@ -118,11 +116,8 @@ const about = (noun: string, has: { readonly slug?: boolean; readonly featured?:
     body: "Lead with what makes it worth the trip. The app shows the first lines on the page; the rest opens under Read more.",
   },
   groups: [
-    /* The name takes the row, its web address under it, and Featured at the right edge. */
-    {
-      fields: ["name", ...(has.slug ? ["slug"] : []), ...(has.featured ? ["isFeatured"] : [])],
-      columns: has.featured ? "fill-fit" : undefined,
-    },
+    /* The name takes the row, its web address under it. */
+    { fields: ["name", ...(has.slug ? ["slug"] : [])], columns: "one" },
     SLOGAN_GROUP,
     { fields: ["description"] },
   ],
@@ -205,14 +200,14 @@ const review: ListingStep = {
     title: "Nothing here is final",
     body: "A published listing appears on the website straight away. A draft stays in the dashboard until it is published, and either can be changed later.",
   },
-  /* No field of its own: the checklist is the section. Featured and the like are asked in About. */
+  /* No field of its own: the checklist is the section. */
   groups: [],
   review: true,
 };
 
 const STEPS: Readonly<Record<ListingKey, readonly ListingStep[]>> = {
   destinations: [
-    about("place", { slug: true, featured: true }),
+    about("place", { slug: true }),
     /* Photos right after the words: the cover is the first thing a traveller sees. */
     photos("place"),
     locationStep("place"),
@@ -244,7 +239,7 @@ const STEPS: Readonly<Record<ListingKey, readonly ListingStep[]>> = {
   ],
 
   stays: [
-    about("stay", { featured: true }),
+    about("stay"),
     photos("stay"),
     locationStep("stay", "Travellers see this stay on the page of every destination within 50 km of its pin — a hotel in Siem Reap on Angkor Wat's page, say."),
     contact("stay"),
@@ -279,7 +274,7 @@ const STEPS: Readonly<Record<ListingKey, readonly ListingStep[]>> = {
 
   foods: [
     {
-      ...about("place", { slug: true, featured: true }),
+      ...about("place", { slug: true }),
       tip: {
         title: "Lead with what people come for",
         body: "“Charcoal-grilled river fish, open late” tells a traveller more than “good food and friendly service”. The app shows the first lines on the page; the rest opens under Read more.",

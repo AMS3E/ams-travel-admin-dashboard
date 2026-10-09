@@ -1,5 +1,4 @@
 "use client";
-import { CollectionPage } from "./collection-page";
 import { ReviewsPage } from "./editorial-pages";
 import { PublishRequestsPage } from "@/features/publishing/components/publish-requests-page";
 import { PartnerListingsPage } from "./partner-pages";
@@ -65,12 +64,6 @@ export function CmsPage({
         ? <ContentWorkspace view="drafts" desk={desk} own userId={userId} />
         : <ContentWorkspace view="drafts" userId={userId} />;
     }
-    case "recommended":
-      return <CollectionPage list="recommended" />;
-    case "popular-now":
-      return <CollectionPage list="popular" />;
-    case "featured":
-      return <CollectionPage list="featured" />;
     case "publish-requests":
       return <PublishRequestsPage userId={userId} />;
     case "reviews":

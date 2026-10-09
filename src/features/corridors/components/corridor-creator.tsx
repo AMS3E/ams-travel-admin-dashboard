@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useReducer, useRef, useState, useTransition } from "react";
 import { ArrowRight, LoaderCircle, Rocket, Save } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
@@ -69,7 +68,6 @@ export function CorridorCreator({ destinations, interests, maps, canPublish }: C
   const [description, setDescription] = useState("");
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
-  const [featured, setFeatured] = useState(false);
   const [interestIds, setInterestIds] = useState<string[]>([]);
   const [days, dispatch] = useReducer(draftReducer, [blankDay(FIRST_DAY_KEY)]);
 
@@ -125,7 +123,6 @@ export function CorridorCreator({ destinations, interests, maps, canPublish }: C
           coverKey: cover.key || null,
           estimatedBudgetMin: min,
           estimatedBudgetMax: max,
-          isFeatured: featured,
           interestIds,
         },
         // An untouched Day 1 is no plan yet: the corridor starts with no days.
@@ -249,13 +246,6 @@ export function CorridorCreator({ destinations, interests, maps, canPublish }: C
                 )}
               </FormField>
             </div>
-            <label className="flex items-start gap-2.5">
-              <Checkbox checked={featured} className="mt-0.5" onChange={(event) => setFeatured(event.target.checked)} />
-              <span>
-                <span className="block text-sm font-medium text-ink">Featured</span>
-                <span className="block text-xs text-muted">Listed first on the website.</span>
-              </span>
-            </label>
           </div>
         </Surface>
 

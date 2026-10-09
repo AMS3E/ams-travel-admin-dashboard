@@ -355,7 +355,6 @@ export function CmsDashboard() {
                           </Link>
                           <p className="truncate text-xs text-muted">{listing.detail || listing.summary || "Nothing written yet"}</p>
                         </div>
-                        {listing.isFeatured ? <Badge className="hidden sm:inline-flex" tone="info">Featured</Badge> : null}
                         <Badge dot tone={live ? "success" : "neutral"}>
                           {live ? "Published" : listing.status === "ARCHIVED" ? "Archived" : "Draft"}
                         </Badge>

@@ -1,6 +1,5 @@
 import { baseApi } from "@/store/api/base-api";
 import type { ReviewResponse, ReviewStatus } from "@/features/dashboard/api/contracts";
-import type { HomepageList } from "@/features/catalog/api/contracts";
 export const editorialApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getReviews: builder.query<ReviewResponse[], void>({
@@ -23,15 +22,9 @@ export const editorialApi = baseApi.injectEndpoints({
         { type: "Catalog", id: "destinations" },
       ],
     }),
-    /** A homepage list as visitors see it: ranked by browses, featured places filling the rest. */
-    getHomepageList: builder.query<HomepageList, "popular" | "recommendations/for-you">({
-      query: (list) => "cms/" + list,
-      providesTags: [{ type: "Catalog", id: "recommendations" }],
-    }),
   }),
 });
 export const {
   useGetReviewsQuery,
   useModerateReviewMutation,
-  useGetHomepageListQuery,
 } = editorialApi;

@@ -92,7 +92,6 @@ export interface DestinationResponse {
   readonly coverKey: string | null;
   readonly coverUrl: string | null;
   readonly status: PublicationStatus;
-  readonly isFeatured: boolean;
   readonly viewCount: number | null;
   /** The `users` id of whoever created it. */
   readonly createdBy: string | null;
@@ -146,7 +145,6 @@ export interface StayResponse {
   readonly slogan: string | null;
   readonly sloganBy: string | null;
   readonly provinceId: string | null;
-  readonly isFeatured: boolean;
   readonly policies: string | null;
   /** `HH:mm[:ss]` local time, as the property states it; no date is involved. */
   readonly checkInFrom: string | null;
@@ -205,7 +203,6 @@ export interface FoodResponse {
   readonly coverKey: string | null;
   readonly coverUrl: string | null;
   readonly status: PublicationStatus;
-  readonly isFeatured: boolean;
   readonly isLocalSpecialty: boolean;
   readonly averageRating: number | null;
   readonly reviewCount: number | null;
@@ -346,23 +343,3 @@ export type CatalogRecord = {
   readonly createdBy?: string | null;
   readonly status?: string;
 } & Readonly<Record<string, unknown>>;
-
-/** Why a place is on a homepage list — the API's `PopularReason` and `RecommendationReason`. */
-export type RecommendationReason = "MOST_BROWSED" | "LIKE_YOUR_BROWSING" | "FEATURED";
-
-/**
- * `GET /popular` and `GET /recommendations/for-you`: a homepage list as
- * visitors see it. Staff are not visitors, so Recommended is never personal here.
- */
-export interface HomepageList {
-  /** Recommended only: true when drawn from the visitor's own browsing. */
-  readonly personal?: boolean;
-  /** Popular only: the days it counts browses over. */
-  readonly days?: number;
-  readonly regionId?: string | null;
-  readonly destinations: readonly {
-    readonly destinationId: string;
-    readonly browses: number;
-    readonly reason: RecommendationReason;
-  }[];
-}

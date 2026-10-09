@@ -45,7 +45,6 @@ export function DestinationRows({
                   {isLive(destination) ? "Live" : destination.status === "ARCHIVED" ? "Archived" : "Draft"}
                 </Badge>
               ) : null}
-              {destination.isFeatured ? <Badge tone="gold">Featured</Badge> : null}
             </>
           }
           href={editable ? `/destinations/${destination.id}` : undefined}

@@ -1013,7 +1013,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { name: "approvedBy", label: "Approved by", kind: "approval", secondary: true },
       { name: "verified", label: "Verified", kind: "verified", secondary: true },
       { name: "provinceId", label: "Province", kind: "ref", ref: "provinces", secondary: true },
-      { name: "isFeatured", label: "Featured", kind: "boolean", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
     /*
@@ -1021,8 +1020,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
      * Where it appears, and its categories and tags are that region's own.
      */
     fields: [
-      /* Not the whole row: Featured sits at its right. */
-      { ...listingName, span: 1 },
+      listingName,
       listingSlug,
       listingShortDescription,
       {
@@ -1057,13 +1055,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       ...regionClassification,
       /* Its address sits beside its province, under the map. */
       ...location.map((field): ResourceField => (field.name === "address" ? { ...field, span: 1 } : field)),
-      /* Beside the name in About: one of the headline places, or not. */
-      {
-        name: "isFeatured",
-        label: "Featured",
-        kind: "boolean",
-        hint: "On: always shown in the homepage's Recommended and Popular lists, first. Off: it gets there only by being browsed.",
-      },
     ] satisfies readonly ResourceField[],
   },
 
@@ -1115,13 +1106,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
      */
     fields: [
       listingName,
-      /* Beside the name in About: one of the headline places, or not. */
-      {
-        name: "isFeatured",
-        label: "Featured",
-        kind: "boolean",
-        hint: "On: always shown in the homepage's Recommended and Popular lists, first. Off: it gets there only by being browsed.",
-      },
       /* Never asked: it follows the first Type ticked (see kindOf). The names stay for the API's lists. */
       { name: "type", label: "Kind (API)", kind: "enum", options: STAY_TYPES, derived: true },
       {
@@ -1294,8 +1278,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { name: "telegram", label: "Telegram", kind: "text", maxLength: 100, section: "Contact", hint: "A handle such as @riversidegrill, or a t.me link." },
       { name: "whatsapp", label: "WhatsApp", kind: "text", maxLength: 50, section: "Contact", hint: "The number WhatsApp answers on, with the country code." },
       { name: "facebookUrl", label: "Facebook page", kind: "text", maxLength: 512, section: "Contact", hint: "Where most places here post today's dishes." },
-      /* Beside the name in About. "Known for a local speciality" is no longer asked; the API keeps a record's value when it is not sent. */
-      { name: "isFeatured", label: "Featured", kind: "boolean", hint: "Featured places lead the lists on the homepage and Explore. Keep it for the few worth crossing town for." },
+      /* "Known for a local speciality" is no longer asked; the API keeps a record's value when it is not sent. */
     ] satisfies readonly ResourceField[],
   },
 
@@ -1550,7 +1533,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { name: "durationDays", label: "Days", kind: "number", secondary: true },
       { name: "stopCount", label: "Stops", kind: "number", secondary: true },
       { name: "routeStatus", label: "Route", kind: "enum", options: CORRIDOR_ROUTE_STATUSES, secondary: true },
-      { name: "isFeatured", label: "Featured", kind: "boolean", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
     fields: [
@@ -1594,13 +1576,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         span: 2,
         section: "Standing",
         hint: "The website lists the corridors top to bottom in this order. The others move to make room.",
-      },
-      {
-        name: "isFeatured",
-        label: "Featured",
-        kind: "boolean",
-        section: "Standing",
-        hint: "Marked Featured on its card.",
       },
     ],
   },

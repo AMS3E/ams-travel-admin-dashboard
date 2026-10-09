@@ -1120,6 +1120,5 @@ function ToggleRow({ field }: { readonly field: ResourceField }) {
 }
 
 const TOGGLE_HINTS: Readonly<Record<string, string>> = {
-  isFeatured: "Featured listings are promoted on the website: marked Featured and shown first.",
   isLocalSpecialty: "A dish or a place the area is known for — worth the trip on its own.",
 };

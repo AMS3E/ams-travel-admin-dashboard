@@ -838,7 +838,7 @@ export function ListingForm({
                         <fieldset
                           className={cn(
                             "grid gap-y-5",
-                            group.columns === "fill-fit" ? "gap-x-6 md:grid-cols-[minmax(0,1fr)_auto]" : group.columns === "one" ? "md:grid-cols-1" : "gap-x-4 md:grid-cols-2",
+                            group.columns === "one" ? "md:grid-cols-1" : "gap-x-4 md:grid-cols-2",
                           )}
                           disabled={!canEdit}
                         >
@@ -851,15 +851,7 @@ export function ListingForm({
                               />
                             </div>
                           ) : null}
-                          {group.columns === "fill-fit" ? (
-                            /* The first column stacks all but the last field, so they stay together on a phone too. */
-                            <>
-                              <div className="flex min-w-0 flex-col gap-3">{group.fields.slice(0, -1).map(cell)}</div>
-                              {group.fields.slice(-1).map(cell)}
-                            </>
-                          ) : (
-                            group.fields.map(cell)
-                          )}
+                          {group.fields.map(cell)}
                         </fieldset>
                       </FormSection>
                         {hasRooms && group.rooms ? (

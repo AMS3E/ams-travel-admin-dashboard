@@ -21,9 +21,6 @@ const reads = [
   path("users"),
   path("publish-requests(/(mine|pending|current|history|{id}))?"),
   path("reviews"),
-  /* The homepage's Popular and Recommended lists as visitors see them, ranked by browses. */
-  path("popular"),
-  path("recommendations/for-you"),
   /*
    * One destination's decisions (`?destinationId=`), and what the signed-in
    * desk may verify. Both need PERM_VERIFIED_BADGE_SET or full control, and

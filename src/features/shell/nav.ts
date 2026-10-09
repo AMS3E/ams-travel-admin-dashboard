@@ -1,8 +1,8 @@
 import {
   Award, BadgeCheck, BedDouble, BedSingle, Building2, CalendarRange, ChefHat, ClipboardCheck, Compass, ConciergeBell,
-  FileClock, FilePenLine, Flame, Images,
+  FileClock, FilePenLine, Images,
   LayoutDashboard, Map, MapPin, MessageSquare, Plus, Route,
-  Settings, Shapes, ShieldCheck, Sparkles, Star, Store, SunMedium, Tag,
+  Settings, Shapes, ShieldCheck, Store, SunMedium, Tag,
   Users, UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
@@ -36,7 +36,6 @@ export const dashboardItem: NavItem = {
   href: "/dashboard", label: "Dashboard", icon: LayoutDashboard,
   description: "Your workspace at a glance", aliases: ["/"],
 };
-const editorial = ["PERM_DESTINATION_EDIT_ANY"];
 const writing = ["PERM_LISTING_EDIT_OWN", "PERM_DESTINATION_DRAFT_CREATE", "PERM_DESTINATION_EDIT_ANY"];
 const publishing = ["PERM_PUBLISH_REQUEST_SUBMIT", "PERM_PUBLISH_REQUEST_VIEW_OWN", "PERM_PARTNER_PUBLISH_APPROVE", "PERM_CONTRIBUTOR_PUBLISH_APPROVE"];
 const listingAccess = [...writing, "PERM_PARTNER_LISTING_EDIT"];
@@ -103,19 +102,6 @@ const catalogueContent: NavGroup = {
     catalog("/destination-media", "Destination Media", "destination-media", "Every photo on a destination page, in one gallery"),
     catalog("/corridors", "Tourism Corridors", "corridors", "Day-by-day travel plans with routes on the map"),
     catalog("/regions", "Tourism Regions", "regions", "The regions travellers discover Cambodia by, and their own lists"),
-  ],
-};
-
-/**
- * The homepage lists as visitors see them, in the homepage's order:
- * Recommended, then Popular. Featured destinations lead both; browsing ranks
- * the rest.
- */
-const homepage: NavGroup = {
-  title: "Homepage & Discovery",
-  items: [
-    tool("/recommended", "Recommended", Star, editorial, "What the homepage recommends, and why"),
-    tool("/popular-now", "Popular", Flame, editorial, "The most browsed destinations right now"),
   ],
 };
 
@@ -194,10 +180,10 @@ const administration: NavGroup = {
 const ROLE_GROUPS: Readonly<Record<BusinessRole, readonly NavGroup[]>> = {
   PARTNER: [ownContent, management("partner", true)],
   CONTRIBUTOR: [ownContent, management("contributor", true)],
-  EDITOR: [catalogueContent, homepage, taxonomy, management("contributor"), management("editor", true)],
-  BDO: [catalogueContent, homepage, taxonomy, management("partner"), management("bdo", true)],
+  EDITOR: [catalogueContent, taxonomy, management("contributor"), management("editor", true)],
+  BDO: [catalogueContent, taxonomy, management("partner"), management("bdo", true)],
   ADMIN: [
-    catalogueContent, homepage, taxonomy,
+    catalogueContent, taxonomy,
     management("partner"), management("contributor"), management("editor"), management("bdo"),
     administration,
   ],
@@ -214,7 +200,6 @@ export const legacyNavigation: readonly NavGroup[] = [{ title: "Workspace", item
   tool("/publish-requests", "Publish Requests", ClipboardCheck, publishing, "Review submissions and track publication"),
   tool("/reviews", "Reviews", MessageSquare, ["PERM_REVIEW_MODERATE"], "Moderate traveler feedback"),
   tool("/partner-listings", "Partner Listings", Store, ["PERM_PARTNER_PUBLISH_APPROVE", "PERM_LISTING_EDIT_OWN"], "Listings submitted by travel partners"),
-  tool("/featured", "Featured", Sparkles, editorial, "The destinations marked as featured"),
 ] }];
 
 function allowed(grants: readonly string[], item: NavItem): boolean {
