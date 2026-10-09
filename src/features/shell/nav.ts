@@ -109,8 +109,8 @@ const catalogueContent: NavGroup = {
 const taxonomy: NavGroup = {
   title: "Taxonomy",
   items: [
-    catalog("/categories", "Categories", "categories", "Organize your destination catalog"),
-    catalog("/tags", "Tags", "tags", "Labels that connect your content"),
+    /* One tree, by region: each tourism region's own categories and search filters. The two old lists answer bookmarks. */
+    { ...catalog("/categories-and-tags", "Categories & Tags", "categories", "Each tourism region's own categories and search filters, in one tree"), aliases: ["/categories", "/tags"] },
     catalog("/amenities", "Amenities", "amenities", "What a stay offers, at the property and in the room"),
     catalog("/interests", "Interests", "interests", "Ways for travelers to explore"),
     catalog("/provinces", "Provinces", "provinces", "Manage Cambodia's provinces"),

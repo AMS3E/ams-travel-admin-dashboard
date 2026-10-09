@@ -46,7 +46,7 @@ export function AppShell({ admin, children }: AppShellProps) {
     routeParts.length > 1 && currentPage?.href !== pathname
       ? routeParts.at(-1) === "new"
         ? "Create"
-        : routeParts[0] === "destination-stats"
+        : routeParts[0] === "destination-stats" || (routeParts[0] === "regions" && routeParts.length === 2)
           ? "Detail"
           : "Edit"
       : null;
