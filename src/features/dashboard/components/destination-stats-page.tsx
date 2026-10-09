@@ -75,49 +75,22 @@ export function DestinationStatsPage() {
 
   /* The figures, over the places in scope. */
   const verified = inScope.filter((row) => row.verified);
-  const bases = (["OFFICIAL_SITE", "PARTNER", "PAID", "TRAVELER_SCORE"] as const)
-    .map((basis) => [verified.filter((row) => row.basis === basis).length, BASIS_LABELS[basis].toLowerCase()] as const)
-    .filter(([n]) => n > 0)
-    .map(([n, label]) => `${n} ${label}`)
-    .join(" · ");
   const traveler = inScope.filter((row) => row.travelerRecommended).length;
   const ratings = inScope.reduce((sum, row) => sum + row.ratingCount, 0);
   const average = ratings
     ? inScope.reduce((sum, row) => sum + (row.averageRating ?? 0) * row.ratingCount, 0) / ratings
     : null;
-  const reviews = inScope.reduce((sum, row) => sum + row.reviewCount, 0);
   const browses = inScope.reduce((sum, row) => sum + row.browses, 0);
-  const views = inScope.reduce((sum, row) => sum + row.viewCount, 0);
   const days = query.data?.browseDays ?? 30;
   const published = places.filter((row) => row.status === "PUBLISHED").length;
 
   return (
     <div className="flex flex-col gap-4">
       <StatGrid>
-        <StatTile
-          hint={bases || "Verify a place on the Verification page."}
-          icon={BadgeCheck}
-          label="Verified"
-          value={query.data ? `${count(verified.length)} of ${count(inScope.length)}` : null}
-        />
-        <StatTile
-          hint="Earned from reviews, never given."
-          icon={ThumbsUp}
-          label="Recommended by Traveler"
-          value={query.data ? count(traveler) : null}
-        />
-        <StatTile
-          hint={query.data ? `${count(ratings)} ${ratings === 1 ? "rating" : "ratings"} · ${count(reviews)} ${reviews === 1 ? "review" : "reviews"}` : undefined}
-          icon={Star}
-          label="Average rating"
-          value={query.data ? (average == null ? "—" : average.toFixed(1)) : null}
-        />
-        <StatTile
-          hint={query.data ? `${count(views)} views all time` : undefined}
-          icon={Eye}
-          label={`Browses, last ${days} days`}
-          value={query.data ? count(browses) : null}
-        />
+        <StatTile icon={BadgeCheck} label="Verified" value={query.data ? count(verified.length) : null} />
+        <StatTile icon={ThumbsUp} label="Recommended by Traveler" value={query.data ? count(traveler) : null} />
+        <StatTile icon={Star} label="Average rating" value={query.data ? (average == null ? "—" : average.toFixed(1)) : null} />
+        <StatTile icon={Eye} label={`Browses, last ${days} days`} value={query.data ? count(browses) : null} />
       </StatGrid>
 
       <Surface aria-label="Destination stats">
