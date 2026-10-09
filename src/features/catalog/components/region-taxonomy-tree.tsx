@@ -6,6 +6,7 @@ import { ArrowUpRight, Check, ChevronDown, ChevronRight, Loader2, Plus, X } from
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { RowMenu } from "@/components/ui/row-menu";
 import { Surface } from "@/components/ui/surface";
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from "@/components/ui/table";
 import { SearchField, Toolbar } from "@/components/ui/toolbar";
@@ -298,7 +299,7 @@ function TermRow({ kind, region, row, used, regionName, editable }: { readonly k
 
   return (
     <TableRow className={cn(retired && "text-muted")} data-term-id={row.id}>
-      <TableCell className="py-3 pl-16">
+      <TableCell className="py-3 pl-16 align-middle">
         {renaming ? (
           <form className="flex flex-wrap items-center gap-2" onSubmit={rename}>
             <Input aria-label={`Rename ${text(row.name)}`} autoFocus className="h-7 w-64 text-sm" maxLength={100} onChange={(event) => setName(event.target.value)} value={name} />
@@ -319,18 +320,23 @@ function TermRow({ kind, region, row, used, regionName, editable }: { readonly k
         {problem ? <p className="mt-1 text-xs font-medium text-heritage" role="alert">{problem}</p> : null}
       </TableCell>
       <TableCell className="py-3 text-right text-muted tabular-nums">{count(used)} dest.</TableCell>
-      <TableCell className="py-3 text-right whitespace-nowrap">
-        <span className="flex items-center justify-end gap-1">
-          {editable && !renaming ? (
-            <>
-              <Button className="h-5 px-1.5" onClick={() => setRenaming(true)} size="sm" type="button" variant="ghost">Rename</Button>
-              <Button className="h-5 px-1.5" disabled={changing.isLoading} onClick={() => void flip()} size="sm" type="button" variant="ghost">{retired ? "Restore" : "Retire"}</Button>
-            </>
+      <TableCell className="py-2 text-right whitespace-nowrap">
+        {/* One three-dot button holds the row's actions; the row stays as tall as its neighbours. */}
+        <span className="flex items-center justify-end">
+          {!renaming ? (
+            <RowMenu
+              items={[
+                ...(editable
+                  ? [
+                      { label: "Rename", onSelect: () => setRenaming(true) },
+                      { label: retired ? "Restore" : "Retire", onSelect: () => void flip(), disabled: changing.isLoading, danger: !retired },
+                    ]
+                  : []),
+                { label: "Open its form", href: `/${kind}/${row.id}` },
+              ]}
+              label={text(row.name)}
+            />
           ) : null}
-          <Link className="inline-flex items-center gap-1 px-2 text-xs font-medium text-teal-deep hover:underline" href={`/${kind}/${row.id}`}>
-            Open
-            <ArrowUpRight aria-hidden className="size-3" />
-          </Link>
         </span>
       </TableCell>
     </TableRow>
