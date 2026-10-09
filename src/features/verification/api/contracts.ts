@@ -2,13 +2,33 @@ import type { PublicationStatus } from "@/features/catalog/api/contracts";
 import type { PublishDesk } from "@/features/publishing/api/contracts";
 
 /**
- * The `verify` service's JSON. Verification is a desk's decision on evidence —
- * an invoice or a receipt — and has nothing to do with badges.
+ * The `verify` service's JSON. A destination's Verified badge rests on one of
+ * four things: it is an official site, a partner's own listing with the
+ * agreement behind it, a paid verification with its invoice, or the
+ * travellers' reviews, which earn it on their own. The first three are a
+ * desk's decision; the fourth is never filed. A verified place shows as
+ * Recommended by AMS Travel in the app, and the fourth adds Recommended by
+ * Traveler. None of it is the visitors' badges.
  *
  * Who decides is the desk the destination was written from: a BDO verifies
  * partner listings, an editor contributor drafts, and full control anything,
  * staff content included. The API scopes every read below to those desks.
  */
+
+export type VerificationBasis = "OFFICIAL_SITE" | "PARTNER" | "PAID" | "TRAVELER_SCORE";
+
+/** How each basis reads in a chip or a line. */
+export const BASIS_LABELS: Readonly<Record<VerificationBasis, string>> = {
+  OFFICIAL_SITE: "Official site",
+  PARTNER: "Partner",
+  PAID: "Paid",
+  TRAVELER_SCORE: "Travellers' reviews",
+};
+
+/** Whether a desk's decision verifies the place now, rather than the travellers' seal alone. */
+export function decidedVerified(row: Pick<VerificationResponse, "verified" | "basis">): boolean {
+  return row.verified && row.basis !== "TRAVELER_SCORE";
+}
 
 /**
  * The service's one response, `VerificationResponse`. The same shape answers
@@ -26,7 +46,18 @@ export interface VerificationResponse {
   /** Whose writing the place is; the queue's only. */
   readonly desk: PublishDesk | null;
   readonly verified: boolean;
-  /** The invoice or receipt number. */
+  /**
+   * What the verification rests on. In a history row the decision's own; in
+   * the queue and the status the place's standing now, `TRAVELER_SCORE` when
+   * only the reviews verify it. Null while not verified.
+   */
+  readonly basis: VerificationBasis | null;
+  /** Whether the reviews have earned the Recommended by Traveler seal; null in a history row. */
+  readonly travelerRecommended: boolean | null;
+  /** Star ratings so far and their average; null in a history row, the average null while unrated. */
+  readonly ratingCount: number | null;
+  readonly averageRating: number | null;
+  /** The invoice or receipt number, or the agreement's reference. */
   readonly reference: string | null;
   /** Why it was decided. Always present on a revocation. */
   readonly note: string | null;
@@ -59,6 +90,8 @@ export interface DestinationVerificationResponse extends VerificationResponse {
 export interface RecordVerificationRequest {
   readonly destinationId: string;
   readonly verified: boolean;
+  /** What it rests on; required to verify, ignored to revoke, never `TRAVELER_SCORE`. */
+  readonly basis: VerificationBasis | null;
   /** At most 120 characters. */
   readonly reference: string | null;
   /** At most 2000 characters; required to revoke. */
@@ -84,4 +117,7 @@ export interface VerificationQueueItem extends VerificationResponse {
  * `GET /destination-verifications/status?destinationIds=` — public; one row
  * per id asked about. Who decided and on what evidence stay with the desks.
  */
-export type VerifiedStatusResponse = Pick<VerificationResponse, "destinationId" | "verified" | "createdAt">;
+export type VerifiedStatusResponse = Pick<
+  VerificationResponse,
+  "destinationId" | "verified" | "basis" | "travelerRecommended" | "ratingCount" | "averageRating" | "createdAt"
+>;

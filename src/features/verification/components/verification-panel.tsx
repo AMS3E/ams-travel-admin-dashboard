@@ -1,7 +1,7 @@
 import { ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/features/dashboard/format";
-import type { DestinationVerificationResponse, VerifiedStatusResponse } from "../api/contracts";
+import { BASIS_LABELS, decidedVerified, type DestinationVerificationResponse, type VerifiedStatusResponse } from "../api/contracts";
 import { VerifyButton } from "./verify-button";
 
 interface VerificationPanelProps {
@@ -25,20 +25,32 @@ export function VerificationPanel({ destinationId, name, status, history }: Veri
   if (!status && !history) return null;
 
   const verified = status?.verified ?? history?.[0]?.verified ?? false;
+  const basis = status?.basis ?? history?.[0]?.basis ?? null;
   const latest = history?.[0];
-  const detail = latest
+  const decision = latest
     ? [
         `${latest.verified ? "Verified" : "Revoked"} by ${latest.decidedByName ?? "a deleted account"}`,
         formatDateTime(latest.createdAt),
         latest.reference,
       ]
         .filter(Boolean)
-        .join(" · ")
+        .join(" · ") + "."
     : verified && status?.createdAt
       ? `Verified since ${formatDateTime(status.createdAt)}.`
       : history
         ? "No decision has been recorded yet."
-        : "A BDO verifies partner listings, an editor contributor drafts, and an administrator any destination.";
+        : "A BDO or an administrator verifies a destination: an official site on its standing, a partner's listing on its agreement, a paid one on its invoice.";
+  const ratings = status?.ratingCount
+    ? `${status.ratingCount.toLocaleString()} ${status.ratingCount === 1 ? "rating" : "ratings"}${status.averageRating != null ? ` at ${status.averageRating}` : ""}.`
+    : null;
+  const detail = [
+    basis === "TRAVELER_SCORE" ? "Verified by the travellers' reviews." : null,
+    decision,
+    verified ? "Shows as Recommended by AMS Travel in the app." : null,
+    ratings,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <section className="panel flex flex-wrap items-center gap-4 p-4">
@@ -49,12 +61,13 @@ export function VerificationPanel({ destinationId, name, status, history }: Veri
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-sm font-semibold">Verification</h2>
           <Badge tone={verified ? "gold" : "neutral"}>
-            {verified ? "Verified" : "Not verified"}
+            {verified && basis ? `Verified · ${BASIS_LABELS[basis]}` : verified ? "Verified" : "Not verified"}
           </Badge>
+          {status?.travelerRecommended ? <Badge tone="success">Recommended by Traveler</Badge> : null}
         </div>
         <p className="mt-1 text-xs text-muted">{detail}</p>
       </div>
-      {history ? <VerifyButton destination={{ id: destinationId, name, verified }} /> : null}
+      {history ? <VerifyButton destination={{ id: destinationId, name, verified: decidedVerified({ verified, basis }) }} /> : null}
     </section>
   );
 }

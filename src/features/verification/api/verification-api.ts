@@ -2,6 +2,7 @@ import { baseApi } from "@/store/api/base-api";
 import type {
   DestinationVerificationResponse,
   RecordVerificationRequest,
+  VerificationBasis,
   VerificationQueueItem,
   VerifiedStatusResponse,
 } from "./contracts";
@@ -10,6 +11,8 @@ import type {
 export interface RecordVerificationInput {
   readonly destinationId: string;
   readonly verified: boolean;
+  /** What a verification rests on; left out when revoking. */
+  readonly basis?: VerificationBasis;
   readonly reference?: string;
   readonly note?: string;
   readonly evidenceKey?: string;
@@ -47,10 +50,11 @@ export const verificationApi = baseApi.injectEndpoints({
      * never shows an empty reference as though one had been given.
      */
     recordVerification: builder.mutation<DestinationVerificationResponse, RecordVerificationInput>({
-      query: ({ destinationId, verified, reference, note, evidenceKey }) => {
+      query: ({ destinationId, verified, basis, reference, note, evidenceKey }) => {
         const body: RecordVerificationRequest = {
           destinationId,
           verified,
+          basis: verified ? (basis ?? null) : null,
           reference: reference?.trim() || null,
           note: note?.trim() || null,
           evidenceKey: evidenceKey?.trim() || null,

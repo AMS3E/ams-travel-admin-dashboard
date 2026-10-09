@@ -11,7 +11,7 @@ import { QueryState } from "@/features/cms/components/query-state";
 import { formatDateTime } from "@/features/dashboard/format";
 import { DESK_LABELS, type PublishDesk } from "@/features/publishing/api/contracts";
 import { useGetDestinationVerificationsQuery } from "../api/verification-api";
-import type { DestinationVerificationResponse } from "../api/contracts";
+import { BASIS_LABELS, type DestinationVerificationResponse } from "../api/contracts";
 import { VerificationForm, type VerificationDecision } from "./verification-form";
 import { VerificationHistory } from "./verification-history";
 
@@ -75,6 +75,7 @@ export function VerifyDrawer({ destination, focus = "verify", onClose }: VerifyD
     <Filed decision={filed} onAnother={() => setFiled(null)} onClose={onClose} />
   ) : (
     <VerificationForm
+      desk={destination.desk}
       destinationId={destination.id}
       initialDecision={focus === "revoke" ? "revoke" : "verify"}
       onCancel={onClose}
@@ -233,6 +234,7 @@ function Filed({
 }) {
   const revoked = !decision.verified;
   const details = [
+    decision.basis ? BASIS_LABELS[decision.basis] : null,
     decision.reference ? `Number ${decision.reference}` : decision.evidenceKey ? "Paperwork attached" : null,
     decision.reference && decision.evidenceKey ? "paperwork attached" : null,
     formatDateTime(decision.createdAt),
@@ -262,8 +264,10 @@ function Filed({
           <h2 className="font-semibold text-ink">{revoked ? "Verification revoked" : "Destination verified"}</h2>
           <p className="mt-0.5 text-sm text-muted">
             {revoked
-              ? "The website no longer shows it as verified."
-              : "The website now shows it as verified. Renew it when new paperwork comes in."}
+              ? "The app no longer shows it as verified, nor as Recommended by AMS Travel."
+              : decision.basis === "OFFICIAL_SITE"
+                ? "The app now shows it as verified and as Recommended by AMS Travel."
+                : "The app now shows it as verified and as Recommended by AMS Travel. Renew it when new paperwork comes in."}
           </p>
           {details.length ? <p className="mt-1 text-xs text-ink-soft">{details.join(" · ")}</p> : null}
         </div>

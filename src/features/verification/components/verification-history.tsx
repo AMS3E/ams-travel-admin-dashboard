@@ -2,7 +2,7 @@ import Image from "next/image";
 import { FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/features/dashboard/format";
-import type { DestinationVerificationResponse } from "../api/contracts";
+import { BASIS_LABELS, type DestinationVerificationResponse } from "../api/contracts";
 import { evidenceHref, isPdfEvidence } from "../evidence";
 
 interface VerificationHistoryProps {
@@ -65,7 +65,7 @@ export function VerificationHistory({ history }: VerificationHistoryProps) {
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge tone={entry.verified ? "gold" : "inactive"}>
-                      {entry.verified ? "Verified" : "Revoked"}
+                      {entry.verified ? `Verified · ${BASIS_LABELS[entry.basis ?? "PAID"]}` : "Revoked"}
                     </Badge>
                     {entry.reference ? (
                       <span className="font-mono text-xs text-ink-soft">{entry.reference}</span>
