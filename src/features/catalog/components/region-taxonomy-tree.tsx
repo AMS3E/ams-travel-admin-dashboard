@@ -148,7 +148,7 @@ function RegionRows({ region, open, onToggle, ...shared }: Shared & { readonly r
   return (
     <>
       <TableRow className="bg-sand/40" data-region-id={region.id}>
-        <TableCell>
+        <TableCell className="py-3">
           <button aria-expanded={open} className="flex items-center gap-2 text-left" onClick={onToggle} type="button">
             {open ? <ChevronDown aria-hidden className="size-4 text-muted" /> : <ChevronRight aria-hidden className="size-4 text-muted" />}
             <span className="font-semibold text-ink">{text(region.name)}</span>
@@ -156,12 +156,14 @@ function RegionRows({ region, open, onToggle, ...shared }: Shared & { readonly r
             {region.isActive === false ? <Badge tone="inactive">Retired</Badge> : null}
           </button>
         </TableCell>
-        <TableCell className="text-right text-muted tabular-nums">{count(used)} dest.</TableCell>
-        <TableCell className="text-right">
-          <Link className="inline-flex items-center gap-1 text-xs font-medium text-teal-deep hover:underline" href={`/regions/${region.id}`}>
-            Open region
-            <ArrowUpRight aria-hidden className="size-3" />
-          </Link>
+        <TableCell className="py-3 text-right text-muted tabular-nums">{count(used)} dest.</TableCell>
+        <TableCell className="py-3 text-right">
+          <span className="flex justify-end">
+            <Link className="inline-flex items-center gap-1 text-xs font-medium text-teal-deep hover:underline" href={`/regions/${region.id}`}>
+              Open region
+              <ArrowUpRight aria-hidden className="size-3" />
+            </Link>
+          </span>
         </TableCell>
       </TableRow>
       {open ? (
@@ -206,18 +208,23 @@ function TermList({ kind, region, termIds, byId, regionName, usage, editable, ne
   return (
     <>
       <TableRow className="hover:bg-transparent" data-group={`${region.id}:${kind}`}>
-        <TableCell className="pl-10">
-          <span className="font-medium text-ink">{list.title}</span>
-          <span className="ml-2 text-xs text-muted">{count(rows.length)}</span>
+        <TableCell className="py-3 pl-10">
+          <span className="flex items-center gap-2">
+            <span className="font-medium text-ink">{list.title}</span>
+            <span className="text-xs text-muted">{count(rows.length)}</span>
+          </span>
         </TableCell>
-        <TableCell className="text-right text-muted tabular-nums">{count(usedByGroup)} dest.</TableCell>
-        <TableCell className="text-right">
-          {editable && !adding ? (
-            <Button onClick={() => { setAdding(true); setProblem(null); }} size="sm" type="button" variant="ghost">
-              <Plus aria-hidden className="size-3.5" />
-              {list.one}
-            </Button>
-          ) : null}
+        <TableCell className="py-3 text-right text-muted tabular-nums">{count(usedByGroup)} dest.</TableCell>
+        <TableCell className="py-3 text-right">
+          {/* A flex box, not a line box: an inline button that starts with an icon would push the row taller. */}
+          <span className="flex justify-end">
+            {editable && !adding ? (
+              <Button className="h-5 px-1.5" onClick={() => { setAdding(true); setProblem(null); }} size="sm" type="button" variant="ghost">
+                <Plus aria-hidden className="size-3.5" />
+                {list.one}
+              </Button>
+            ) : null}
+          </span>
         </TableCell>
       </TableRow>
       {adding ? (
@@ -291,14 +298,14 @@ function TermRow({ kind, region, row, used, regionName, editable }: { readonly k
 
   return (
     <TableRow className={cn(retired && "text-muted")} data-term-id={row.id}>
-      <TableCell className="pl-16">
+      <TableCell className="py-3 pl-16">
         {renaming ? (
           <form className="flex flex-wrap items-center gap-2" onSubmit={rename}>
-            <Input aria-label={`Rename ${text(row.name)}`} autoFocus className="h-8 w-64 text-sm" maxLength={100} onChange={(event) => setName(event.target.value)} value={name} />
-            <Button disabled={saving.isLoading} size="icon-sm" title="Save" type="submit">
+            <Input aria-label={`Rename ${text(row.name)}`} autoFocus className="h-7 w-64 text-sm" maxLength={100} onChange={(event) => setName(event.target.value)} value={name} />
+            <Button className="size-7" disabled={saving.isLoading} size="icon-sm" title="Save" type="submit">
               {saving.isLoading ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <Check aria-hidden className="size-3.5" />}
             </Button>
-            <Button onClick={() => { setRenaming(false); setName(text(row.name)); setProblem(null); }} size="icon-sm" title="Cancel" type="button" variant="ghost">
+            <Button className="size-7" onClick={() => { setRenaming(false); setName(text(row.name)); setProblem(null); }} size="icon-sm" title="Cancel" type="button" variant="ghost">
               <X aria-hidden className="size-3.5" />
             </Button>
           </form>
@@ -311,18 +318,20 @@ function TermRow({ kind, region, row, used, regionName, editable }: { readonly k
         )}
         {problem ? <p className="mt-1 text-xs font-medium text-heritage" role="alert">{problem}</p> : null}
       </TableCell>
-      <TableCell className="text-right text-muted tabular-nums">{count(used)} dest.</TableCell>
-      <TableCell className="text-right whitespace-nowrap">
-        {editable && !renaming ? (
-          <>
-            <Button onClick={() => setRenaming(true)} size="sm" type="button" variant="ghost">Rename</Button>
-            <Button disabled={changing.isLoading} onClick={() => void flip()} size="sm" type="button" variant="ghost">{retired ? "Restore" : "Retire"}</Button>
-          </>
-        ) : null}
-        <Link className="inline-flex items-center gap-1 px-2 text-xs font-medium text-teal-deep hover:underline" href={`/${kind}/${row.id}`}>
-          Open
-          <ArrowUpRight aria-hidden className="size-3" />
-        </Link>
+      <TableCell className="py-3 text-right text-muted tabular-nums">{count(used)} dest.</TableCell>
+      <TableCell className="py-3 text-right whitespace-nowrap">
+        <span className="flex items-center justify-end gap-1">
+          {editable && !renaming ? (
+            <>
+              <Button className="h-5 px-1.5" onClick={() => setRenaming(true)} size="sm" type="button" variant="ghost">Rename</Button>
+              <Button className="h-5 px-1.5" disabled={changing.isLoading} onClick={() => void flip()} size="sm" type="button" variant="ghost">{retired ? "Restore" : "Retire"}</Button>
+            </>
+          ) : null}
+          <Link className="inline-flex items-center gap-1 px-2 text-xs font-medium text-teal-deep hover:underline" href={`/${kind}/${row.id}`}>
+            Open
+            <ArrowUpRight aria-hidden className="size-3" />
+          </Link>
+        </span>
       </TableCell>
     </TableRow>
   );

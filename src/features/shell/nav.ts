@@ -110,7 +110,7 @@ const taxonomy: NavGroup = {
   title: "Taxonomy",
   items: [
     /* One tree, by region: each tourism region's own categories and search filters. The two old lists answer bookmarks. */
-    { ...catalog("/categories-and-tags", "Categories & Tags", "categories", "Each tourism region's own categories and search filters, in one tree"), aliases: ["/categories", "/tags"] },
+    { ...catalog("/categories-and-tags", "Tourism Regions", "categories", "Each tourism region's own categories and search filters, in one tree"), aliases: ["/categories", "/tags"] },
     catalog("/amenities", "Amenities", "amenities", "What a stay offers, at the property and in the room"),
     catalog("/interests", "Interests", "interests", "Ways for travelers to explore"),
     catalog("/provinces", "Provinces", "provinces", "Manage Cambodia's provinces"),
