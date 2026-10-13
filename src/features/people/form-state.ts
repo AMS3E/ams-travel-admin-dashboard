@@ -30,6 +30,21 @@ export const accountSchema = z.object({
 
 export type AccountFormValues = z.infer<typeof accountSchema>;
 
+/** A stored photo's key (`avatar/{uuid}/{file}`), never an address. */
+const MEDIA_KEY = /^[a-z]+\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[\w.-]+$/i;
+
+/** An edited account, sent whole: an empty phone or photo removes it. */
+export const accountChangesSchema = z.object({
+  firstName: z.string().trim().min(1, "First name is required").max(64),
+  lastName: z.string().trim().max(64),
+  email: z.string().trim().email("Enter a valid e-mail address"),
+  phone: z.string().trim().max(50, "Use at most 50 characters"),
+  avatarKey: z.string().trim().max(512).refine((value) => !value || MEDIA_KEY.test(value), "Upload the photo again."),
+  enabled: z.boolean(),
+});
+
+export type AccountChanges = z.infer<typeof accountChangesSchema>;
+
 export interface ActionSuccess {
   readonly ok: true;
   /** The Keycloak id of the account the action touched. */

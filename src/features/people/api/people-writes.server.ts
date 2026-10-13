@@ -8,8 +8,10 @@ import {
 } from "@/features/auth/permissions";
 import { requireAdminSession } from "@/features/auth/session";
 import {
+  accountChangesSchema,
   accountSchema,
   GENERIC_ACCOUNT_ERROR,
+  type AccountChanges,
   type AccountFormValues,
   type ActionResult,
 } from "@/features/people/form-state";
@@ -75,6 +77,41 @@ export async function createAccount(
     const message = messageFrom(error);
     if (error instanceof BackendApiError && error.status === 409) {
       return { ok: false, message, fieldErrors: { username: "Already in use." } };
+    }
+    return { ok: false, message };
+  }
+}
+
+/** Edits one account's name, e-mail, phone, photo and whether it may sign in (Spring `PUT /staff/{id}`). */
+export async function updateAccount(id: string, values: AccountChanges): Promise<ActionResult> {
+  const { admin, token } = await requireAdminSession();
+  if (!hasPermission(admin.roles, "PERM_USER_MANAGE")) {
+    return { ok: false, message: "Editing an account requires the user-management permission." };
+  }
+
+  const parsed = accountChangesSchema.safeParse(values);
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) {
+      const name = issue.path[0];
+      if (typeof name === "string" && !fieldErrors[name]) fieldErrors[name] = issue.message;
+    }
+    return { ok: false, message: "Some fields need attention.", fieldErrors };
+  }
+
+  try {
+    await backendRequest(
+      `/staff/${encodeURIComponent(id)}`,
+      { method: "PUT", body: JSON.stringify(parsed.data) },
+      token,
+    );
+    revalidatePath("/people");
+    revalidatePath(`/people/${id}`);
+    return { ok: true, id };
+  } catch (error) {
+    const message = messageFrom(error);
+    if (error instanceof BackendApiError && error.status === 409) {
+      return { ok: false, message, fieldErrors: { email: "Already in use." } };
     }
     return { ok: false, message };
   }

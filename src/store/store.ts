@@ -2,11 +2,10 @@ import { configureStore } from "@reduxjs/toolkit";
 import { baseApi } from "./api/base-api";
 import session from "./slices/session-slice";
 import sidebar from "./slices/sidebar-slice";
-import ui from "./slices/ui-slice";
 
 export const makeStore = () =>
   configureStore({
-    reducer: { session, sidebar, ui, [baseApi.reducerPath]: baseApi.reducer },
+    reducer: { session, sidebar, [baseApi.reducerPath]: baseApi.reducer },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware().concat(baseApi.middleware),
   });

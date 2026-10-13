@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { hasPermission } from "@/features/auth/permissions";
 import { requireAdmin } from "@/features/auth/session";
+import { AccountProfileForm } from "@/features/people/components/account-profile-form";
 import { RoleForm } from "@/features/people/components/role-form";
 import { findPerson } from "@/features/people/people.server";
 import { PageHeader } from "@/features/shell/components/page-header";
@@ -28,6 +29,13 @@ export default async function AccountPage(props: PageProps<"/people/[id]">) {
         description={[person.username, person.email].filter(Boolean).join(" · ")}
         title={person.name}
       />
+
+      <section aria-labelledby="profile">
+        <h2 className="mb-2 text-md font-semibold text-ink" id="profile">
+          Profile
+        </h2>
+        <AccountProfileForm person={person} self={person.id === admin.id} />
+      </section>
 
       <section aria-labelledby="roles">
         <h2 className="mb-2 text-md font-semibold text-ink" id="roles">

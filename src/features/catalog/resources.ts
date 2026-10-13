@@ -2691,10 +2691,8 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     status: SEASON_STATUS,
     columns: [
       { name: "name", label: "Name" },
-      { name: "kind", label: "Kind", kind: "enum", options: SEASON_KINDS, secondary: true },
       { name: "startsOn", label: "Starts" },
       { name: "endsOn", label: "Ends" },
-      { name: "status", label: "Status", kind: "status" },
     ],
     fields: [
       name("Season name"),

@@ -29,6 +29,8 @@ async function read<T>(path: string): Promise<T | null> {
 export interface AuditFilters {
   /** The entity name, e.g. `Destination`. */
   readonly entityType?: string;
+  /** One record's history. */
+  readonly entityId?: string;
   readonly action?: string;
   /** The `users` id of whoever made the change. */
   readonly userId?: string;
@@ -46,6 +48,7 @@ export async function getAuditEntries(
 ): Promise<readonly AuditLogResponse[]> {
   const query = new URLSearchParams({ limit: String(filters.limit) });
   if (filters.entityType) query.set("entityType", filters.entityType);
+  if (filters.entityId) query.set("entityId", filters.entityId);
   if (filters.action) query.set("action", filters.action);
   if (filters.userId) query.set("userId", filters.userId);
 

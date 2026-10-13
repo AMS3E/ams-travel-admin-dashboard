@@ -167,8 +167,6 @@ export interface Workspace {
   readonly reviews: readonly string[];
   /** Who decides what this account submits — "a BDO", "an editor" — or null when nobody else does. */
   readonly submitsTo: string | null;
-  /** Every `PERM_` grant on the token, sorted, for support conversations. */
-  readonly permissions: readonly string[];
 }
 
 export function workspaceOf(grants: readonly string[]): Workspace {
@@ -179,6 +177,5 @@ export function workspaceOf(grants: readonly string[]): Workspace {
     fullControl,
     reviews: PUBLISH_DESKS.filter((each) => reviewsDesk(grants, each)).map((each) => DESK_LABELS[each]),
     submitsTo: desk ? DESK_REVIEWERS[desk] : null,
-    permissions: grants.filter((grant) => grant.startsWith("PERM_")).sort(),
   };
 }

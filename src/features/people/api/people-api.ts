@@ -1,4 +1,4 @@
-import type { AccountFormValues, ActionResult } from "@/features/people/form-state";
+import type { AccountChanges, AccountFormValues, ActionResult } from "@/features/people/form-state";
 import { baseApi } from "@/store/api/base-api";
 
 /** A back-office account, as Keycloak holds it — the API's `StaffResponse`. Keyed by the Keycloak id. */
@@ -11,6 +11,9 @@ export interface CmsUser {
   enabled: boolean;
   roles: string[];
   createdAt?: string | null;
+  /** From their profile; null until they have one. */
+  phone?: string | null;
+  avatarUrl?: string | null;
 }
 
 /**
@@ -104,6 +107,11 @@ export const peopleApi = baseApi.injectEndpoints({
       query: (values) => ({ url: "people", method: "POST", body: values }),
       invalidatesTags: ["User", "Role", "Dashboard"],
     }),
+    /** One account's name, e-mail, phone, photo and whether it may sign in. */
+    updateAccount: builder.mutation<ActionResult, { readonly id: string; readonly changes: AccountChanges }>({
+      query: ({ id, changes }) => ({ url: `people/${encodeURIComponent(id)}`, method: "PUT", body: changes }),
+      invalidatesTags: ["User", "Role", "Dashboard"],
+    }),
     /** Exactly which business roles one account holds. */
     setRoles: builder.mutation<ActionResult, { readonly id: string; readonly roles: readonly string[] }>({
       query: ({ id, roles }) => ({ url: `people/${encodeURIComponent(id)}/roles`, method: "PUT", body: { roles } }),
@@ -119,5 +127,6 @@ export const {
   useUpdateCustomerMutation,
   useDeleteCustomerMutation,
   useCreateAccountMutation,
+  useUpdateAccountMutation,
   useSetRolesMutation,
 } = peopleApi;

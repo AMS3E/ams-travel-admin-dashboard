@@ -8,14 +8,13 @@ import {
 } from "@/features/auth/permissions";
 import { CustomerDirectory } from "@/features/people/components/customer-directory";
 import { WORKSPACE_ACCESS } from "@/features/people/workspace-roles";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { setCompactTables } from "@/store/slices/ui-slice";
 import { byName, getResource } from "@/features/catalog/resources";
 import type { ResourceKey } from "@/features/catalog/resource";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
-import { initials } from "@/features/auth/types";
+import { ProfileAvatar } from "@/features/profile/components/avatar-picker";
+import { cn } from "@/lib/utils";
 import { QueryState } from "./query-state";
 
 /**
@@ -89,9 +88,11 @@ export function RolesPage({ grants }: { readonly grants: readonly string[] }) {
                   return (
                     <li key={person.id}>
                       <Link className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-sand" href={"/people/" + person.id}>
-                        <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-sand-deep text-xs font-semibold text-ink-soft">
-                          {initials(name)}
-                        </span>
+                        <ProfileAvatar
+                          className={cn("size-8 text-xs", !person.enabled && "opacity-60 grayscale")}
+                          name={name}
+                          src={person.avatarUrl ?? ""}
+                        />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium text-ink">{name}</span>
                           <span className="block truncate text-xs text-muted">{person.email || person.username}</span>
@@ -135,31 +136,8 @@ const advanced: ResourceKey[] = [
   "destination-histories",
 ];
 export function SettingsPage() {
-  const dispatch = useAppDispatch();
-  const compact = useAppSelector((state) => state.ui.compactTables);
   return (
     <div className="flex max-w-3xl flex-col gap-4">
-      <Surface>
-        <SurfaceHeader description="Preferences apply to this browser session." title="Workspace preferences" />
-        <label className="flex cursor-pointer items-center justify-between gap-4 px-4 py-3">
-          <span>
-            <span className="block text-sm font-medium text-ink">Compact tables</span>
-            <span className="block text-xs text-muted">Fit more catalogue rows on your screen.</span>
-          </span>
-          <span className="relative inline-flex shrink-0">
-            <input
-              checked={compact}
-              className="peer sr-only"
-              onChange={(event) => dispatch(setCompactTables(event.target.checked))}
-              role="switch"
-              type="checkbox"
-            />
-            <span aria-hidden className="h-5 w-9 rounded-full bg-line-strong transition-colors peer-checked:bg-teal peer-focus-visible:ring-3 peer-focus-visible:ring-teal/25" />
-            <span aria-hidden className="absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow-xs transition-transform peer-checked:translate-x-4" />
-          </span>
-        </label>
-      </Surface>
-
       <Surface>
         <SurfaceHeader
           description="Stay and food photography, badges, the periods they are earned in, and the seasons that set those periods."
