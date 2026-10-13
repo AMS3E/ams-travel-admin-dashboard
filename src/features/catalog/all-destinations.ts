@@ -3,15 +3,15 @@ import { canCreateResource, canManageResource } from "@/features/auth/permission
 import type { CatalogRecord } from "@/features/catalog/api/contracts";
 import { mediaPath, statusOption, statusValueOf } from "@/features/catalog/resource";
 import { byName, getResource } from "@/features/catalog/resources";
-import { HERITAGE_TAGS, HISTORICAL_COVERAGE, heritageListOf } from "@/features/heritage/heritage-tabs";
 
 /**
- * "All Destinations": every attraction, place to eat, stay and travel route in
- * one list, with a tab per main type. The All tab reads every type together;
+ * "All Destinations": every attraction, place to eat and stay in one list,
+ * with a tab per main type. Tourism corridors are not destinations: they have
+ * their own page. The All tab reads every type together;
  * a type's tab is that type's own table, with everything it can do.
  */
 
-export type DestinationTypeKey = "destinations" | "foods" | "stays" | "corridors";
+export type DestinationTypeKey = "destinations" | "foods" | "stays";
 
 export interface DestinationType {
   readonly key: DestinationTypeKey;
@@ -28,27 +28,23 @@ export const DESTINATION_TYPES: readonly DestinationType[] = [
   { key: "destinations", tab: "attractions", label: "Attractions", one: "attraction" },
   { key: "foods", tab: "food", label: "Food", one: "food listing" },
   { key: "stays", tab: "stays", label: "Stays", one: "stay" },
-  { key: "corridors", tab: "routes", label: "Travel routes", one: "travel route" },
 ];
 
 /**
  * The list a record of this table goes back to: a stay or a food listing to
- * its tab of All Destinations, a royal capital to Historical Coverage, a king
- * to its tab of Heritage Tags — where they are listed; anything else to its
+ * its tab of All Destinations, where they are listed; anything else to its
  * own page.
  */
 export function listPageOf(key: string): string {
-  const type = DESTINATION_TYPES.find((each) => each.key === key && each.key !== "destinations" && each.key !== "corridors");
-  return type ? `/destinations?type=${type.tab}` : (heritageListOf(key) ?? `/${key}`);
+  const type = DESTINATION_TYPES.find((each) => each.key === key && each.key !== "destinations");
+  return type ? `/destinations?type=${type.tab}` : `/${key}`;
 }
 
-/** What that list is called, for a Back link: "All Destinations", "All Historical Coverage", "Heritage Tags", or its own name. */
+/** What that list is called, for a Back link: "All Destinations", or its own name. */
 export function listPageLabel(key: string, ownName: string): string {
   const page = listPageOf(key);
   const on = (list: string) => page === list || page.startsWith(`${list}?`);
-  if (on("/destinations")) return "All Destinations";
-  if (on(HISTORICAL_COVERAGE)) return "All Historical Coverage";
-  return on(HERITAGE_TAGS) ? "Heritage Tags" : ownName;
+  return on("/destinations") ? "All Destinations" : ownName;
 }
 
 /** The main types this account manages. */
@@ -64,18 +60,17 @@ export function chosenType(tab: unknown, types: readonly DestinationType[]): Des
 /** Where "New …" goes from a tab: the chooser from All, that type's form from its tab. */
 export function createHref(roles: readonly string[], type: DestinationType | null): string | null {
   if (!type) return destinationTypes(roles).some((each) => canCreateResource(roles, each.key)) ? "/create" : null;
-  if (!canCreateResource(roles, type.key)) return null;
-  return type.key === "corridors" ? "/corridors/new" : `/${type.key}/new`;
+  return canCreateResource(roles, type.key) ? `/${type.key}/new` : null;
 }
 
 /** One row of the All tab, whatever its type. */
 export interface DestinationRow {
   readonly id: string;
   readonly type: DestinationTypeKey;
-  /** "Attraction", "Food", "Stay", "Travel route". */
+  /** "Attraction", "Food", "Stay". */
   readonly typeLabel: string;
   readonly name: string;
-  /** Its own type within the main one: "Hotel", "Cafe", "3 days". */
+  /** Its own type within the main one: "Hotel", "Cafe". */
   readonly kind: string | null;
   /** Where it is: its address, else its province. */
   readonly place: string | null;
@@ -95,7 +90,6 @@ const SINGULAR: Readonly<Record<DestinationTypeKey, string>> = {
   destinations: "Attraction",
   foods: "Food",
   stays: "Stay",
-  corridors: "Travel route",
 };
 
 /** How a type reads where its option label would not. */
@@ -115,18 +109,13 @@ export function toRows(
     const status = statusValueOf(definition, record);
     const option = statusOption(definition, status);
     const kindValue = text(record.type);
-    const days = typeof record.durationDays === "number" && record.durationDays > 0 ? record.durationDays : null;
     const province = typeof record.provinceId === "string" ? provinceNames.get(record.provinceId) ?? null : null;
     return {
       id: record.id,
       type,
       typeLabel: SINGULAR[type],
       name: text(record[definition.titleField]) ?? `Untitled ${SINGULAR[type].toLowerCase()}`,
-      kind: kindValue
-        ? (KIND_WORDS[kindValue] ?? kinds.find((each) => each.value === kindValue)?.label ?? null)
-        : days
-          ? `${days} ${days === 1 ? "day" : "days"}`
-          : null,
+      kind: kindValue ? (KIND_WORDS[kindValue] ?? kinds.find((each) => each.value === kindValue)?.label ?? null) : null,
       place: text(record.address) ?? province,
       status,
       statusLabel: option?.label ?? "—",

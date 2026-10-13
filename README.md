@@ -40,7 +40,7 @@ Each role sees its own sidebar, defined in [`src/features/shell/nav.ts`](src/fea
 | --- | --- |
 | Partner | Own stays and food · Partner desk (sends work to a BDO) |
 | Contributor | Own content · Contributor desk (sends work to an editor) |
-| Editor | Catalogue, Homepage & Discovery, Taxonomy, History & Heritage · reviews contributors |
+| Editor | Catalogue, Taxonomy · reviews contributors |
 | BDO | Same as Editor · reviews partners |
 | Admin | Everything · Administration (Users, Roles, Audit Logs, Settings) |
 

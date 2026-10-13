@@ -132,8 +132,6 @@ const advanced: ResourceKey[] = [
   "badge-definitions",
   "badge-periods",
   "seasons",
-  /* Every site's timeline in one list; each site's own is edited on its page. */
-  "destination-histories",
 ];
 export function SettingsPage() {
   return (

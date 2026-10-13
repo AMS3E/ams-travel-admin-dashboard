@@ -187,7 +187,6 @@ function DraftRow({ item, mine, request, reviews, sendsTo }: {
             {item.name}
           </Link>
           <Badge tone="neutral">{listingLabel(item.type)}</Badge>
-          {item.isFeatured && <Badge tone="info">Featured</Badge>}
         </div>
         <p className="mt-0.5 truncate text-xs text-muted">
           {[item.detail || "No address yet", !mine && request?.requestedByName ? `from ${request.requestedByName}` : null].filter(Boolean).join(" · ")}

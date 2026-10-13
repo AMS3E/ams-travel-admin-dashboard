@@ -17,10 +17,67 @@ export interface LinkedPoint extends GeoPoint {
 }
 
 /** A place found by name: what it is called, and where it is. */
-export interface PlaceResult extends GeoPoint {
+/** What a point's address says, for filling the form: its province as the catalogue names it, and one line of address. */
+export interface PlaceDetails {
+  readonly province?: string;
+  readonly address?: string;
+}
+
+export interface PlaceResult extends GeoPoint, PlaceDetails {
   readonly name: string;
   /** The full address, for telling two places of the same name apart. */
   readonly label: string;
+}
+
+/** The parts of an OpenStreetMap address that are read. */
+export interface OsmAddress {
+  readonly road?: string;
+  readonly village?: string;
+  readonly suburb?: string;
+  readonly town?: string;
+  readonly city?: string;
+  readonly county?: string;
+  readonly state?: string;
+  readonly province?: string;
+  readonly "ISO3166-2-lvl4"?: string;
+}
+
+/**
+ * Cambodia's provinces by their ISO 3166-2 number, as the catalogue names
+ * them. OpenStreetMap spells a province several ways — "Preah Sihanouk",
+ * "Khaet Preah Sihanouk" — but numbers it one way.
+ */
+const PROVINCE_BY_ISO: Readonly<Record<string, string>> = {
+  "KH-1": "Banteay Meanchey", "KH-2": "Battambang", "KH-3": "Kampong Cham", "KH-4": "Kampong Chhnang", "KH-5": "Kampong Speu",
+  "KH-6": "Kampong Thom", "KH-7": "Kampot", "KH-8": "Kandal", "KH-9": "Koh Kong", "KH-10": "Kratie", "KH-11": "Mondulkiri",
+  "KH-12": "Phnom Penh", "KH-13": "Preah Vihear", "KH-14": "Prey Veng", "KH-15": "Pursat", "KH-16": "Ratanakiri", "KH-17": "Siem Reap",
+  "KH-18": "Preah Sihanouk", "KH-19": "Stung Treng", "KH-20": "Svay Rieng", "KH-21": "Takeo", "KH-22": "Oddar Meanchey", "KH-23": "Kep",
+  "KH-24": "Pailin", "KH-25": "Tbong Khmum",
+};
+
+/** A province's name with what varies taken off, for telling two spellings of one province alike. */
+export function provinceKey(name: string): string {
+  return name
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\b(khaet|province|municipality|city)\b/g, "")
+    .replace(/[^a-z]/g, "");
+}
+
+/** The province and one line of address an OpenStreetMap address gives; either may be missing. */
+export function placeDetails(address: OsmAddress | undefined): PlaceDetails {
+  if (!address) return {};
+  const iso = address["ISO3166-2-lvl4"];
+  const province = (iso && PROVINCE_BY_ISO[iso]) || (address.state ?? address.province)?.replace(/\b(Khaet|Province)\b/gi, "").trim() || undefined;
+  /* The road, the village or quarter, the town: nearest first, each said once, the province left to its own field. */
+  const parts: string[] = [];
+  for (const part of [address.road, address.village ?? address.suburb, address.town ?? address.city ?? address.county]) {
+    /* OpenStreetMap joins a road's several names with semicolons: the first is the one on the signs. */
+    const text = part?.split(";")[0]?.replace(/\s+/g, " ").trim();
+    if (text && !parts.some((each) => provinceKey(each) === provinceKey(text))) parts.push(text);
+  }
+  return { ...(province ? { province } : {}), ...(parts.length ? { address: parts.join(", ") } : {}) };
 }
 
 /** South-west and north-east corners of Cambodia: the view before anything is pinned. */

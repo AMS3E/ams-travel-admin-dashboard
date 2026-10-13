@@ -14,25 +14,19 @@ function path(pattern: string): RegExp {
  * decides the body; this list is the screens that talk to the API directly.
  */
 const reads = [
-  path("admin/(overview|audit)"),
+  path("admin/(overview|audit|destination-stats)"),
   /* Back-office accounts in Keycloak (`?search=` for anyone in the realm); USER_MANAGE's. */
   path("staff"),
   /* Accounts in the `users` table: customers of the public site, and staff who have signed in. */
   path("users"),
   path("publish-requests(/(mine|pending|current|history|{id}))?"),
   path("reviews"),
-  /* The homepage's Popular and Recommended lists as visitors see them, ranked by browses. */
-  path("popular"),
-  path("recommendations/for-you"),
   /*
    * One destination's decisions (`?destinationId=`), and what the signed-in
    * desk may verify. Both need PERM_VERIFIED_BADGE_SET or full control, and
    * the API scopes them to the caller's desks.
    */
   path("destination-verifications(/(queue|status))?"),
-  /* One destination's heritage (`?destinationId=`): its timeline, and the monarchs tied to it. */
-  path("destination-histories"),
-  path("destination-monarchs"),
 ];
 const writes: Record<string, readonly RegExp[]> = {
   /*
@@ -51,7 +45,7 @@ const writes: Record<string, readonly RegExp[]> = {
    * replacing one destination's monarch ties — whoever may edit that
    * destination, which the API decides.
    */
-  PUT: [path("users/{id}"), path("reviews/{id}"), path("destination-monarchs/{id}")],
+  PUT: [path("users/{id}"), path("reviews/{id}")],
   /*
    * Deleting a customer for good (PERM_USER_MANAGE) and clearing the audit
    * log — all-or-nothing; the API demands full control.

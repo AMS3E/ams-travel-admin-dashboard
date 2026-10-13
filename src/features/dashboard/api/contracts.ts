@@ -1,4 +1,5 @@
-import type { BadgePeriodResponse, MediaItemResponse } from "@/features/catalog/api/contracts";
+import type { VerificationBasis } from "@/features/verification/api/contracts";
+import type { BadgePeriodResponse, MediaItemResponse, PublicationStatus } from "@/features/catalog/api/contracts";
 
 /**
  * The JSON the back-office endpoints return — everything under `/admin`, plus
@@ -16,7 +17,10 @@ export interface ReviewOverview {
 }
 
 /** What a review is about. */
-export type ReviewTarget = "DESTINATION" | "FOOD" | "STAY";
+export type ReviewTarget = "DESTINATION" | "FOOD" | "STAY" | "CORRIDOR";
+
+/** Who the author travelled with, as the app's "Kind of visit" chips offer it. */
+export type ReviewVisitType = "BUSINESS" | "COUPLES" | "FAMILY" | "FRIENDS" | "SOLO";
 
 export type ReviewStatus = "VISIBLE" | "HIDDEN";
 
@@ -33,6 +37,10 @@ export interface ReviewResponse {
   readonly rating: number;
   readonly title: string | null;
   readonly content: string | null;
+  /** Who came, when the author said. */
+  readonly visitType: ReviewVisitType | null;
+  /** The month of the visit as `YYYY-MM`, when the author said. */
+  readonly visitedOn: string | null;
   readonly status: ReviewStatus;
   readonly photos: readonly ReviewPhoto[] | null;
   readonly createdAt: string;
@@ -102,4 +110,43 @@ export interface AuditLogResponse {
   readonly ipAddress: string | null;
   readonly userAgent: string | null;
   readonly createdAt: string;
+}
+
+/**
+ * `GET /admin/destination-stats` — every destination's standing with
+ * travellers and with the desks, in one read, for the Destination Stats
+ * page. Browses are the different signed-in visitors who opened a place in
+ * the period, reviews and ratings the ones written in it; views, the
+ * Verified badge and the status are as of today whatever the period.
+ */
+export interface DestinationStatsResponse {
+  /** The period the browses, reviews and ratings cover, inclusive dates; both null for all time. */
+  readonly from: string | null;
+  readonly to: string | null;
+  readonly places: readonly DestinationStatsRow[];
+}
+
+/** `?from=&to=`, inclusive dates; neither for all time. */
+export interface DestinationStatsPeriod {
+  readonly from?: string;
+  readonly to?: string;
+}
+
+export interface DestinationStatsRow {
+  readonly id: string;
+  readonly name: string;
+  readonly slug: string;
+  readonly provinceId: string | null;
+  readonly status: PublicationStatus;
+  readonly browses: number;
+  readonly viewCount: number;
+  /** Star ratings so far; every review carries one. */
+  readonly ratingCount: number;
+  /** Their average, one decimal; null while unrated. */
+  readonly averageRating: number | null;
+  readonly reviewCount: number;
+  /** By a desk's decision or by the reviews. */
+  readonly verified: boolean;
+  readonly basis: VerificationBasis | null;
+  readonly travelerRecommended: boolean;
 }

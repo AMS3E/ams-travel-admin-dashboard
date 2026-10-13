@@ -34,21 +34,6 @@ export interface CatalogPage {
   totalPages: number;
 }
 
-/**
- * The tables a destination's heritage panel is read from — its timeline and
- * its monarch ties: a change to any of them — a new timeline entry, a renamed
- * period or monarch — is stale in a heritage panel that was already loaded.
- * Its styles and religions are the destination's own fields.
- */
-/* A destination's own form sets its kings too (Ancient Capitals' King filter). */
-const HERITAGE_SOURCES: ReadonlySet<ResourceKey> = new Set([
-  "destinations",
-  "destination-histories",
-  "historical-periods",
-  "monarchs",
-]);
-const heritageTags = (resource: ResourceKey) =>
-  HERITAGE_SOURCES.has(resource) ? (["Heritage"] as const) : [];
 export const catalogApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getCatalog: builder.query<CatalogRecord[], ResourceKey>({
@@ -89,7 +74,6 @@ export const catalogApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { resource }) => [
         { type: "Catalog", id: resource },
         "Dashboard",
-        ...heritageTags(resource),
       ],
     }),
     deleteRecord: builder.mutation<void, { resource: ResourceKey; id: string }>(
@@ -102,7 +86,6 @@ export const catalogApi = baseApi.injectEndpoints({
           { type: "Catalog", id: resource },
           "Dashboard",
           ...(resource === "destinations" ? ["PublishRequest" as const] : []),
-          ...heritageTags(resource),
         ],
       },
     ),

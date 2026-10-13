@@ -194,15 +194,6 @@ async function withTies(definition: ResourceDefinition, record: CatalogRecord, t
 /* Reference options                                                          */
 /* -------------------------------------------------------------------------- */
 
-/** "Until 802", "802–1431", "From 1431" — a period's span as its card says it; below zero is BCE. */
-function yearsOf(record: CatalogRecord): { detail?: string } {
-  const year = (value: unknown) => (typeof value === "number" ? (value < 0 ? `${-value} BCE` : String(value)) : null);
-  const from = year(record.startYear);
-  const to = year(record.endYear);
-  const detail = from && to ? `${from}–${to}` : from ? `From ${from}` : to ? `Until ${to}` : undefined;
-  return detail ? { detail } : {};
-}
-
 function toOptions(
   definition: ResourceDefinition,
   records: readonly CatalogRecord[],
@@ -220,14 +211,15 @@ function toOptions(
         definition.status != null &&
         statusValueOf(definition, record) === definition.status.retired,
       ...(typeof group === "string" && group.trim() ? { group: group.trim() } : {}),
-      /* A historical period's years, on its card: "802–1431". */
-      ...(definition.key === "historical-periods" ? yearsOf(record) : {}),
       /* A region has a code, not a slug: an attraction's theme names its region by it. */
       ...(typeof record.slug === "string" && record.slug
         ? { slug: record.slug }
         : typeof record.code === "string" && record.code
           ? { slug: record.code }
           : {}),
+      /* An amenity's level and icon: the pickers offer by level and draw by icon. */
+      ...(typeof record.level === "string" && record.level ? { level: record.level } : {}),
+      ...(typeof record.iconKey === "string" && record.iconKey ? { icon: record.iconKey } : {}),
     };
   });
   /*
@@ -288,7 +280,7 @@ async function optionsFor(key: ReferenceKey): Promise<readonly ReferenceOption[]
     if (key === "tourism-regions") {
       const regions = (await getRecords("regions")).filter((region) => region.kind === "TOURISM");
       const options = toOptions(getResource("regions"), regions);
-      /* Each region's own categories, tags and interests: all an attraction of its theme is offered, its categories and tags in its order. */
+      /* Each region's own categories and tags, in its order: all an attraction of that region is offered. */
       return options.map((option) => {
         const region = regions.find((each) => each.id === option.value);
         return {
@@ -296,26 +288,9 @@ async function optionsFor(key: ReferenceKey): Promise<readonly ReferenceOption[]
           links: {
             categoryIds: idsOf(region?.categoryIds),
             tagIds: idsOf(region?.tagIds),
-            interestIds: idsOf(region?.interestIds),
           },
         };
       });
-    }
-    /*
-     * The sites whose history is told: the Ancient Capitals & Khmer
-     * Civilization attractions, and any other place that already has a
-     * timeline — so its entries can still be opened and saved.
-     */
-    if (key === "ancient-sites") {
-      const [places, moments] = await Promise.all([getRecords("destinations"), getRecords("destination-histories")]);
-      const dated = new Set(moments.map((moment) => String(moment.destinationId)));
-      /* A draft is marked: a link to it would open nothing for travellers yet. */
-      return toOptions(getResource("destinations"), places.filter((place) => place.theme === "ANCIENT-CAPITALS" || dated.has(place.id))).map(
-        (option) => {
-          const place = places.find((each) => each.id === option.value);
-          return place && place.status !== "PUBLISHED" ? { ...option, detail: "Draft" } : option;
-        },
-      );
     }
     /* The zones provinces sit in: never a tourism region, which is a theme. */
     if (key === "zones") {

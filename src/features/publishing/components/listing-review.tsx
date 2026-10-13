@@ -2,7 +2,7 @@ import Image from "next/image";
 import { ExternalLink, ImageIcon } from "lucide-react";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
 import type { FormValues, ReferenceOptions, ResourceDefinition } from "@/features/catalog/resource";
-import { DishBadge, DishCard } from "@/features/catalog/components/listing-form/dish-card";
+import { amenityLabels } from "@/features/catalog/amenities";
 import { RoomBadge, RoomCard } from "@/features/catalog/components/listing-form/room-card";
 import { listingSteps, type ListingStep } from "@/features/catalog/components/listing-form/steps";
 import { reviewGroups, type ReviewRow } from "@/features/publishing/review";
@@ -14,7 +14,7 @@ export interface ReviewPhoto {
   readonly url: string;
 }
 
-/** A room or a dish, with its first photo. */
+/** A room, with its first photo. */
 export interface ReviewItem {
   readonly id: string;
   readonly values: FormValues;
@@ -30,7 +30,6 @@ interface ListingReviewProps {
   readonly cover: string | null;
   readonly photos: readonly ReviewPhoto[];
   readonly rooms: readonly ReviewItem[];
-  readonly dishes: readonly ReviewItem[];
   readonly currency: string;
 }
 
@@ -40,8 +39,9 @@ interface ListingReviewProps {
  * name in a queue. Photos first, as travellers meet them; then each step,
  * with what was left empty marked where it would have been.
  */
-export function ListingReview({ definition, kind, values, options, cover, photos, rooms, dishes, currency }: ListingReviewProps) {
+export function ListingReview({ definition, kind, values, options, cover, photos, rooms, currency }: ListingReviewProps) {
   const steps = listingSteps(definition, kind).filter((step) => !step.review);
+  const labels = amenityLabels(options.amenities ?? []);
 
   return (
     <div className="flex min-w-0 flex-col gap-5">
@@ -51,21 +51,11 @@ export function ListingReview({ definition, kind, values, options, cover, photos
           <ItemsStep empty="No rooms added yet. A stay is booked by its rooms." items={rooms} key={step.id} step={step}>
             {(room) => (
               <RoomCard
+                amenityLabels={labels}
                 badge={room.values.status === "INACTIVE" ? <RoomBadge state="off-sale" /> : undefined}
                 currency={currency}
                 photoUrl={room.photoUrl}
                 values={room.values}
-              />
-            )}
-          </ItemsStep>
-        ) : step.id === "menu" ? (
-          <ItemsStep empty="No dishes added yet." items={dishes} key={step.id} step={step}>
-            {(dish) => (
-              <DishCard
-                badge={dish.values.status === "INACTIVE" ? <DishBadge state="off-menu" /> : undefined}
-                currency={currency}
-                photoUrl={dish.photoUrl}
-                values={dish.values}
               />
             )}
           </ItemsStep>
@@ -181,7 +171,7 @@ function Answer({ row }: { readonly row: ReviewRow }) {
   );
 }
 
-/** Rooms or dishes: each as the traveller's card shows it. */
+/** Rooms: each as the traveller's card shows it. */
 function ItemsStep({ step, items, empty, children }: {
   readonly step: ListingStep;
   readonly items: readonly ReviewItem[];

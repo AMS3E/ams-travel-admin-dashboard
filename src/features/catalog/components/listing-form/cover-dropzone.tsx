@@ -1,59 +1,15 @@
 "use client";
 
-import { useContext, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
-import { Controller, useFormContext, useWatch } from "react-hook-form";
 import { ImageOff, ImagePlus, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GalleryDropContext } from "@/features/catalog/components/listing-form/gallery-manager";
 import { IMAGE_ACCEPT, MAX_IMAGE_BYTES, imageProblem, prepareImage } from "@/features/catalog/media-upload";
-import { mediaPath, type FormValues, type ResourceField } from "@/features/catalog/resource";
+import { mediaPath, type ResourceField } from "@/features/catalog/resource";
 import { useUploadMedia } from "@/features/media/api/media-api";
 import { apiErrorMessage } from "@/store/api/api-error";
 import { cn } from "@/lib/utils";
-
-interface CoverDropzoneProps {
-  readonly field: ResourceField;
-  readonly id: string;
-  readonly describedBy?: string;
-  readonly invalid?: boolean;
-}
-
-/**
- * The cover photo: a drop area to drag a photo into or browse for one, and
- * once there, the photo as the website crops it with Replace and Remove.
- *
- * The row still stores only the object key the upload returns. A key already
- * in the bucket — the seed library under `general/…` — can be pasted under
- * "Use a photo already uploaded" instead of uploading it again.
- */
-export function CoverDropzone({ field, id, describedBy, invalid }: CoverDropzoneProps) {
-  const { control, setValue } = useFormContext<FormValues>();
-  const urlField = field.urlField ?? `${field.name}__preview`;
-  const previewUrl = useWatch({ control, name: urlField });
-
-  return (
-    <Controller
-      control={control}
-      name={field.name}
-      render={({ field: bound }) => (
-        <PhotoDropzone
-          category={field.imageCategory ?? "general"}
-          describedBy={describedBy}
-          id={id}
-          invalid={invalid}
-          onChange={(key, url) => {
-            bound.onChange(key);
-            setValue(urlField, url, { shouldDirty: true });
-          }}
-          previewUrl={typeof previewUrl === "string" ? previewUrl : ""}
-          value={typeof bound.value === "string" ? bound.value : ""}
-        />
-      )}
-    />
-  );
-}
 
 interface DropzoneProps {
   readonly id: string;
@@ -65,7 +21,13 @@ interface DropzoneProps {
   readonly invalid?: boolean;
 }
 
-/** The same drop area for a form that keeps its own state rather than a registry form's. */
+/**
+ * A single photo for a form that keeps its own state — a corridor's cover: a
+ * drop area to drag a photo into or browse for one, and once there, the photo
+ * as the website crops it with Replace and Remove. A key already in the bucket
+ * can be pasted under "Use a photo already uploaded" instead of uploading it
+ * again. A listing's cover is not set here: it is chosen in its gallery.
+ */
 export function PhotoDropzone({ id, value, previewUrl, onChange, category, describedBy, invalid }: DropzoneProps) {
   const fileInput = useRef<HTMLInputElement>(null);
   const uploadMedia = useUploadMedia();
@@ -74,22 +36,14 @@ export function PhotoDropzone({ id, value, previewUrl, onChange, category, descr
   const [failure, setFailure] = useState<string | null>(null);
   const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const toGallery = useContext(GalleryDropContext);
   const preview = previewUrl || (value ? mediaPath(value) : "");
   const broken = Boolean(preview) && brokenSrc === preview;
 
-  /** The first photo becomes the cover; any others go to the gallery. */
+  /** One photo: the first of any dropped together. */
   function take(files: readonly File[]) {
     if (!files.length) return;
     const [first, ...rest] = files;
-    setNote(
-      !rest.length
-        ? null
-        : toGallery
-          ? `The first photo is the cover; the other ${rest.length} ${rest.length === 1 ? "goes" : "go"} to the gallery below.`
-          : "Only the first photo is used as the cover.",
-    );
-    if (rest.length && toGallery) toGallery(rest);
+    setNote(rest.length ? "Only the first photo is used as the cover." : null);
     void upload(first);
   }
 
@@ -206,7 +160,6 @@ export function PhotoDropzone({ id, value, previewUrl, onChange, category, descr
           </span>
           <span className="text-xs text-muted">
             JPEG, PNG, WebP or AVIF · large photos are resized · landscape works best
-            {toGallery ? " · drop several and the rest go to the gallery" : ""}
           </span>
         </button>
       )}
@@ -214,7 +167,6 @@ export function PhotoDropzone({ id, value, previewUrl, onChange, category, descr
       <input
         accept={IMAGE_ACCEPT}
         className="hidden"
-        multiple={toGallery !== null}
         onChange={(event) => take(Array.from(event.target.files ?? []))}
         ref={fileInput}
         type="file"

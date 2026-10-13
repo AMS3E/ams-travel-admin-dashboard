@@ -125,12 +125,12 @@ export function CmsDashboard() {
     attention.push({ id: "returned", icon: Undo2, tone: "warning", label: "Requests sent back for changes", count: returned.length, href: requestsHref });
   }
   if (canOpenContent && destinations) {
-    /* An attraction's own checks: its cover, its pitch, its pin. */
+    /* An attraction's own checks: its cover, its About, its pin. */
     const noCover = destinations.filter((destination) => destination.status !== "PUBLISHED" && !destination.coverUrl).length;
-    const noPitch = destinations.filter((destination) => destination.status === "PUBLISHED" && !destination.shortDescription?.trim()).length;
+    const noPitch = destinations.filter((destination) => destination.status === "PUBLISHED" && !destination.description?.trim()).length;
     const noPin = destinations.filter((destination) => destination.status === "PUBLISHED" && (destination.latitude == null || destination.longitude == null)).length;
     if (noCover) attention.push({ id: "cover", icon: ImageOff, tone: "warning", label: "Drafts without a cover photo", count: noCover, href: "/destinations" });
-    if (noPitch) attention.push({ id: "pitch", icon: TextCursorInput, tone: "warning", label: "Published without a short description", count: noPitch, href: "/destinations" });
+    if (noPitch) attention.push({ id: "pitch", icon: TextCursorInput, tone: "warning", label: "Published with nothing in About", count: noPitch, href: "/destinations" });
     if (noPin) attention.push({ id: "pin", icon: MapPinOff, tone: "warning", label: "Published without a map pin", count: noPin, href: "/destinations" });
   }
   if (hasPermission(grants, "PERM_REVIEW_MODERATE") && hiddenReviews) {
@@ -355,7 +355,6 @@ export function CmsDashboard() {
                           </Link>
                           <p className="truncate text-xs text-muted">{listing.detail || listing.summary || "Nothing written yet"}</p>
                         </div>
-                        {listing.isFeatured ? <Badge className="hidden sm:inline-flex" tone="info">Featured</Badge> : null}
                         <Badge dot tone={live ? "success" : "neutral"}>
                           {live ? "Published" : listing.status === "ARCHIVED" ? "Archived" : "Draft"}
                         </Badge>

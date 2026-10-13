@@ -63,7 +63,6 @@ const overviewSchema = z
     coverKey: text(512),
     estimatedBudgetMin: money,
     estimatedBudgetMax: money,
-    isFeatured: z.boolean(),
     interestIds: z.array(z.string().uuid()).max(50),
   })
   .refine(

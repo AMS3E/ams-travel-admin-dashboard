@@ -92,7 +92,6 @@ export interface DestinationResponse {
   readonly coverKey: string | null;
   readonly coverUrl: string | null;
   readonly status: PublicationStatus;
-  readonly isFeatured: boolean;
   readonly viewCount: number | null;
   /** The `users` id of whoever created it. */
   readonly createdBy: string | null;
@@ -143,6 +142,10 @@ export interface StayResponse {
   readonly starRating: number | null;
   readonly shortDescription: string | null;
   readonly description: string | null;
+  readonly slogan: string | null;
+  readonly sloganBy: string | null;
+  readonly provinceId: string | null;
+  readonly policies: string | null;
   /** `HH:mm[:ss]` local time, as the property states it; no date is involved. */
   readonly checkInFrom: string | null;
   readonly checkOutUntil: string | null;
@@ -184,6 +187,9 @@ export interface FoodResponse {
   readonly type: FoodType;
   readonly shortDescription: string | null;
   readonly description: string | null;
+  readonly slogan: string | null;
+  readonly sloganBy: string | null;
+  readonly provinceId: string | null;
   readonly address: string | null;
   readonly latitude: number | null;
   readonly longitude: number | null;
@@ -197,7 +203,6 @@ export interface FoodResponse {
   readonly coverKey: string | null;
   readonly coverUrl: string | null;
   readonly status: PublicationStatus;
-  readonly isFeatured: boolean;
   readonly isLocalSpecialty: boolean;
   readonly averageRating: number | null;
   readonly reviewCount: number | null;
@@ -305,92 +310,6 @@ export interface SeasonResponse {
   readonly updatedAt: string | null;
 }
 
-/* --- history & heritage ---------------------------------------------------- */
-
-/** `GET /historical-coverage/periods` — the eras, oldest first. A year below zero is BCE. */
-export interface HistoricalPeriodResponse {
-  readonly id: string;
-  readonly name: string;
-  readonly startYear: number | null;
-  readonly endYear: number | null;
-  readonly description: string | null;
-  readonly coverKey: string | null;
-  readonly coverUrl: string | null;
-  readonly createdAt: string | null;
-  readonly updatedAt: string | null;
-}
-
-/** `GET /historical-coverage/monarchs` — in reign order. */
-export interface MonarchResponse {
-  readonly id: string;
-  readonly name: string;
-  readonly title: string | null;
-  readonly reignStartYear: number | null;
-  readonly reignEndYear: number | null;
-  readonly description: string | null;
-  readonly imageKey: string | null;
-  readonly imageUrl: string | null;
-  readonly createdAt: string | null;
-  readonly updatedAt: string | null;
-}
-
-export interface ArchitectureStyleResponse {
-  readonly id: string;
-  readonly name: string;
-  readonly description: string | null;
-  /** The era it belongs to; null once that period is deleted. */
-  readonly periodId: string | null;
-  readonly imageKey: string | null;
-  readonly imageUrl: string | null;
-  readonly createdAt: string | null;
-}
-
-export interface ReligionResponse {
-  readonly id: string;
-  readonly name: string;
-  readonly description: string | null;
-  /** An icon name — not an upload. */
-  readonly iconKey: string | null;
-  readonly createdAt: string | null;
-}
-
-/** `GET /destination-histories` — one moment on a destination's timeline. */
-export interface DestinationHistoryResponse {
-  readonly id: string;
-  readonly destinationId: string;
-  readonly historicalPeriodId: string | null;
-  readonly historicalPeriodName: string | null;
-  readonly title: string;
-  readonly description: string | null;
-  readonly eventYear: number | null;
-  readonly startDate: string | null;
-  readonly endDate: string | null;
-  readonly sourceReference: string | null;
-  readonly createdAt: string | null;
-  readonly updatedAt: string | null;
-}
-
-/**
- * `GET /destination-monarchs?destinationId=` — a monarch tied to a
- * destination, with what that place says about them; earliest reign first.
- * A place's styles and religions are not here: they are fields on the
- * destination itself.
- */
-export interface DestinationMonarchResponse {
-  readonly destinationId: string;
-  readonly monarchId: string;
-  readonly name: string;
-  readonly title: string | null;
-  readonly reignStartYear: number | null;
-  readonly reignEndYear: number | null;
-  readonly description: string | null;
-}
-
-/** `PUT /destination-monarchs/{destinationId}` — every tie, replacing what was there. */
-export interface DestinationMonarchRequest {
-  readonly monarchs: readonly { readonly monarchId: string; readonly description: string | null }[];
-}
-
 /** `GET /ratings?destinationIds=` — one per id asked about. */
 export interface RatingResponse {
   readonly destinationId: string;
@@ -424,23 +343,3 @@ export type CatalogRecord = {
   readonly createdBy?: string | null;
   readonly status?: string;
 } & Readonly<Record<string, unknown>>;
-
-/** Why a place is on a homepage list — the API's `PopularReason` and `RecommendationReason`. */
-export type RecommendationReason = "MOST_BROWSED" | "LIKE_YOUR_BROWSING" | "FEATURED";
-
-/**
- * `GET /popular` and `GET /recommendations/for-you`: a homepage list as
- * visitors see it. Staff are not visitors, so Recommended is never personal here.
- */
-export interface HomepageList {
-  /** Recommended only: true when drawn from the visitor's own browsing. */
-  readonly personal?: boolean;
-  /** Popular only: the days it counts browses over. */
-  readonly days?: number;
-  readonly regionId?: string | null;
-  readonly destinations: readonly {
-    readonly destinationId: string;
-    readonly browses: number;
-    readonly reason: RecommendationReason;
-  }[];
-}

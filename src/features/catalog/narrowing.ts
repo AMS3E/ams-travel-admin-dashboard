@@ -1,7 +1,7 @@
 /**
  * A list of choices narrowed by another field: an attraction's categories,
- * tags and interests are those of its theme's tourism region. Pure, so the
- * rule is tested without a form.
+ * tags and interests are those of its tourism region. Pure, so the rule is
+ * tested without a form.
  */
 
 import type { ReferenceOption } from "@/features/catalog/resource";
@@ -31,7 +31,7 @@ export function narrowChoices(
   linkKey: string,
   selected: readonly string[],
 ): NarrowedChoices {
-  /* A source is named by its id, or by its slug — a theme is a region's code. */
+  /* A source is named by its id, or by its slug — a region's code. */
   const chosen = chosenSources
     .map((id) => sources.find((source) => source.value === id || source.slug === id))
     .filter((source): source is ReferenceOption => source !== undefined);
@@ -53,23 +53,53 @@ export function narrowChoices(
 }
 
 /**
- * An attraction's tourism regions, which it is listed on: its theme's region,
- * and each region one of its categories belongs to — a waterfall is listed on
- * both regions that have Waterfall. Ids in the regions' own order.
+ * The one region an attraction opens on when it is listed on several — a place
+ * listed before each had one region of its own: its theme's region, or else
+ * the first. One already: as it is.
  *
- * @param theme the theme, a region's code (its option's slug)
+ * @param theme the region's code (its option's slug)
  */
-export function derivedRegions(
-  regions: readonly ReferenceOption[],
-  theme: string | undefined,
-  categoryIds: readonly string[],
-): string[] {
-  const chosen = new Set(categoryIds);
-  return regions
-    .filter(
-      (region) =>
-        (theme !== undefined && region.slug === theme) ||
-        (region.links?.categoryIds ?? []).some((id) => chosen.has(id)),
-    )
-    .map((region) => region.value);
+export function mainRegion(regions: readonly ReferenceOption[], theme: string | undefined, chosenIds: readonly string[]): string[] {
+  if (chosenIds.length < 2) return [...chosenIds];
+  const own = theme ? regions.find((region) => region.slug === theme && chosenIds.includes(region.value)) : undefined;
+  return [own?.value ?? chosenIds[0]];
+}
+
+/**
+ * The API's kind of a stay or a food listing, by the interest it is filed
+ * under — the Stays and Food shelves of the mind map, nothing else. The API's
+ * other kinds (guesthouse, hostel, villa, cafe as such, other) are never given.
+ */
+export const KIND_BY_INTEREST: Readonly<Record<string, string>> = {
+  "Luxury Hotel": "HOTEL",
+  Homestay: "HOMESTAY",
+  Resorts: "RESORT",
+  "Private Island": "RESORT",
+  "Eco Lodge": "RESORT",
+  Restaurants: "RESTAURANT",
+  Markets: "MARKET",
+  Drinks: "CAFE",
+  Streetfood: "STREET_FOOD",
+  "Traditional Food": "RESTAURANT",
+  Skybar: "RESTAURANT",
+};
+
+/**
+ * A stay's or a food listing's kind: that of the first interest ticked, kept
+ * as it is while an interest still says so — the API hands interests back in
+ * its own order, and the kind must not change with it. `current` stays while
+ * nothing is ticked, so an opened record is not blanked.
+ */
+export function kindOf(interests: readonly ReferenceOption[], chosenIds: readonly string[], current: string): string {
+  const kinds = chosenIds
+    .map((id) => KIND_BY_INTEREST[interests.find((option) => option.value === id)?.label ?? ""])
+    .filter((kind): kind is string => Boolean(kind));
+  if (!kinds.length) return current;
+  return kinds.includes(current) ? current : kinds[0]!;
+}
+
+/** An attraction's theme: the code of the tourism region chosen for it, "" while none is. */
+export function themeOf(regions: readonly ReferenceOption[], chosenIds: readonly string[]): string {
+  const chosen = chosenIds[0];
+  return (chosen && regions.find((region) => region.value === chosen)?.slug) || "";
 }

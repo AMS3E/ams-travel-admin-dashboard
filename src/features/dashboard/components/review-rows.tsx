@@ -6,7 +6,7 @@ import {
   EntityRow,
   RowList,
 } from "@/features/dashboard/components/entity-row";
-import { REVIEW_TARGET_LABELS } from "@/features/dashboard/reviews";
+import { REVIEW_TARGET_LABELS, visitLine } from "@/features/dashboard/reviews";
 import type { ReviewResponse } from "@/features/dashboard/api/contracts";
 import { formatDateTime } from "@/features/dashboard/format";
 
@@ -50,7 +50,7 @@ export function ReviewRows({
           subtitle={`${review.authorName ?? "Unknown author"} on ${
             (review.targetType === "DESTINATION" ? names.get(review.targetId) : undefined) ??
             `a ${REVIEW_TARGET_LABELS[review.targetType].toLowerCase()}`
-          }`}
+          }${visitLine(review) ? ` · ${visitLine(review)}` : ""}`}
           title={review.title?.trim() || review.content?.trim() || "Untitled review"}
           trailing={
             actions ? (

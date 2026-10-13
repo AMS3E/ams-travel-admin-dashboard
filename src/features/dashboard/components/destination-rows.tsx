@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { firstLine } from "@/lib/text";
 import { Badge } from "@/components/ui/badge";
 import type { DestinationResponse } from "@/features/catalog/api/contracts";
 import {
@@ -44,12 +45,11 @@ export function DestinationRows({
                   {isLive(destination) ? "Live" : destination.status === "ARCHIVED" ? "Archived" : "Draft"}
                 </Badge>
               ) : null}
-              {destination.isFeatured ? <Badge tone="gold">Featured</Badge> : null}
             </>
           }
           href={editable ? `/destinations/${destination.id}` : undefined}
           key={destination.id}
-          subtitle={destination.address ?? destination.shortDescription}
+          subtitle={destination.address ?? firstLine(destination.description) ?? undefined}
           title={destination.name}
           trailing={trailing?.(destination)}
           action={action?.(destination)}

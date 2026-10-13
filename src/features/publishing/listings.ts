@@ -18,7 +18,6 @@ export interface ListingRow {
   /** Its cover photo's link, when it has one. */
   readonly cover: string | null;
   readonly status: PublicationStatus;
-  readonly isFeatured: boolean;
   /**
    * Who may send it for review: who wrote an attraction; the partner a stay or
    * a food listing is listed for (and who wrote a food listing).
@@ -50,10 +49,9 @@ export function listingRows({ destinations, stays, foods }: ListingSources): Lis
       id: row.id,
       name: row.name,
       detail: row.address,
-      summary: row.shortDescription ?? row.description ?? null,
+      summary: row.description ?? row.shortDescription ?? null,
       cover: coverOf(row),
       status: row.status,
-      isFeatured: row.isFeatured,
       authors: present(row.createdBy),
       createdAt: row.createdAt,
       updatedAt: row.updatedAt ?? row.createdAt,
@@ -63,10 +61,9 @@ export function listingRows({ destinations, stays, foods }: ListingSources): Lis
       id: row.id,
       name: row.name,
       detail: row.address,
-      summary: row.shortDescription ?? row.description ?? null,
+      summary: row.description ?? row.shortDescription ?? null,
       cover: coverOf(row),
       status: row.status,
-      isFeatured: false,
       authors: present(row.ownerUserId),
       createdAt: row.createdAt,
       updatedAt: row.updatedAt ?? row.createdAt,
@@ -76,10 +73,9 @@ export function listingRows({ destinations, stays, foods }: ListingSources): Lis
       id: row.id,
       name: row.name,
       detail: row.address,
-      summary: row.shortDescription ?? row.description ?? null,
+      summary: row.description ?? row.shortDescription ?? null,
       cover: coverOf(row),
       status: row.status,
-      isFeatured: row.isFeatured,
       authors: present(row.ownerUserId, row.createdBy),
       createdAt: row.createdAt,
       updatedAt: row.updatedAt ?? row.createdAt,

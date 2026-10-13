@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BedDouble, ChevronLeft, ChevronRight, ImageIcon, Inbox, Loader2, MapPin, Pencil, Route, Search, Send, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { ArrowRight, BedDouble, ChevronLeft, ChevronRight, ImageIcon, Inbox, Loader2, MapPin, Pencil, Search, Send, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -22,13 +22,12 @@ const ICONS: Readonly<Record<DestinationTypeKey, LucideIcon>> = {
   destinations: MapPin,
   foods: UtensilsCrossed,
   stays: BedDouble,
-  corridors: Route,
 };
 
 const PAGE_SIZE = 20;
 
 /**
- * Every attraction, place to eat, stay and travel route together. Search,
+ * Every attraction, place to eat and stay together. Search,
  * narrow by status or by who created it, and open any row to edit it — its
  * own type's tab holds the rest of what can be done to it.
  *
@@ -53,7 +52,8 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
   const [term, setTerm] = useState("");
   const [status, setStatus] = useState("all");
   const [mine, setMine] = useState(false);
-  const [newest, setNewest] = useState(false);
+  /* Newest first: what was just made is what someone came to see. */
+  const [newest, setNewest] = useState(true);
   const [page, setPage] = useState(0);
 
   /* The statuses these rows are in, A to Z by how they read. */
@@ -136,7 +136,6 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
           <TableRow className="hover:bg-transparent">
             <TableHeaderCell>Name</TableHeaderCell>
             <TableHeaderCell>Type</TableHeaderCell>
-            <TableHeaderCell className="hidden md:table-cell">Kind</TableHeaderCell>
             <TableHeaderCell>Status</TableHeaderCell>
             <TableHeaderCell className="text-right">
               <span className="sr-only">Actions</span>
@@ -175,7 +174,6 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
                     {row.typeLabel}
                   </span>
                 </TableCell>
-                <TableCell className="hidden text-sm text-ink-soft md:table-cell">{row.kind ?? <span className="text-muted">—</span>}</TableCell>
                 <TableCell>
                   <span className="flex flex-wrap items-center gap-1.5">
                     <Badge dot tone={row.statusTone}>

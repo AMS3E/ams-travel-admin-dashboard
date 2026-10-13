@@ -20,6 +20,7 @@ import { PageHeader } from "@/features/shell/components/page-header";
 import { navGroups, navigationForPath } from "@/features/shell/nav";
 import { CmsPage } from "@/features/cms/components/cms-page";
 import { AllDestinationsPage } from "@/features/catalog/components/all-destinations-page";
+import { MediaGallery } from "@/features/catalog/components/media-gallery/media-gallery";
 import { listPageOf } from "@/features/catalog/all-destinations";
 import { getRecords, getReferenceOptions } from "@/features/catalog/api/catalog.server";
 import { ListChips, type ListChip } from "@/features/catalog/components/list-chips";
@@ -71,9 +72,22 @@ export default async function ResourceListPage(
   /* Stays and food listings, and every kind of history, are listed on a tab; an old link lands there. */
   if (listPageOf(resource) !== `/${resource}`) redirect(listPageOf(resource));
 
-  /* Every attraction, place to eat, stay and travel route, with a tab per main type. */
+  /* Every attraction, place to eat and stay, with a tab per main type. */
   if (resource === "destinations") {
     return <AllDestinationsPage roles={admin.roles} tab={(await props.searchParams).type} />;
+  }
+
+  /* A destination's photos are browsed as a gallery, the way a media library shows its files. */
+  if (resource === "destination-media") {
+    return (
+      <MediaGallery
+        canAdd={canCreateResource(admin.roles, resource)}
+        canDelete={canDeleteResource(admin.roles, resource)}
+        canEdit={canManageResource(admin.roles, resource)}
+        canSetStatus={canSetStatus(admin.roles, resource)}
+        grants={admin.roles}
+      />
+    );
   }
 
   const definition = getResource(resource);

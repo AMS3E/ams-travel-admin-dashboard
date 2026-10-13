@@ -1,8 +1,8 @@
 import {
-  Award, BadgeCheck, BedDouble, BedSingle, Building2, CalendarRange, ChefHat, ClipboardCheck, Compass,
-  Crown, FileClock, FilePenLine, Flame, Flower2, Hourglass, Images,
-  Landmark, LayoutDashboard, ListOrdered, Map, MapPin, MessageSquare, Plus, Route,
-  ScrollText, Settings, Shapes, ShieldCheck, Sparkles, Star, Store, SunMedium, Tag, Tags,
+  Award, BadgeCheck, BedDouble, BedSingle, Building2, CalendarRange, ChartColumn, ChefHat, ClipboardCheck, Compass, ConciergeBell,
+  FileClock, FilePenLine, Images,
+  LayoutDashboard, Map, MapPin, MessageSquare, Plus, Route,
+  Settings, Shapes, ShieldCheck, Store, SunMedium, Tag,
   Users, UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
@@ -13,11 +13,9 @@ import { canManageResource, hasAnyPermission, primaryRole, type BusinessRole } f
 const ICONS: Readonly<Record<ResourceKey, LucideIcon>> = {
   destinations: MapPin, "destination-media": Images, stays: BedDouble,
   "stay-media": Images, "stay-rooms": BedSingle, foods: UtensilsCrossed, "food-media": Images, "food-menu-items": ChefHat, corridors: Route, regions: Map,
-  provinces: Building2, interests: Compass, categories: Shapes, tags: Tag,
+  provinces: Building2, interests: Compass, categories: Shapes, tags: Tag, amenities: ConciergeBell,
   "badge-definitions": Award,
   "badge-periods": CalendarRange, seasons: SunMedium,
-  "historical-periods": Hourglass, monarchs: Crown, "architecture-styles": Landmark,
-  religions: Flower2, "destination-histories": ScrollText, "region-coverage": ListOrdered,
 };
 export const resourceIcon = (key: ResourceKey) => ICONS[key];
 export interface NavItem {
@@ -38,7 +36,6 @@ export const dashboardItem: NavItem = {
   href: "/dashboard", label: "Dashboard", icon: LayoutDashboard,
   description: "Your workspace at a glance", aliases: ["/"],
 };
-const editorial = ["PERM_DESTINATION_EDIT_ANY"];
 const writing = ["PERM_LISTING_EDIT_OWN", "PERM_DESTINATION_DRAFT_CREATE", "PERM_DESTINATION_EDIT_ANY"];
 const publishing = ["PERM_PUBLISH_REQUEST_SUBMIT", "PERM_PUBLISH_REQUEST_VIEW_OWN", "PERM_PARTNER_PUBLISH_APPROVE", "PERM_CONTRIBUTOR_PUBLISH_APPROVE"];
 const listingAccess = [...writing, "PERM_PARTNER_LISTING_EDIT"];
@@ -57,50 +54,20 @@ function tool(href: string, label: string, icon: LucideIcon, permissions: readon
  * those two entries.
  */
 const destinations: NavItem = {
-  ...catalog("/destinations", "All Destinations", "destinations", "Every attraction, place to eat, stay and travel route, with a tab per main type"),
+  ...catalog("/destinations", "All Destinations", "destinations", "Every attraction, place to eat and stay, with a tab per main type"),
   aliases: ["/stays", "/foods"],
 };
-/* Asks the main type first — attraction, food, stay, travel route — then opens that form. */
+/* Asks the main type first — attraction, food, stay — then opens that form. */
 const createDestination: NavItem = {
-  ...tool("/create", "Create Destination", Plus, writing, "Choose the main type — attraction, food, stay or travel route — then fill in its form"),
+  ...tool("/create", "Create Destination", Plus, writing, "Choose the main type — attraction, food or stay — then fill in its form"),
   aliases: ["/destinations/new", "/stays/new", "/foods/new"],
   exact: true,
 };
-/*
- * Asks which tourism region first, then builds that region's Historical
- * coverage step by step — No. 1, No. 2, No. 3 — as Create Destination asks the
- * main type first. A king, an era, a faith or a style is added from its tab
- * of Heritage Tags.
- */
-const createHeritage: NavItem = {
-  ...tool("/heritage/create", "Create Historical Coverage", Plus, ["PERM_TAXONOMY_MANAGE"], "Choose the tourism region, then build its Historical coverage step by step: No. 1, No. 2, No. 3…"),
-  aliases: ["/region-coverage/new"],
-  exact: true,
-};
-
 /** A new row's form belongs to its Create entry, not to its list: a new stay is Create Destination's. */
 const CREATE_PAGES: ReadonlySet<string> = new Set([
   createDestination.href,
-  createHeritage.href,
   ...(createDestination.aliases ?? []),
-  ...(createHeritage.aliases ?? []),
 ]);
-
-/* Each tourism region's Historical coverage, numbered as its page shows it; an entry's page sits under it. */
-const historicalCoverage: NavItem = {
-  ...tool("/heritage", "All Historical Coverage", ListOrdered, ["PERM_TAXONOMY_MANAGE"], "Each tourism region's Historical coverage, numbered as its website page shows it"),
-  aliases: ["/region-coverage"],
-};
-
-/*
- * The values an ancient site's heritage tags offer — architecture styles,
- * historical periods, kings and religions — a tab each. Their old list pages
- * open their tab, and a row's page, and a new one's, sit under it.
- */
-const heritageTags: NavItem = {
-  ...tool("/heritage-tags", "Heritage Tags", Tags, ["PERM_TAXONOMY_MANAGE"], "Architecture styles, historical periods, kings and religions an ancient site's tags offer, a tab each"),
-  aliases: ["/architecture-styles", "/historical-periods", "/monarchs", "/religions"],
-};
 
 /**
  * A partner's or a contributor's content: their own destinations — and, for
@@ -109,7 +76,7 @@ const heritageTags: NavItem = {
  */
 const ownContent: NavGroup = {
   title: "Content Management",
-  items: [destinations, createDestination],
+  items: [destinations],
 };
 
 /**
@@ -121,33 +88,20 @@ const ownContent: NavGroup = {
 const VERIFY_PERMISSIONS = ["PERM_VERIFIED_BADGE_SET"];
 
 /**
- * The whole catalogue, for the desks that manage it: the list and its Create
- * first, then the work waiting on it — drafts to finish, places to verify —
- * then what the places are shown with, and last the regions, set up once.
+ * The whole catalogue, for the desks that manage it, in the user's order
+ * (2026-10-09): the list, which creates and filters drafts too; the corridors
+ * and regions it is shelved in; verifying; the photos; and the figures.
  */
 const catalogueContent: NavGroup = {
   title: "Content Management",
   items: [
     destinations,
-    createDestination,
-    tool("/drafts", "Drafts", FilePenLine, listingAccess, "Destinations that have not been published"),
-    tool("/verification", "Verification", BadgeCheck, VERIFY_PERMISSIONS, "Verify destinations on evidence, renew it, or revoke it"),
-    catalog("/destination-media", "Destination Media", "destination-media", "Photos and videos on each destination page"),
     catalog("/corridors", "Tourism Corridors", "corridors", "Day-by-day travel plans with routes on the map"),
     catalog("/regions", "Tourism Regions", "regions", "The regions travellers discover Cambodia by, and their own lists"),
-  ],
-};
-
-/**
- * The homepage lists as visitors see them, in the homepage's order:
- * Recommended, then Popular. Featured destinations lead both; browsing ranks
- * the rest.
- */
-const homepage: NavGroup = {
-  title: "Homepage & Discovery",
-  items: [
-    tool("/recommended", "Recommended", Star, editorial, "What the homepage recommends, and why"),
-    tool("/popular-now", "Popular", Flame, editorial, "The most browsed destinations right now"),
+    tool("/verification", "Verification", BadgeCheck, VERIFY_PERMISSIONS, "Verified places show as Recommended by AMS Travel: file what it rests on, renew it, or revoke it"),
+    catalog("/destination-media", "Media Library", "destination-media", "Every photo in the catalogue, in one gallery"),
+    /* Read-only: what travellers make of each place, and what its Verified badge rests on. */
+    tool("/destination-stats", "Destination Stats", ChartColumn, ["PERM_DESTINATION_EDIT_ANY"], "Ratings, reviews, browses and the Verified standing of every destination"),
   ],
 };
 
@@ -155,22 +109,12 @@ const homepage: NavGroup = {
 const taxonomy: NavGroup = {
   title: "Taxonomy",
   items: [
-    catalog("/categories", "Categories", "categories", "Organize your destination catalog"),
-    catalog("/tags", "Tags", "tags", "Labels that connect your content"),
+    /* One tree, by region: each tourism region's own categories and search filters. The two old lists answer bookmarks. */
+    { ...catalog("/categories-and-tags", "Tourism Regions", "categories", "Each tourism region's own categories and search filters, in one tree"), aliases: ["/categories", "/tags"] },
+    catalog("/amenities", "Amenities", "amenities", "What a stay offers, at the property and in the room"),
     catalog("/interests", "Interests", "interests", "Ways for travelers to explore"),
     catalog("/provinces", "Provinces", "provinces", "Manage Cambodia's provinces"),
   ],
-};
-
-/**
- * All the history: the regions' Historical coverage as Content Management keeps
- * places — one list, and one Create that asks the region first — and the
- * Heritage Tags an ancient site is tagged with. A site's timeline is edited on
- * the site's own page.
- */
-const heritage: NavGroup = {
-  title: "History & Heritage",
-  items: [historicalCoverage, createHeritage, heritageTags],
 };
 
 /**
@@ -236,10 +180,10 @@ const administration: NavGroup = {
 const ROLE_GROUPS: Readonly<Record<BusinessRole, readonly NavGroup[]>> = {
   PARTNER: [ownContent, management("partner", true)],
   CONTRIBUTOR: [ownContent, management("contributor", true)],
-  EDITOR: [catalogueContent, homepage, taxonomy, heritage, management("contributor"), management("editor", true)],
-  BDO: [catalogueContent, homepage, taxonomy, heritage, management("partner"), management("bdo", true)],
+  EDITOR: [catalogueContent, taxonomy, management("contributor"), management("editor", true)],
+  BDO: [catalogueContent, taxonomy, management("partner"), management("bdo", true)],
   ADMIN: [
-    catalogueContent, homepage, taxonomy, heritage,
+    catalogueContent, taxonomy,
     management("partner"), management("contributor"), management("editor"), management("bdo"),
     administration,
   ],
@@ -251,12 +195,17 @@ const ROLE_GROUPS: Readonly<Record<BusinessRole, readonly NavGroup[]>> = {
  */
 export const roleNavigation: Readonly<Record<BusinessRole, readonly NavGroup[]>> = ROLE_GROUPS;
 
-// Existing bookmarks remain reachable without adding extra sidebar items.
+/*
+ * Existing bookmarks remain reachable without adding extra sidebar items.
+ * Create Destination and Drafts left the sidebar on 2026-10-09: creating is
+ * the button on All Destinations, and drafts are its status filter.
+ */
 export const legacyNavigation: readonly NavGroup[] = [{ title: "Workspace", items: [
+  createDestination,
+  tool("/drafts", "Drafts", FilePenLine, listingAccess, "Destinations that have not been published"),
   tool("/publish-requests", "Publish Requests", ClipboardCheck, publishing, "Review submissions and track publication"),
   tool("/reviews", "Reviews", MessageSquare, ["PERM_REVIEW_MODERATE"], "Moderate traveler feedback"),
   tool("/partner-listings", "Partner Listings", Store, ["PERM_PARTNER_PUBLISH_APPROVE", "PERM_LISTING_EDIT_OWN"], "Listings submitted by travel partners"),
-  tool("/featured", "Featured", Sparkles, editorial, "The destinations marked as featured"),
 ] }];
 
 function allowed(grants: readonly string[], item: NavItem): boolean {

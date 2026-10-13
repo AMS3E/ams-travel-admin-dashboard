@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
+import { useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import dynamic from "next/dynamic";
+import { createPortal } from "react-dom";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import {
   BedDouble,
@@ -11,6 +13,7 @@ import {
   Flame,
   Hotel,
   House,
+  Info,
   Search,
   Shapes,
   Star,
@@ -21,16 +24,18 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { AmenityPicker } from "@/features/catalog/components/listing-form/amenity-picker";
-import { CoverDropzone } from "@/features/catalog/components/listing-form/cover-dropzone";
+import { offeredAmenities, type AmenityOption } from "@/features/catalog/amenities";
 import { HoursEditor } from "@/features/catalog/components/listing-form/hours-editor";
 import { FieldControl } from "@/features/catalog/components/fields/field-control";
+import { HelpStyleContext } from "@/features/catalog/components/listing-form/help-style";
 import { narrowChoices } from "@/features/catalog/narrowing";
-import { THEME_TILES } from "@/features/catalog/components/fields/choice-tiles";
-import { fittingOptions, hintOf, labelOf, offeredOptions } from "@/features/catalog/resource";
+import { ChoiceTiles } from "@/features/catalog/components/fields/choice-tiles";
+import { fittingOptions, hintOf, inOptionGroup, labelOf, offeredOptions } from "@/features/catalog/resource";
 import type {
   EnumOption,
   FormValues,
@@ -38,6 +43,12 @@ import type {
   ResourceField,
 } from "@/features/catalog/resource";
 import { cn } from "@/lib/utils";
+
+/* Written in the browser only, like the map: the editor has no server rendering. */
+const RichText = dynamic(() => import("@/features/catalog/components/fields/rich-text"), {
+  ssr: false,
+  loading: () => <div className="min-h-40 rounded-md border border-line-strong bg-paper" />,
+});
 
 /** "A", "A and B", "A, B and C". */
 function names(list: readonly string[]): string {
@@ -56,8 +67,6 @@ const TYPE_ICONS: Readonly<Record<string, LucideIcon>> = {
   CAFE: Coffee,
   STREET_FOOD: Flame,
   MARKET: Store,
-  /* An attraction's themes: its tourism regions. */
-  ...Object.fromEntries(Object.entries(THEME_TILES).map(([code, tile]) => [code, tile.icon])),
 };
 
 /** One line under each type, so the choice is made on meaning rather than a word. */
@@ -73,7 +82,6 @@ const TYPE_HINTS: Readonly<Record<string, string>> = {
   STREET_FOOD: "Stalls, carts and night markets",
   MARKET: "Food stalls and fresh produce",
   OTHER: "Anything that fits none of these",
-  ...Object.fromEntries(Object.entries(THEME_TILES).map(([code, tile]) => [code, tile.hint])),
 };
 
 const PRICE_HINTS: Readonly<Record<string, string>> = {
@@ -91,28 +99,83 @@ interface ShellProps {
   readonly error?: string;
   /** The counter shown beside the label, for text with a limit. */
   readonly count?: number;
+  /** What the control is doing right now — "Only the categories of Coastal & Island Region" — shown under it whatever the help style. */
+  readonly status?: string;
   readonly children: (ids: { readonly id: string; readonly describedBy?: string; readonly labelId: string }) => ReactNode;
   readonly className?: string;
 }
 
-/** A label that says whether the field is needed, the control, and its hint or error. */
-export function FieldShell({ field, error, count, children, className }: ShellProps) {
+/** The info icon beside a label or a section title: a click opens the help; a click elsewhere, or Escape, closes it. */
+export function HelpIcon({ id, label, text }: { readonly id: string; readonly label: string; readonly text: string }) {
+  const [open, setOpen] = useState(false);
+  const holder = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (event: MouseEvent) => {
+      if (!holder.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("mousedown", away);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [open]);
+  return (
+    <span className="relative inline-flex" ref={holder}>
+      <button
+        aria-controls={id}
+        aria-expanded={open}
+        aria-label={`About ${label}`}
+        className={cn("grid size-5 place-items-center rounded-full text-muted transition-colors hover:bg-sand hover:text-ink", open && "bg-sand text-ink")}
+        onClick={() => setOpen((shown) => !shown)}
+        type="button"
+      >
+        <Info aria-hidden className="size-3.5" />
+      </button>
+      {open ? (
+        <span className="absolute top-full left-0 z-20 mt-1 w-72 rounded-lg border border-line bg-paper px-3 py-2 text-xs leading-relaxed font-normal text-ink-soft shadow-md" id={id} role="note">
+          {text}
+        </span>
+      ) : (
+        <span className="sr-only" id={id}>
+          {text}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/**
+ * A label that says whether the field is needed, the control, and its error,
+ * its status line and its help — the help under the box, or behind an info
+ * icon beside the label where the form asks for that.
+ */
+export function FieldShell({ field, error, count, status, children, className }: ShellProps) {
   const id = useId();
+  const help = useContext(HelpStyleContext);
   const hintId = field.hint ? `${id}-hint` : undefined;
+  const statusId = status ? `${id}-status` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   const near = field.maxLength != null && count != null && count > field.maxLength * 0.9;
 
   return (
     <div className={cn("flex min-w-0 flex-col gap-1.5", field.span === 2 && "md:col-span-2", className)}>
       <div className="flex items-baseline justify-between gap-3">
-        <label className="text-sm font-medium text-ink-soft" htmlFor={id} id={`${id}-label`}>
-          {field.label}
-          {field.required ? (
-            <span aria-hidden className="ml-0.5 text-heritage">
-              *
-            </span>
-          ) : null}
-        </label>
+        <span className="flex items-center gap-1">
+          <label className="text-sm font-medium text-ink-soft" htmlFor={id} id={`${id}-label`}>
+            {field.label}
+            {field.required ? (
+              <span aria-hidden className="ml-0.5 text-heritage">
+                *
+              </span>
+            ) : null}
+          </label>
+          {field.hint && hintId && help === "icon" ? <HelpIcon id={hintId} label={field.label} text={field.hint} /> : null}
+        </span>
         {field.maxLength != null && count != null ? (
           <span className={cn("text-xs tabular-nums", near ? "font-medium text-heritage" : "text-muted")}>
             {count}/{field.maxLength}
@@ -120,14 +183,18 @@ export function FieldShell({ field, error, count, children, className }: ShellPr
         ) : null}
       </div>
 
-      {children({ id, describedBy: [errorId, hintId].filter(Boolean).join(" ") || undefined, labelId: `${id}-label` })}
+      {children({ id, describedBy: [errorId, statusId, hintId].filter(Boolean).join(" ") || undefined, labelId: `${id}-label` })}
 
       {error ? (
         <p className="flex items-center gap-1 text-xs font-medium text-heritage" id={errorId} role="alert">
           <CircleAlert aria-hidden className="size-3.5 shrink-0" />
           {error}
         </p>
-      ) : field.hint ? (
+      ) : status ? (
+        <p className="text-xs text-muted" id={statusId}>
+          {status}
+        </p>
+      ) : field.hint && help === "below" ? (
         <p className="text-xs text-muted" id={hintId}>
           {field.hint}
         </p>
@@ -146,6 +213,63 @@ interface ListingFieldProps {
   readonly wide?: boolean;
   /** For a field `narrowedBy` another: that field's options, whose `links` say what this one offers. */
   readonly narrowing?: readonly ReferenceOption[];
+}
+
+/** A link name as the API makes it from a name: lower-case words joined by hyphens. */
+function slugOf(name: string): string {
+  return name
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * The link name as one quiet line under the name — it is made from the name
+ * and almost never typed — with Edit to open the box. The box stays open
+ * once something is wrong with it.
+ */
+function SlugField({ field, error, pathPrefix }: { readonly field: ResourceField; readonly error?: string; readonly pathPrefix: string }) {
+  const { control, register } = useFormContext<FormValues>();
+  const [open, setOpen] = useState(false);
+  const name = useWatch({ control, name: "name" });
+  const value = useWatch({ control, name: field.name });
+  const slug = typeof value === "string" ? value.trim() : "";
+  const made = slug || slugOf(typeof name === "string" ? name : "");
+  if (!open && !error) {
+    return (
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted md:col-span-2">
+        <span>Web address</span>
+        <code className="rounded bg-sand px-1.5 py-0.5 font-mono text-[11px] text-ink-soft">
+          {pathPrefix}
+          {made || "made-from-the-name"}
+        </code>
+        <button className="font-medium text-ink-soft underline-offset-2 hover:text-ink hover:underline" onClick={() => setOpen(true)} type="button">
+          Edit
+        </button>
+      </div>
+    );
+  }
+  return (
+    <FieldShell className="md:col-span-2" count={slug.length} error={error} field={field}>
+      {({ id, describedBy }) => (
+        <div className="flex h-9 items-stretch overflow-hidden rounded-md border border-line-strong bg-paper shadow-xs transition-[border-color,box-shadow] focus-within:border-teal focus-within:ring-3 focus-within:ring-teal/15 hover:border-line-hover">
+          <span className="flex items-center border-r border-line bg-sand px-2.5 font-mono text-xs text-muted">{pathPrefix}</span>
+          <input
+            {...register(field.name)}
+            aria-describedby={describedBy}
+            aria-invalid={error ? true : undefined}
+            className="min-w-0 flex-1 bg-transparent px-2.5 font-mono text-sm text-ink outline-none placeholder:text-muted/70"
+            id={id}
+            placeholder={made || "made-from-the-name"}
+            spellCheck={false}
+            type="text"
+          />
+        </div>
+      )}
+    </FieldShell>
+  );
 }
 
 /** Renders one registry field with the listing form's own control for it. */
@@ -176,7 +300,8 @@ export function ListingField({ field: declared, options, locked = false, pathPre
       ...(declared.kind === "refs" ? {} : { options: offeredOptions(declared, around) }),
     };
   }, [declared, follows, kind, value]);
-  const offered = field.options ?? [];
+  /* A picker fed by the amenities taxonomy takes the active ones offered at its level; any other field its own choices. */
+  const offered = field.kind === "enums" && field.ref === "amenities" ? offeredAmenities(options, field.offeredAt) : (field.options ?? []);
   /* What is chosen in the field this one follows; this field's own value when it follows none. */
   const followed = useWatch({ control, name: field.narrowedBy?.field ?? field.name });
   const length = typeof value === "string" ? value.trim().length : 0;
@@ -192,7 +317,7 @@ export function ListingField({ field: declared, options, locked = false, pathPre
     const match = options.find(
       (option) =>
         !option.inactive &&
-        (!field.optionGroup || option.group === field.optionGroup) &&
+        inOptionGroup(field, option) &&
         wanted.includes(option.label.toLowerCase()),
     );
     if (match) setValue(field.name, [match.value], { shouldDirty: true, shouldValidate: true });
@@ -202,7 +327,9 @@ export function ListingField({ field: declared, options, locked = false, pathPre
 
   if (field.kind === "boolean") return <ToggleRow field={field} />;
 
-  if (field.kind === "enum" && (field.name === "type" || field.name === "theme")) {
+  if (field.kind === "text" && field.name === "slug") return <SlugField error={error} field={field} pathPrefix={pathPrefix} />;
+
+  if (field.kind === "enum" && field.name === "type") {
     return (
       <FieldShell className="md:col-span-2" error={error} field={{ ...field, hint: undefined }}>
         {({ labelId }) => (
@@ -250,10 +377,25 @@ export function ListingField({ field: declared, options, locked = false, pathPre
     );
   }
 
-  if (field.kind === "enums" && (field.name === "amenities" || field.name === "specialties")) {
-    const own = field.name === "specialties";
+  if (field.kind === "enums" && field.name === "amenities") {
     return (
-      <FieldShell className="md:col-span-2" error={error} field={own || declared.labelFor ? field : { ...field, label: "Facilities & services" }}>
+      <FieldShell className="md:col-span-2" error={error} field={declared.labelFor ? field : { ...field, label: "Facilities & services" }}>
+        {({ labelId }) => (
+          <Controller
+            control={control}
+            name={field.name}
+            render={({ field: bound }) => (
+              <FacilitiesField labelledBy={labelId} onChange={bound.onChange} options={offered} value={Array.isArray(bound.value) ? bound.value : []} />
+            )}
+          />
+        )}
+      </FieldShell>
+    );
+  }
+
+  if (field.kind === "enums" && field.name === "specialties") {
+    return (
+      <FieldShell className="md:col-span-2" error={error} field={field}>
         {({ labelId }) => (
           <Controller
             control={control}
@@ -261,12 +403,12 @@ export function ListingField({ field: declared, options, locked = false, pathPre
             render={({ field: bound }) => (
               <AmenityPicker
                 labelledBy={labelId}
-                noun={own ? "this list" : undefined}
+                noun="this list"
                 onChange={bound.onChange}
                 options={offered}
-                /* What only this kind has is a written sequence; facilities are a list of names. */
-                ordered={own}
-                popular={own ? [] : undefined}
+                /* What only this kind has is a written sequence, so it reads in its own order. */
+                ordered
+                popular={[]}
                 value={Array.isArray(bound.value) ? bound.value : []}
               />
             )}
@@ -280,16 +422,41 @@ export function ListingField({ field: declared, options, locked = false, pathPre
     const chosen = Array.isArray(value) ? value : [];
     const every: readonly ReferenceOption[] =
       field.kind === "refs" ? options : offered.map((option) => ({ ...option, inactive: false }));
-    /* `optionGroup`: one shelf's interests, and any chosen from elsewhere so they can be taken away. */
-    const grouped = field.optionGroup
-      ? every.filter((option) => option.group === field.optionGroup || chosen.includes(option.value))
-      : every;
+    /* `optionGroup`: the shelves this listing is offered, and any chosen from elsewhere so they can be taken away. */
+    const grouped = field.optionGroup ? every.filter((option) => inOptionGroup(field, option) || chosen.includes(option.value)) : every;
     /* `optionsFor` on rows: a cafe is offered the categories and tags a cafe uses. */
     const all =
       field.kind === "refs" && field.optionsFor
         ? fittingOptions(field, grouped, { [field.optionsFor.field]: kind, [field.name]: chosen })
         : grouped;
-    /* An attraction's categories, search filters and interests: only its theme's region's own. */
+    /*
+     * One at a time, as cards — an attraction's tourism region: choosing another
+     * replaces it, and choosing the chosen one again clears it. The value stays a list.
+     */
+    if (field.kind === "refs" && field.single && field.tiles) {
+      return (
+        <FieldShell className="md:col-span-2" error={error} field={field}>
+          {({ labelId, describedBy }) => (
+            <Controller
+              control={control}
+              name={field.name}
+              render={({ field: bound }) => (
+                <ChoiceTiles
+                  compact
+                  describedBy={describedBy}
+                  invalid={Boolean(error)}
+                  labelledBy={labelId}
+                  onChange={(next) => bound.onChange(typeof next === "string" && next && next !== chosen[0] ? [next] : [])}
+                  options={all}
+                  value={chosen[0] ?? ""}
+                />
+              )}
+            />
+          )}
+        </FieldShell>
+      );
+    }
+    /* An attraction's categories, search filters and interests: only its tourism region's own. */
     const sources = Array.isArray(followed) ? followed : typeof followed === "string" && followed ? [followed] : [];
     const narrowed =
       field.narrowedBy && narrowing
@@ -297,10 +464,10 @@ export function ListingField({ field: declared, options, locked = false, pathPre
         : null;
     const noun = field.label.toLowerCase();
     const outside = narrowed?.outside.size ?? 0;
-    /* A hint written for this theme — UNESCO's — says more than "only the …". */
+    /* A hint written for this kind says more than "only the …". */
     const ownHint = declared.hintFor && field.hint !== declared.hint ? field.hint : undefined;
-    const hint = !narrowed
-      ? field.hint
+    const status = !narrowed
+      ? undefined
       : narrowed.scope.length === 0
         ? field.narrowedBy?.from
           ? `Choose its theme first to see only that theme's ${noun}.`
@@ -310,7 +477,7 @@ export function ListingField({ field: declared, options, locked = false, pathPre
             ? ` ${outside} chosen earlier ${outside === 1 ? "is" : "are"} not in ${narrowed.scope.length === 1 ? "this region" : "these regions"}: select ${outside === 1 ? "it" : "them"} to take ${outside === 1 ? "it" : "them"} away.`
             : "");
     return (
-      <FieldShell className="md:col-span-2" error={error} field={{ ...field, hint }}>
+      <FieldShell className="md:col-span-2" error={error} field={field} status={status}>
         {({ labelId, describedBy }) => (
           <Controller
             control={control}
@@ -329,14 +496,6 @@ export function ListingField({ field: declared, options, locked = false, pathPre
             )}
           />
         )}
-      </FieldShell>
-    );
-  }
-
-  if (field.kind === "image") {
-    return (
-      <FieldShell className="md:col-span-2" error={error} field={{ ...field, label: "Cover photo" }}>
-        {({ id, describedBy }) => <CoverDropzone describedBy={describedBy} field={field} id={id} invalid={Boolean(error)} />}
       </FieldShell>
     );
   }
@@ -363,22 +522,29 @@ export function ListingField({ field: declared, options, locked = false, pathPre
         const aria = { id, "aria-describedby": describedBy, "aria-invalid": error ? true : undefined };
 
         switch (field.kind) {
-          case "textarea":
-            return (
-              <Textarea
-                {...aria}
-                {...register(field.name)}
-                placeholder={
-                  /* A stay or a food listing shows its own kind's example under the field; a destination is visited, not stayed at. */
-                  field.name === "shortDescription"
-                    ? "One or two sentences that make someone want to go."
-                    : declared.hintFor
-                      ? "The full story, in your own words."
-                      : "The full story: what to see, what to know, when to go."
-                }
-                rows={field.name === "shortDescription" ? 3 : 7}
-              />
-            );
+          case "textarea": {
+            const prompt = "The full story, in your own words.";
+            if (field.rich) {
+              return (
+                <Controller
+                  control={control}
+                  name={field.name}
+                  render={({ field: bound }) => (
+                    <RichText
+                      describedBy={describedBy}
+                      id={id}
+                      invalid={Boolean(error)}
+                      onBlur={bound.onBlur}
+                      onChange={bound.onChange}
+                      placeholder={prompt}
+                      value={typeof bound.value === "string" ? bound.value : ""}
+                    />
+                  )}
+                />
+              );
+            }
+            return <Textarea {...aria} {...register(field.name)} placeholder={prompt} rows={7} />;
+          }
 
           case "ref":
             return (
@@ -432,21 +598,6 @@ export function ListingField({ field: declared, options, locked = false, pathPre
 
           default:
             if (field.name === "currency") return <CurrencyInput aria={aria} field={field} />;
-            if (field.name === "slug") {
-              return (
-                <div className="flex h-9 items-stretch overflow-hidden rounded-md border border-line-strong bg-paper shadow-xs transition-[border-color,box-shadow] focus-within:border-teal focus-within:ring-3 focus-within:ring-teal/15 hover:border-line-hover">
-                  <span className="flex items-center border-r border-line bg-sand px-2.5 font-mono text-xs text-muted">{pathPrefix}</span>
-                  <input
-                    {...aria}
-                    {...register(field.name)}
-                    className="min-w-0 flex-1 bg-transparent px-2.5 font-mono text-sm text-ink outline-none placeholder:text-muted/70"
-                    placeholder="generated-from-the-name"
-                    spellCheck={false}
-                    type="text"
-                  />
-                </div>
-              );
-            }
             return (
               <Input
                 {...aria}
@@ -610,8 +761,9 @@ function PriceRangeInput({
   readonly onChange: (value: string) => void;
   readonly labelledBy: string;
 }) {
+  /* As wide as its words, not the row: the shell would otherwise stretch it. */
   return (
-    <div aria-labelledby={labelledBy} className="inline-flex max-w-full flex-wrap overflow-hidden rounded-md border border-line-strong bg-paper" role="radiogroup">
+    <div aria-labelledby={labelledBy} className="inline-flex max-w-full flex-wrap self-start overflow-hidden rounded-md border border-line-strong bg-paper" role="radiogroup">
       {[{ value: "", label: "—" }, ...options].map((option) => {
         const selected = option.value === value;
         return (
@@ -633,6 +785,103 @@ function PriceRangeInput({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * A stay's facilities on the form: the chosen ones as chips, each with a
+ * cross, and a button that opens the full checklist in a dialog over the
+ * page. The list is long; the form shows only what was picked from it.
+ */
+function FacilitiesField({
+  options,
+  value,
+  onChange,
+  labelledBy,
+}: {
+  readonly options: readonly AmenityOption[];
+  readonly value: readonly string[];
+  readonly onChange: (value: string[]) => void;
+  readonly labelledBy: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const labels = useMemo(() => new Map(options.map((option) => [option.value, option.label.split(" · ").pop() ?? option.label])), [options]);
+  const chosen = value.filter((slug) => labels.has(slug));
+
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {chosen.length ? (
+          chosen.map((slug) => (
+            <span className="inline-flex items-center gap-1 rounded-md border border-line bg-sand px-2 py-1 text-xs text-ink" key={slug}>
+              {labels.get(slug)}
+              <button
+                aria-label={`Remove ${labels.get(slug)}`}
+                className="grid size-4 place-items-center rounded-full text-muted hover:bg-sand-deep hover:text-heritage"
+                onClick={() => onChange(value.filter((each) => each !== slug))}
+                type="button"
+              >
+                <X aria-hidden className="size-3" />
+              </button>
+            </span>
+          ))
+        ) : (
+          <span className="text-sm text-muted">None chosen yet.</span>
+        )}
+        <Button className="ml-auto" onClick={() => setOpen(true)} size="sm" type="button" variant="secondary">
+          Choose facilities
+        </Button>
+      </div>
+
+      {open
+        ? createPortal(
+            <div className="fixed inset-0 z-[100] overflow-y-auto bg-ink/40 p-3 sm:p-6" onClick={() => setOpen(false)}>
+              <div
+                aria-labelledby="facilities-dialog-title"
+                aria-modal="true"
+                className="mx-auto w-full max-w-3xl rounded-xl border border-line bg-paper p-5 shadow-xl sm:p-6"
+                onClick={(event) => event.stopPropagation()}
+                role="dialog"
+              >
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h3 className="text-base font-semibold text-ink" id="facilities-dialog-title">
+                    Facilities & services
+                  </h3>
+                  <button
+                    aria-label="Close"
+                    className="grid size-8 place-items-center rounded-md text-muted hover:bg-sand hover:text-ink"
+                    onClick={() => setOpen(false)}
+                    type="button"
+                  >
+                    <X aria-hidden className="size-4" />
+                  </button>
+                </div>
+                <AmenityPicker labelledBy={labelledBy} onChange={onChange} options={options} popular={[]} value={value} />
+                <div className="mt-4 flex justify-end border-t border-line pt-4">
+                  <Button onClick={() => setOpen(false)} size="sm" type="button">
+                    Done
+                  </Button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
@@ -776,7 +1025,8 @@ function ChipSelect({
         <div className="flex max-h-96 flex-col gap-3 overflow-y-auto">
           {sections.map((section) => (
             <div aria-label={section.name} key={section.name} role="group">
-              <p className="mb-1.5 text-2xs font-semibold tracking-wide text-muted uppercase">{section.name}</p>
+              {/* One shelf alone — a stay's, a food listing's — needs no heading; three do. */}
+              {sections.length > 1 ? <p className="mb-1.5 text-2xs font-semibold tracking-wide text-muted uppercase">{section.name}</p> : null}
               <ul className="flex flex-wrap gap-1.5">{section.options.map(chip)}</ul>
             </div>
           ))}
@@ -838,37 +1088,37 @@ function groupSections(options: readonly ReferenceOption[]): { name: string; opt
   return [...sections].map(([name, list]) => ({ name, options: list }));
 }
 
-/** A yes-or-no setting: the label and what it means, with a switch. */
+/**
+ * A yes-or-no setting, laid out like any other field: its name with its help
+ * beside it, and under them the switch, as tall as a text box so it lines up
+ * with one on the same row.
+ */
 function ToggleRow({ field }: { readonly field: ResourceField }) {
-  const { register } = useFormContext<FormValues>();
+  const { control, register } = useFormContext<FormValues>();
+  const on = useWatch({ control, name: field.name }) === true;
 
   return (
-    <label
-      className={cn(
-        "flex cursor-pointer items-start gap-3 rounded-lg border border-line px-3 py-3 transition-colors hover:bg-sand has-disabled:cursor-not-allowed",
-        field.span === 2 && "md:col-span-2",
+    <FieldShell field={{ ...field, hint: field.hint ?? TOGGLE_HINTS[field.name] }}>
+      {({ id, describedBy }) => (
+        <label className="flex h-9 w-fit cursor-pointer items-center gap-2.5 has-disabled:cursor-not-allowed">
+          <span className="relative inline-flex shrink-0">
+            <input {...register(field.name)} aria-describedby={describedBy} className="peer sr-only" id={id} role="switch" type="checkbox" />
+            <span
+              aria-hidden
+              className="h-5 w-9 rounded-full bg-line-strong transition-colors peer-checked:bg-teal peer-focus-visible:ring-3 peer-focus-visible:ring-teal/25"
+            />
+            <span
+              aria-hidden
+              className="absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow-xs transition-transform peer-checked:translate-x-4"
+            />
+          </span>
+          <span className={cn("text-sm", on ? "font-medium text-ink" : "text-muted")}>{on ? "On" : "Off"}</span>
+        </label>
       )}
-    >
-      <span className="relative mt-0.5 inline-flex shrink-0">
-        <input {...register(field.name)} className="peer sr-only" role="switch" type="checkbox" />
-        <span
-          aria-hidden
-          className="h-5 w-9 rounded-full bg-line-strong transition-colors peer-checked:bg-teal peer-focus-visible:ring-3 peer-focus-visible:ring-teal/25"
-        />
-        <span
-          aria-hidden
-          className="absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow-xs transition-transform peer-checked:translate-x-4"
-        />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium text-ink">{field.label}</span>
-        <span className="mt-0.5 block text-xs text-muted">{field.hint ?? TOGGLE_HINTS[field.name] ?? ""}</span>
-      </span>
-    </label>
+    </FieldShell>
   );
 }
 
 const TOGGLE_HINTS: Readonly<Record<string, string>> = {
-  isFeatured: "Featured listings are promoted on the website: marked Featured and shown first.",
   isLocalSpecialty: "A dish or a place the area is known for — worth the trip on its own.",
 };

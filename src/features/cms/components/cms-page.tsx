@@ -1,5 +1,4 @@
 "use client";
-import { CollectionPage } from "./collection-page";
 import { ReviewsPage } from "./editorial-pages";
 import { PublishRequestsPage } from "@/features/publishing/components/publish-requests-page";
 import { PartnerListingsPage } from "./partner-pages";
@@ -8,6 +7,8 @@ import { canVerifyDestinations, primaryRole, reviewsDesk } from "@/features/auth
 import { DESKS, type Desk } from "@/features/shell/nav";
 import { STAFF_PAGES } from "@/features/publishing/workflow";
 import { VerificationQueue } from "@/features/verification/components/verification-queue";
+import { DestinationStatsPage } from "@/features/dashboard/components/destination-stats-page";
+import { RegionTaxonomyTree } from "@/features/catalog/components/region-taxonomy-tree";
 import {
   CustomersPage,
   RolesPage,
@@ -65,12 +66,6 @@ export function CmsPage({
         ? <ContentWorkspace view="drafts" desk={desk} own userId={userId} />
         : <ContentWorkspace view="drafts" userId={userId} />;
     }
-    case "recommended":
-      return <CollectionPage list="recommended" />;
-    case "popular-now":
-      return <CollectionPage list="popular" />;
-    case "featured":
-      return <CollectionPage list="featured" />;
     case "publish-requests":
       return <PublishRequestsPage userId={userId} />;
     case "reviews":
@@ -80,6 +75,10 @@ export function CmsPage({
     case "verification":
       /* The route already found this page in the viewer's sidebar; this is the same rule, stated again. */
       return canVerifyDestinations(grants) ? <VerificationQueue grants={grants} /> : null;
+    case "destination-stats":
+      return <DestinationStatsPage />;
+    case "categories-and-tags":
+      return <RegionTaxonomyTree grants={grants} />;
     case "users":
       return <CustomersPage grants={grants} />;
     case "roles":

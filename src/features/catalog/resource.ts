@@ -35,12 +35,7 @@ export type ResourceKey =
   | "badge-definitions"
   | "badge-periods"
   | "seasons"
-  | "historical-periods"
-  | "monarchs"
-  | "architecture-styles"
-  | "religions"
-  | "destination-histories"
-  | "region-coverage";
+  | "amenities";
 
 /**
  * What a `ref` field can point at: a resource's rows, or one of the lists made
@@ -48,14 +43,13 @@ export type ResourceKey =
  * attraction themes), the zones provinces sit in, and the ancient sites whose
  * history is told.
  */
-export type ReferenceKey = ResourceKey | "users" | "tourism-regions" | "zones" | "ancient-sites";
+export type ReferenceKey = ResourceKey | "users" | "tourism-regions" | "zones";
 
 export type ResourceGroup =
   | "Catalogue"
   | "Listings"
   | "Places"
   | "Taxonomy"
-  | "Heritage"
   | "Gamification";
 
 export type FieldKind =
@@ -104,6 +98,11 @@ export interface ResourceField {
   readonly ref?: ReferenceKey;
   /** For `refs` — the order of the choices matters (corridor stops) and can be changed. */
   readonly ordered?: boolean;
+  /**
+   * For `refs` — one at a time: choosing another replaces it. Still sent as a
+   * list, as the API takes it. An attraction's tourism region.
+   */
+  readonly single?: boolean;
   /** For `image` — which folder in the bucket it uploads into. */
   readonly imageCategory?: ImageCategory;
   /**
@@ -129,8 +128,7 @@ export interface ResourceField {
    * offers everything. Plain strings, for the same reason as `pattern`.
    *
    * `from`: the list whose rows the followed field names when it is not a
-   * `refs` field itself. An attraction's theme is a tourism region's code, so
-   * its categories, tags and interests are that region's own.
+   * `refs` field itself — a field holding a tourism region's code.
    */
   readonly narrowedBy?: { readonly field: string; readonly links: string; readonly from?: ReferenceKey };
   /**
@@ -148,13 +146,15 @@ export interface ResourceField {
    * table does not name is offered everything.
    */
   readonly optionsFor?: { readonly field: string; readonly keep: Readonly<Record<string, readonly string[]>> };
+  /** For `enums` read from the amenities taxonomy (`ref: "amenities"`): the level this picker stands at. */
+  readonly offeredAt?: "PROPERTY" | "ROOM";
   /**
    * For `enum` / `enums` — the options are a scale or a sequence — $ to $$,
    * breakfast to dinner — and keep the order they are written in. Every other
    * list of choices is shown A to Z.
    */
   readonly scale?: boolean;
-  /** For `enums` — the values are whole numbers and go to the API as numbers: a site's centuries. */
+  /** For `enums` — the values are whole numbers and go to the API as numbers. */
   readonly numeric?: boolean;
   /**
    * The label this kind of row uses: a cafe is asked what a coffee and a cake
@@ -165,11 +165,12 @@ export interface ResourceField {
   /** The hint this kind of row is shown: a cafe's name example, a stall's address. */
   readonly hintFor?: { readonly field: string; readonly hints: Readonly<Record<string, string>> };
   /**
-   * For `refs` to a list with `groupBy`: only that group's options are
-   * offered, as a stay's interests are the Stays shelf's. One chosen from
-   * another group stays shown, so it can be taken away.
+   * For `refs` to a list with `groupBy`: only these groups' options are
+   * offered — a stay's interests are the Stays shelf's, an attraction's are
+   * the three that fit an attraction. One chosen from another group stays
+   * shown, so it can be taken away.
    */
-  readonly optionGroup?: string;
+  readonly optionGroup?: string | readonly string[];
   /**
    * For `refs`: when `field` changes and nothing is chosen here yet, the
    * option whose label is one of `labels[its value]` is chosen — a Resort
@@ -206,9 +207,9 @@ export interface ResourceField {
    */
   readonly inverse?: { readonly resource: ResourceKey; readonly field: string };
   /**
-   * Worked out by the form, never asked: an attraction's tourism regions are
-   * its theme's and those of the categories chosen for it. No step holds it,
-   * and it travels in the body as it is.
+   * Worked out by the form, never asked: an attraction's theme is the code of
+   * the tourism region chosen for it. No step holds it, and it travels in the
+   * body as it is.
    */
   readonly derived?: boolean;
   /**
@@ -242,6 +243,11 @@ export interface ResourceField {
   readonly chips?: boolean;
   /** For `text` — an icon name, chosen from the icons the website draws. */
   readonly iconPicker?: boolean;
+  /**
+   * For `textarea` — written with a toolbar (bold, lists, links…) and saved
+   * as Markdown, which the app draws. A plain text is Markdown already.
+   */
+  readonly rich?: boolean;
   readonly ties?: {
     readonly path: string;
     readonly by: string;
@@ -345,21 +351,7 @@ export interface ResourceDefinition {
   readonly preview?: "coverage" | "interest";
 }
 
-/**
- * The four vocabularies of Khmer history answer under one prefix, because one
- * service owns them: the eras, the kings, the building styles and the faiths
- * of the ancient capitals. Their keys here — and so their pages — are
- * unchanged; only where the API answers moved.
- */
-const HISTORICAL_COVERAGE: Partial<Record<ResourceKey, string>> = {
-  "historical-periods": "/historical-coverage/periods",
-  monarchs: "/historical-coverage/monarchs",
-  "architecture-styles": "/historical-coverage/styles",
-  religions: "/historical-coverage/religions",
-  "region-coverage": "/historical-coverage/regions",
-};
-
-/** The API path is the key, unless a service answers somewhere of its own. */
+/** The API path is the key, unless a gallery, which is the one media table. */
 /**
  * The same resource with one field left out, and its column with it: a stay's
  * or a food listing's owner is not asked of the account that is the owner — the
@@ -389,7 +381,7 @@ export function mediaOwnerType(key: ResourceKey): "DESTINATION" | "STAY" | "FOOD
 
 export function resourcePath(key: ResourceKey): string {
   if (MEDIA_OWNERS[key]) return "/media";
-  return HISTORICAL_COVERAGE[key] ?? `/${key}`;
+  return `/${key}`;
 }
 
 /** A photo set hung off one row: the picture, whose it is, and the order shown. */
@@ -440,8 +432,7 @@ export function isResourceOrder(value: unknown): value is ResourceOrder {
  */
 const ARRANGED: ReadonlySet<ResourceKey> = new Set([
   "destination-media", "stay-media", "food-media", "food-menu-items", "stay-rooms",
-  "historical-periods", "monarchs", "destination-histories", "region-coverage",
-  "regions", "interests", "corridors",
+  "regions", "interests", "corridors", "amenities",
 ]);
 
 /** Whether a list's own order is its meaning, so its pickers and tables keep it rather than going A to Z. */
@@ -516,6 +507,17 @@ export function statusChoices(
 /* Reference options                                                          */
 /* -------------------------------------------------------------------------- */
 
+/** The groups a field offers (`optionGroup`), none when it offers every group. */
+export function optionGroupsOf(field: ResourceField): readonly string[] {
+  return field.optionGroup == null ? [] : typeof field.optionGroup === "string" ? [field.optionGroup] : field.optionGroup;
+}
+
+/** Whether an option is in one of the groups a field offers; any option when it offers every group. */
+export function inOptionGroup(field: ResourceField, option: ReferenceOption): boolean {
+  const groups = optionGroupsOf(field);
+  return groups.length === 0 || (option.group !== undefined && groups.includes(option.group));
+}
+
 /** One choice in a `ref`/`refs` control, and one label for a reference column. */
 export interface ReferenceOption {
   readonly value: string;
@@ -527,8 +529,12 @@ export interface ReferenceOption {
   readonly group?: string;
   /** The row's slug, when it has one: how `optionsFor` names a category or a tag. */
   readonly slug?: string;
-  /** One line about it on a card: a historical period's years. */
+  /** One line about it on a card. */
   readonly detail?: string;
+  /** Where an amenity is offered: PROPERTY, ROOM or BOTH. */
+  readonly level?: string;
+  /** The icon an amenity is drawn with, by name. */
+  readonly icon?: string;
 }
 
 /**
@@ -720,7 +726,7 @@ function fieldSchema(field: ResourceField): z.ZodType {
     case "refs":
     case "enums":
       return field.required
-        ? z.array(z.string()).min(1, `Choose at least one ${field.label.toLowerCase()}`)
+        ? z.array(z.string()).min(1, field.single ? `Choose a ${field.label.toLowerCase()}` : `Choose at least one ${field.label.toLowerCase()}`)
         : z.array(z.string());
 
     case "hours":

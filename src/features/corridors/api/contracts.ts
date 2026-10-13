@@ -32,7 +32,6 @@ export interface CorridorSummary {
   readonly coverKey: string | null;
   readonly coverUrl: string | null;
   readonly status: CorridorStatus;
-  readonly isFeatured: boolean;
   readonly durationDays: number | null;
   readonly durationNights: number | null;
   readonly stopCount: number;
@@ -142,7 +141,6 @@ export interface CorridorOverviewInput {
   readonly coverKey: string | null;
   readonly estimatedBudgetMin: number | null;
   readonly estimatedBudgetMax: number | null;
-  readonly isFeatured: boolean;
   /** Tourism Corridors interests, whose pages on the website list it. */
   readonly interestIds: readonly string[];
 }

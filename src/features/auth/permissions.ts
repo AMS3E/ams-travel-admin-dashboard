@@ -45,26 +45,13 @@ const TAXONOMY: ReadonlySet<ResourceKey> = new Set([
   "interests",
   "categories",
   "tags",
+  "amenities",
 ]);
 
 /**
- * The heritage vocabulary — historical periods, monarchs, architecture styles
- * and religions — is governed exactly like the taxonomy: TAXONOMY_MANAGE
- * creates and edits, and deleting a row destinations point at stays with full
- * control.
- */
-const HERITAGE: ReadonlySet<ResourceKey> = new Set([
-  "region-coverage",
-  "historical-periods",
-  "monarchs",
-  "architecture-styles",
-  "religions",
-]);
-
-/**
- * A destination's own content — its photographs, its timeline, its heritage
- * ties — is written by whoever may edit the destination itself, exactly as the
- * API's gallery and heritage rules say. Which destinations those are — their
+ * A destination's own content — its photographs — is written by whoever may
+ * edit the destination itself, exactly as the API's gallery rules say. Which
+ * destinations those are — their
  * own, their desk's, any — is the API's to decide, as it is for the
  * destination: a partner fills in their own listing's gallery, a contributor
  * their own draft's.
@@ -94,14 +81,11 @@ export function canManageResource(
     return roles.some((role) => DESTINATION_PERMISSIONS.has(role));
   }
   if (resource === "corridors") return roles.includes("PERM_CORRIDOR_CURATE");
-  if (resource === "destination-histories") {
-    return roles.some((role) => DESTINATION_WRITERS.has(role));
-  }
   if (DESTINATION_CONTENT.has(resource)) return roles.includes("PERM_DESTINATION_EDIT_ANY");
   if (LISTINGS.has(resource)) {
     return roles.includes("PERM_DESTINATION_EDIT_ANY") || roles.includes("PERM_LISTING_EDIT_OWN");
   }
-  if (TAXONOMY.has(resource) || HERITAGE.has(resource)) {
+  if (TAXONOMY.has(resource)) {
     return roles.includes("PERM_TAXONOMY_MANAGE");
   }
   return false;
@@ -186,7 +170,7 @@ export function canCreateResource(
    * scopes to what they may edit. Reading the whole media table is still a
    * desk's, which `canManageResource` keeps to itself.
    */
-  if (DESTINATION_CONTENT.has(resource) || resource === "destination-histories") {
+  if (DESTINATION_CONTENT.has(resource)) {
     return roles.some((role) => DESTINATION_WRITERS.has(role));
   }
   return canManageResource(roles, resource);
@@ -205,14 +189,14 @@ export function canDeleteResource(
       hasPermission(roles, "PERM_PARTNER_LISTING_DELETE")
     );
   }
-  /* A photograph or a timeline entry is removed by whoever may write it — their own listing's, as the API scopes it. */
-  if (DESTINATION_CONTENT.has(resource) || resource === "destination-histories") {
+  /* A photograph is removed by whoever may write it — their own listing's, as the API scopes it. */
+  if (DESTINATION_CONTENT.has(resource)) {
     return roles.some((role) => DESTINATION_WRITERS.has(role));
   }
   if (LISTINGS.has(resource)) {
     return canManageResource(roles, resource);
   }
-  /* Corridors, the taxonomy, the heritage vocabulary, badges and seasons: other rows point at them. */
+  /* Corridors, the taxonomy, badges and seasons: other rows point at them. */
   return false;
 }
 

@@ -14,7 +14,6 @@ import {
   useGetCatalogQuery,
 } from "@/features/catalog/api/catalog-api";
 import { apiErrorMessage } from "@/store/api/api-error";
-import { CoveragePreview } from "@/features/heritage/components/coverage-preview";
 import { InterestPreview } from "@/features/catalog/components/interest-preview";
 import { spotIndex, type SpotContext } from "@/features/catalog/components/fields/spot-list";
 import { listPageOf } from "@/features/catalog/all-destinations";
@@ -193,23 +192,6 @@ export function ResourceForm({
     };
   }
 
-  /** A capital as its region's page will show it: its number, words, era and the site it opens. */
-  function coveragePreview() {
-    const placeField = definition.fields.find((field) => field.placeAmong);
-    const others = (placeField ? placesOf(placeField) : undefined) ?? [];
-    const place = placeField ? text(placeField.name) : "";
-    const labelOf = (ref: string, value: string) => (options[ref as keyof typeof options] ?? []).find((option) => option.value === value)?.label;
-    return {
-      position: place === "" ? (editing && record ? Number(record.sortOrder ?? 0) + 1 : others.length + 1) : Number(place) + 1,
-      title: text("title"),
-      titleKm: text("titleKm"),
-      dateRange: text("dateRange"),
-      periodName: labelOf("historical-periods", text("historicalPeriodId")),
-      description: text("description"),
-      siteName: labelOf("ancient-sites", text("destinationId")),
-    };
-  }
-
   function siblingsOf(field: ResourceField): readonly SiblingGroup[] | undefined {
     if (!field.siblings || !rows) return undefined;
     const typedName = String(watched[definition.titleField] ?? "").trim().toLowerCase();
@@ -344,12 +326,6 @@ export function ResourceForm({
                 </fieldset>
               </section>
             ))}
-
-            {definition.preview === "coverage" ? (
-              <section className="px-4 py-4">
-                <CoveragePreview {...coveragePreview()} />
-              </section>
-            ) : null}
 
             {status ? (
               <section className="px-4 py-4">

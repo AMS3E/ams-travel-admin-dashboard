@@ -1,97 +1,69 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, FormProvider, useForm, useWatch, type Resolver } from "react-hook-form";
 import {
   BedDouble,
-  BedSingle,
-  Building,
-  Castle,
-  CircleCheck,
-  CircleDashed,
-  Crown,
-  House,
   ImagePlus,
-  LayoutGrid,
   Loader2,
   Minus,
   Plus,
-  Sparkles,
-  Tent,
-  TreePalm,
   TriangleAlert,
   Users,
-  type LucideIcon,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import dynamic from "next/dynamic";
 import type { SaveResult } from "@/features/catalog/form-state";
 import { mediaPath, resourceSchema, type FormValues, type ResourceDefinition } from "@/features/catalog/resource";
-import { ROOM_AMENITIES, ROOM_BATHROOMS, ROOM_BEDS, ROOM_HOUSEKEEPING, ROOM_PAYMENT_TERMS, ROOM_TYPES, ROOM_VIEWS, alphabetical } from "@/features/catalog/resources";
+import { ROOM_BEDS } from "@/features/catalog/resources";
+import type { AmenityOption } from "@/features/catalog/amenities";
 import {
-  CANCELLATION_CHOICES,
-  ROOM_GRADES,
   ROOM_WORDS,
-  cancellationLabel,
   capacityWarning,
-  floorLabel,
-  layoutLine,
-  longStayWarning,
-  perNightOver,
-  roomChecklist,
   sleepsOf,
-  suggestMonthly,
-  suggestName,
-  suggestWeekly,
-  withBedsFor,
-  type RoomGrade,
-  type RoomWords,
 } from "@/features/catalog/rooms";
 import { AmenityPicker } from "@/features/catalog/components/listing-form/amenity-picker";
-import { RoomCard, formatMoney } from "@/features/catalog/components/listing-form/room-card";
+import { RoomCard } from "@/features/catalog/components/listing-form/room-card";
+import { IMAGE_ACCEPT, MAX_IMAGE_BYTES, imageProblem, prepareImage } from "@/features/catalog/media-upload";
+import { useUploadMedia } from "@/features/media/api/media-api";
+import { apiErrorMessage } from "@/store/api/api-error";
 import { cn } from "@/lib/utils";
+
+/* Written in the browser only, like a listing's About: the editor has no server rendering. */
+const RichText = dynamic(() => import("@/features/catalog/components/fields/rich-text"), {
+  ssr: false,
+  loading: () => <div className="min-h-40 rounded-md border border-line-strong bg-paper" />,
+});
 
 export interface GalleryPhoto {
   readonly key: string;
   readonly url: string;
 }
 
-const TYPE_ICONS: Readonly<Record<string, LucideIcon>> = {
-  SINGLE: BedSingle,
-  DOUBLE: BedDouble,
-  TWIN: BedSingle,
-  TWIN_DOUBLE: BedDouble,
-  TRIPLE: Users,
-  QUADRUPLE: Users,
-  FAMILY: Users,
-  SUITE: Crown,
-  STUDIO: Building,
-  APARTMENT: Building,
-  BUNGALOW: TreePalm,
-  VILLA: Castle,
-  DORM_BED: Tent,
-  DORM_ROOM: House,
-};
 
 /** What guests ask of a room first, offered before the full list. */
-const ROOM_MOST_REQUESTED = ["air-conditioning", "wifi", "hot-water", "tv", "balcony", "kettle", "safe", "mosquito-net"];
 
 interface RoomEditorProps {
   readonly definition: ResourceDefinition;
+  /** The amenities taxonomy as offered in a room. */
+  readonly amenityOptions: readonly AmenityOption[];
   readonly initial: FormValues;
-  readonly initialGrade: RoomGrade;
+
   readonly currency: string;
   /** The stay's gallery, to choose this room's photos from. */
+  /** The stay's gallery, for the links of photos chosen from it before photos were uploaded here. */
   readonly photos: readonly GalleryPhoto[];
+  /** The image category the room's own photos are uploaded under. */
+  readonly category: string;
   readonly isNew: boolean;
   /** Saved into the stay's list; null when the list holds it until the stay is saved. */
   readonly onSave: (values: FormValues) => Promise<SaveResult>;
   readonly onCancel: () => void;
   /** What this kind of stay calls what it lets — a dorm, a villa (see ROOM_WORDS). */
-  readonly words?: RoomWords;
 }
 
 /**
@@ -106,15 +78,15 @@ interface RoomEditorProps {
  * photos are chosen from the stay's gallery rather than uploaded twice.
  */
 export function RoomEditor({
+  amenityOptions,
   definition,
   initial,
-  initialGrade,
   currency,
   photos,
+  category,
   isNew,
   onSave,
   onCancel,
-  words = ROOM_WORDS.OTHER,
 }: RoomEditorProps) {
   const schema = useMemo(() => resourceSchema(definition), [definition]);
   const form = useForm<FormValues>({
@@ -123,45 +95,35 @@ export function RoomEditor({
   });
   const values = useWatch({ control: form.control }) as FormValues;
   const { errors, isSubmitting } = form.formState;
-  const [grade, setGrade] = useState<RoomGrade>(initialGrade);
-  /* The name follows the room until someone types their own; an existing room's is theirs already. */
-  const [nameOwned, setNameOwned] = useState(!isNew);
-  const [bedsOwned, setBedsOwned] = useState(!isNew);
   const [adultsOwned, setAdultsOwned] = useState(!isNew);
   const [banner, setBanner] = useState<string | null>(null);
 
-  const suggested = suggestName(values, grade);
   const warning = capacityWarning(values);
-  const checklist = roomChecklist(values);
   const chosenPhotos = Array.isArray(values.photoKeys) ? values.photoKeys : [];
-  const firstPhoto = photos.find((photo) => photo.key === chosenPhotos[0])?.url ?? (chosenPhotos[0] ? mediaPath(chosenPhotos[0]) : undefined);
+  /* Photos uploaded here, by key, so they can be shown before the room is saved. */
+  const [uploaded, setUploaded] = useState<Record<string, string>>({});
+  const [uploading, setUploading] = useState(0);
+  const [photoProblem, setPhotoProblem] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const uploadMedia = useUploadMedia();
+  const urlOf = (key: string) => uploaded[key] ?? photos.find((photo) => photo.key === key)?.url ?? mediaPath(key);
+  const firstPhoto = chosenPhotos[0] ? urlOf(chosenPhotos[0]) : undefined;
 
   function set(name: string, value: FormValues[string]) {
     form.setValue(name, value, { shouldDirty: true, shouldValidate: Boolean(errors[name]) });
   }
 
-  /** Values changed elsewhere in the room, with the name following while it is not the host's own. */
-  function update(next: FormValues, nextGrade = grade) {
+  /** Values changed elsewhere in the room. */
+  function update(next: FormValues) {
     for (const [name, value] of Object.entries(next)) {
       if (values[name] !== value) set(name, value);
     }
-    if (!nameOwned) set("name", suggestName({ ...values, ...next }, nextGrade));
-  }
-
-  function chooseType(roomType: string) {
-    if (bedsOwned) {
-      update({ roomType });
-      return;
-    }
-    const withBeds = withBedsFor(values, roomType);
-    update(adultsOwned ? { ...withBeds, maxAdults: values.maxAdults } : withBeds);
   }
 
   function step(name: string, delta: number, min: number, max: number) {
     const current = Number.parseInt(typeof values[name] === "string" ? (values[name] as string) : "0", 10) || 0;
     const next = String(Math.min(max, Math.max(min, current + delta)));
     if (ROOM_BEDS.some((bed) => bed.name === name)) {
-      setBedsOwned(true);
       const withBed = { ...values, [name]: next };
       /* The guests follow the beds until the host sets them. */
       const adults = String(Math.max(1, values.roomType === "DORM_BED" ? 1 : sleepsOf(withBed)));
@@ -172,12 +134,47 @@ export function RoomEditor({
     update({ [name]: next });
   }
 
+  /** Photos dropped or picked: each is checked, shrunk if huge, uploaded, and added to the dish in the order given. */
+  async function addPhotos(files: readonly File[]) {
+    if (!files.length) return;
+    setPhotoProblem(null);
+    setUploading((count) => count + files.length);
+    const keys: string[] = [];
+    const problems: string[] = [];
+    for (const picked of files) {
+      const problem = imageProblem(picked);
+      if (problem) {
+        problems.push(problem);
+        continue;
+      }
+      try {
+        const file = await prepareImage(picked);
+        if (file.size > MAX_IMAGE_BYTES) {
+          problems.push(`${picked.name} is still larger than 8 MB after resizing.`);
+          continue;
+        }
+        const body = new FormData();
+        body.set("file", file, file.name);
+        body.set("category", category);
+        const payload = await uploadMedia(body);
+        keys.push(payload.key);
+        setUploaded((map) => ({ ...map, [payload.key]: payload.uri || mediaPath(payload.key) }));
+      } catch (error) {
+        problems.push(`${picked.name}: ${apiErrorMessage(error)}`);
+      }
+    }
+    setUploading((count) => Math.max(0, count - files.length));
+    if (keys.length) {
+      const current = Array.isArray(form.getValues("photoKeys")) ? (form.getValues("photoKeys") as string[]) : [];
+      set("photoKeys", [...current, ...keys.filter((key) => !current.includes(key))]);
+    }
+    if (problems.length) setPhotoProblem(problems.join(" "));
+    if (fileInput.current) fileInput.current.value = "";
+  }
+
   /** A problem with a field this editor does not show — said, rather than failing quietly. */
   function refuse(invalid: Record<string, { message?: unknown } | undefined>) {
-    const shown = new Set([
-      "name", "sizeSqm", "pricePerNight", "highlight", "extraBedPrice", "cotPrice", "childrenFreeUnderAge",
-      "highSeasonPrice", "weeklyPrice", "monthlyPrice", "depositPercent", "floor",
-    ]);
+    const shown = new Set(["name", "pricePerNight", "weekendPrice", "description"]);
     const hidden = Object.entries(invalid)
       .filter(([name]) => !shown.has(name))
       .map(([name, error]) => `${definition.fields.find((field) => field.name === name)?.label ?? name}: ${String(error?.message ?? "invalid")}`);
@@ -204,85 +201,108 @@ export function RoomEditor({
             </p>
           ) : null}
 
-          <Section title={words.what}>
-            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 lg:grid-cols-5" role="radiogroup" aria-label="Room type">
-              {alphabetical(ROOM_TYPES).map((option) => {
-                const Icon = TYPE_ICONS[option.value] ?? BedDouble;
-                const on = values.roomType === option.value;
-                return (
+          <Field label="Photos">
+            <p className="-mt-0.5 mb-2 text-xs text-muted">Uploaded here, for this room. The first one is its cover; the rest make its gallery.</p>
+            <input
+              accept={IMAGE_ACCEPT}
+              className="sr-only"
+              multiple
+              onChange={(event) => void addPhotos(Array.from(event.target.files ?? []))}
+              ref={fileInput}
+              type="file"
+            />
+            <div className="flex flex-wrap gap-2">
+              {chosenPhotos.map((key, at) => (
+                <div className="group relative aspect-4/3 w-28 overflow-hidden rounded-md border border-line bg-sand-deep" key={key}>
+                  <Image alt="" className="object-cover" fill sizes="112px" src={urlOf(key)} unoptimized />
+                  <span className="absolute top-1 left-1 grid size-5 place-items-center rounded-full bg-teal text-2xs font-semibold text-white tabular-nums">
+                    {at + 1}
+                  </span>
                   <button
-                    aria-checked={on}
-                    className={cn(
-                      "flex h-9 items-center gap-2 rounded-md border px-2.5 text-left text-sm transition-colors",
-                      on ? "border-teal bg-teal-soft font-medium text-teal-deep" : "border-line-strong bg-paper text-ink-soft hover:bg-sand",
-                    )}
-                    key={option.value}
-                    onClick={() => chooseType(option.value)}
-                    role="radio"
+                    aria-label={`Remove photo ${at + 1}`}
+                    className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-paper/90 text-ink-soft shadow-xs hover:text-heritage"
+                    onClick={() => set("photoKeys", chosenPhotos.filter((each) => each !== key))}
                     type="button"
                   >
-                    <Icon aria-hidden className="size-4 shrink-0" strokeWidth={1.75} />
-                    <span className="truncate">{option.label}</span>
+                    <X aria-hidden className="size-3" />
                   </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-xs font-medium text-muted">Word before the name</span>
-              {ROOM_GRADES.map((each) => (
-                <Chip
-                  key={each || "none"}
-                  on={grade === each}
-                  onClick={() => {
-                    setGrade(each);
-                    if (!nameOwned) set("name", suggestName(values, each));
-                  }}
-                >
-                  {each || "None"}
-                </Chip>
+                </div>
               ))}
+              <button
+                className="flex aspect-4/3 w-28 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-line-strong bg-sand text-xs text-muted transition-colors hover:border-teal hover:text-ink"
+                disabled={uploading > 0}
+                onClick={() => fileInput.current?.click()}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  void addPhotos(Array.from(event.dataTransfer.files));
+                }}
+                type="button"
+              >
+                {uploading > 0 ? <Loader2 aria-hidden className="size-4 animate-spin" /> : <ImagePlus aria-hidden className="size-4" />}
+                {uploading > 0 ? "Uploading…" : "Add photo"}
+              </button>
             </div>
+            {photoProblem ? (
+              <p className="mt-2 flex items-start gap-1.5 text-xs text-heritage" role="alert">
+                <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
+                {photoProblem}
+              </p>
+            ) : null}
+          </Field>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
-              <Field error={errors.name?.message as string | undefined} label="Room name">
-                <Input
-                  {...form.register("name", { onChange: () => setNameOwned(true) })}
-                  aria-invalid={Boolean(errors.name)}
-                  maxLength={150}
-                  placeholder={suggested}
+          <Field error={errors.name?.message as string | undefined} label="Room name">
+            <Input {...form.register("name")} aria-invalid={Boolean(errors.name)} maxLength={150} placeholder="e.g. Deluxe Double Room" />
+          </Field>
+
+          {/* The two prices side by side: the nightly one, and what a Friday or Saturday night costs when that differs. */}
+          <div className="grid gap-x-4 gap-y-1 @md:grid-cols-2">
+            <Field error={errors.pricePerNight?.message as string | undefined} label="Price per night">
+              <div className="relative">
+                <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-xs text-muted">{currency}</span>
+                <Input {...form.register("pricePerNight")} className="pl-12" inputMode="decimal" placeholder="e.g. 45" />
+              </div>
+            </Field>
+            <Field error={errors.weekendPrice?.message as string | undefined} label="Weekend price (optional)">
+              <div className="relative">
+                <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-xs text-muted">{currency}</span>
+                <Input {...form.register("weekendPrice")} className="pl-12" inputMode="decimal" placeholder="Same as every night" />
+              </div>
+            </Field>
+            <p className="text-xs text-muted @md:col-span-2">Friday and Saturday nights. Leave it empty when the price is the same all week.</p>
+            <label className="mt-1 flex items-center gap-2.5 text-sm text-ink-soft @md:col-span-2">
+              <input {...form.register("breakfastIncluded")} className="size-4 accent-teal" type="checkbox" />
+              Breakfast included in the price
+            </label>
+          </div>
+
+          <div className="flex flex-wrap gap-x-8 gap-y-4">
+            <Field label="Adults">
+              <Stepper max={40} min={1} name="maxAdults" onStep={step} value={values.maxAdults} />
+            </Field>
+            <Field label="Children">
+              <Stepper max={20} min={0} name="maxChildren" onStep={step} value={values.maxChildren} />
+            </Field>
+          </div>
+
+          <Field label="About this room">
+            <p className="-mt-0.5 mb-2 text-xs text-muted">The paragraph on the room&apos;s page: what it is like, and what makes it the one to choose.</p>
+            <Controller
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <RichText
+                  id="room-description"
+                  onBlur={field.onBlur}
+                  onChange={field.onChange}
+                  placeholder="The layout, the light, what makes it the one to choose…"
+                  value={typeof field.value === "string" ? field.value : ""}
                 />
-                {values.name !== suggested ? (
-                  <button
-                    className="mt-1.5 inline-flex items-center gap-1 text-xs text-teal-deep hover:underline"
-                    onClick={() => {
-                      set("name", suggested);
-                      setNameOwned(false);
-                    }}
-                    type="button"
-                  >
-                    <Sparkles aria-hidden className="size-3.5" />
-                    Use “{suggested}”
-                  </button>
-                ) : (
-                  <p className="mt-1.5 text-xs text-muted">Written from the grade, beds and view until you type your own.</p>
-                )}
-              </Field>
-              <Field label={values.roomType === "DORM_BED" ? "Beds in this dorm" : "How many rooms like this"}>
-                <Stepper max={500} min={1} name="roomCount" onStep={step} value={values.roomCount} />
-              </Field>
-            </div>
-            <div className="mt-4">
-              <Field error={errors.highlight?.message as string | undefined} label="Highlight — one line that makes it stand out">
-                <Input {...form.register("highlight")} maxLength={150} placeholder="e.g. Corner room with the sunset over the Mekong" />
-              </Field>
-            </div>
-          </Section>
+              )}
+            />
+          </Field>
 
-          <Section
-            description={values.roomType === "DORM_BED" ? "The beds in the dorm; each guest books one." : "Every bed in the room, and the most guests it takes."}
-            title="Beds and guests"
-          >
+          <Section description="Every bed in the room." title="Bed type">
             <ul className="divide-y divide-line rounded-lg border border-line">
               {ROOM_BEDS.map((bed) => (
                 <li className="flex items-center gap-3 px-3 py-2" key={bed.name}>
@@ -295,56 +315,12 @@ export function RoomEditor({
                 </li>
               ))}
             </ul>
-
-            <div className="mt-3 flex flex-wrap items-end gap-x-6 gap-y-3">
-              <Field label="Adults">
-                <Stepper max={40} min={1} name="maxAdults" onStep={step} value={values.maxAdults} />
-              </Field>
-              <Field label="Children">
-                <Stepper max={20} min={0} name="maxChildren" onStep={step} value={values.maxChildren} />
-              </Field>
+            <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
               <p className="inline-flex h-9 items-center gap-1.5 rounded-md bg-teal-soft px-3 text-sm font-medium text-teal-deep">
                 <Users aria-hidden className="size-4" />
                 The beds sleep {sleepsOf(values)}
               </p>
             </div>
-            <div className="mt-3 flex flex-wrap items-end gap-x-6 gap-y-3">
-              <Field label="Extra beds you can add">
-                <Stepper max={4} min={0} name="extraBeds" onStep={step} value={values.extraBeds} />
-              </Field>
-              {Number(values.extraBeds) > 0 ? (
-                <Field error={errors.extraBedPrice?.message as string | undefined} label="Extra bed, per night">
-                  <div className="relative w-40">
-                    <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-xs text-muted">{currency}</span>
-                    <Input {...form.register("extraBedPrice")} className="pl-12" inputMode="decimal" placeholder="e.g. 10" />
-                  </div>
-                </Field>
-              ) : null}
-            </div>
-            <div className="mt-3 flex flex-wrap items-end gap-x-6 gap-y-3">
-              <Field label="Cots you can add">
-                <Stepper max={4} min={0} name="cots" onStep={step} value={values.cots} />
-              </Field>
-              {Number(values.cots) > 0 ? (
-                <Field error={errors.cotPrice?.message as string | undefined} label="Cot, per night">
-                  <div className="relative w-40">
-                    <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-xs text-muted">{currency}</span>
-                    <Input {...form.register("cotPrice")} className="pl-12" inputMode="decimal" placeholder="Free" />
-                  </div>
-                </Field>
-              ) : null}
-              <Field error={errors.childrenFreeUnderAge?.message as string | undefined} label="Children stay free under">
-                <div className="relative w-36">
-                  <Input {...form.register("childrenFreeUnderAge")} className="pr-14" inputMode="numeric" placeholder="Nobody" />
-                  <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted">years</span>
-                </div>
-              </Field>
-            </div>
-            {Number(values.childrenFreeUnderAge) > 0 ? (
-              <p className="mt-1.5 text-xs text-muted">
-                Children under {Number(values.childrenFreeUnderAge)} sleep in the beds already there at no charge.
-              </p>
-            ) : null}
             {warning ? (
               <p className="mt-2 flex items-start gap-1.5 text-xs text-gold-deep" role="status">
                 <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
@@ -353,110 +329,7 @@ export function RoomEditor({
             ) : null}
           </Section>
 
-          <Section title={words.like}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field error={errors.sizeSqm?.message as string | undefined} label="Size">
-                <div className="relative">
-                  <Input {...form.register("sizeSqm")} className="pr-10" inputMode="decimal" placeholder="e.g. 28" />
-                  <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted">m²</span>
-                </div>
-                {Number(values.sizeSqm) > 0 ? (
-                  <p className="mt-1 text-xs text-muted tabular-nums">About {Math.round(Number(values.sizeSqm) * 10.764)} sq ft</p>
-                ) : null}
-              </Field>
-              <Field label="Bathroom">
-                <div className="flex gap-1.5">
-                  {alphabetical(ROOM_BATHROOMS).map((option) => (
-                    <Chip key={option.value} on={values.bathroom === option.value} onClick={() => update({ bathroom: option.value })}>
-                      {option.label}
-                    </Chip>
-                  ))}
-                </div>
-              </Field>
-            </div>
-            <div className="mt-4">
-              <p className="mb-1.5 text-xs font-medium text-muted">View</p>
-              <div className="flex flex-wrap gap-1.5">
-                <Chip on={!values.view} onClick={() => update({ view: "" })}>
-                  No particular view
-                </Chip>
-                {alphabetical(ROOM_VIEWS).map((option) => (
-                  <Chip key={option.value} on={values.view === option.value} onClick={() => update({ view: option.value })}>
-                    {option.label}
-                  </Chip>
-                ))}
-              </div>
-            </div>
-            <div className="mt-4 flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-xs font-medium text-muted">Window</span>
-              <Chip on={values.hasWindow !== false} onClick={() => update({ hasWindow: true })}>
-                Has a window
-              </Chip>
-              <Chip on={values.hasWindow === false} onClick={() => update({ hasWindow: false })}>
-                No window
-              </Chip>
-            </div>
-            <label className="mt-3 flex items-center gap-2.5 text-sm text-ink-soft">
-              <input {...form.register("smokingAllowed")} className="size-4 accent-teal" type="checkbox" />
-              Smoking allowed in this room
-            </label>
-          </Section>
-
-          <Section description="What is inside it, where it is in the building, and how it is looked after." title="How it is laid out">
-            <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
-              <Field label="Bedrooms">
-                <Stepper max={20} min={0} name="bedrooms" onStep={step} value={values.bedrooms} />
-              </Field>
-              <Field label="Living rooms">
-                <Stepper max={10} min={0} name="livingRooms" onStep={step} value={values.livingRooms} />
-              </Field>
-              <Field label="Bathrooms">
-                <Stepper max={20} min={0} name="bathroomCount" onStep={step} value={values.bathroomCount} />
-              </Field>
-              {layoutLine(values) ? (
-                <p className="inline-flex h-9 items-center gap-1.5 rounded-md bg-teal-soft px-3 text-sm font-medium text-teal-deep">
-                  <LayoutGrid aria-hidden className="size-4" />
-                  {layoutLine(values)}
-                </p>
-              ) : null}
-            </div>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Field error={errors.floor?.message as string | undefined} label="Floor">
-                <Input {...form.register("floor")} inputMode="numeric" placeholder="Ground floor is 0" />
-                <p className="mt-1 text-xs text-muted">
-                  {floorLabel(values.floor) || "Left open — rooms like this are on different floors."}
-                </p>
-              </Field>
-              <Field label="Lift">
-                <div className="flex gap-1.5">
-                  <Chip on={values.liftAccess === true} onClick={() => update({ liftAccess: true })}>
-                    A lift reaches it
-                  </Chip>
-                  <Chip on={values.liftAccess !== true} onClick={() => update({ liftAccess: false })}>
-                    Stairs only
-                  </Chip>
-                </div>
-                {values.liftAccess !== true && Number(values.floor) > 0 ? (
-                  <p className="mt-1 text-xs text-gold-deep">Guests will read “{floorLabel(values.floor)}, stairs only”.</p>
-                ) : null}
-              </Field>
-            </div>
-            <div className="mt-4">
-              <p className="mb-1.5 text-xs font-medium text-muted">Cleaning during the stay</p>
-              <div className="flex flex-wrap gap-1.5">
-                <Chip on={!values.housekeeping} onClick={() => update({ housekeeping: "" })}>
-                  Not said
-                </Chip>
-                {ROOM_HOUSEKEEPING.map((option) => (
-                  <Chip key={option.value} on={values.housekeeping === option.value} onClick={() => update({ housekeeping: option.value })}>
-                    {option.label}
-                  </Chip>
-                ))}
-              </div>
-            </div>
-          </Section>
-
-          <Section description="Only what every room like this has. Guests filter rooms by these." title="What does it have?">
+          <Section description="Only what every room like this has. Guests filter rooms by these." title="Amenities">
             <Controller
               control={form.control}
               name="amenities"
@@ -464,166 +337,29 @@ export function RoomEditor({
                 <AmenityPicker
                   labelledBy="room-facilities"
                   onChange={(next) => update({ amenities: next })}
-                  options={ROOM_AMENITIES}
-                  popular={ROOM_MOST_REQUESTED}
+                  options={amenityOptions}
+                  popular={[]}
                   value={Array.isArray(field.value) ? field.value : []}
                 />
               )}
             />
           </Section>
 
-          <Section description="The cheapest bookable room becomes the “From” price guests see for this stay." title="Price and terms">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field error={errors.pricePerNight?.message as string | undefined} label="Price per night">
-                <div className="relative">
-                  <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-xs text-muted">{currency}</span>
-                  <Input {...form.register("pricePerNight")} className="pl-12" inputMode="decimal" placeholder="e.g. 45" />
-                </div>
-              </Field>
-              <label className="flex items-center gap-2.5 self-end pb-2 text-sm text-ink-soft">
-                <input {...form.register("breakfastIncluded")} className="size-4 accent-teal" type="checkbox" />
-                Breakfast included in the price
-              </label>
-              <Field error={errors.highSeasonPrice?.message as string | undefined} label="High-season price (Nov–Apr)">
-                <div className="relative">
-                  <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-xs text-muted">{currency}</span>
-                  <Input {...form.register("highSeasonPrice")} className="pl-12" inputMode="decimal" placeholder="Same all year" />
-                </div>
-              </Field>
-              <label className="flex items-center gap-2.5 self-end pb-2 text-sm text-ink-soft">
-                <input {...form.register("taxesIncluded")} className="size-4 accent-teal" type="checkbox" />
-                Taxes included in the price
-              </label>
-            </div>
-            <div className="mt-4 flex flex-wrap items-end gap-x-6 gap-y-3">
-              <Field label="Shortest stay (nights)">
-                <Stepper max={60} min={1} name="minNights" onStep={step} value={values.minNights} />
-              </Field>
-              <div>
-                <p className="mb-1.5 text-xs font-medium text-muted">Payment</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {ROOM_PAYMENT_TERMS.map((option) => (
-                    <Chip key={option.value} on={values.paymentTerms === option.value} onClick={() => update({ paymentTerms: option.value })}>
-                      {option.label}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Field error={errors.weeklyPrice?.message as string | undefined} label="Price per week">
-                <div className="relative">
-                  <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-xs text-muted">{currency}</span>
-                  <Input {...form.register("weeklyPrice")} className="pl-12" inputMode="decimal" placeholder="No weekly rate" />
-                </div>
-                <LongStayHint currency={currency} nights={7} onUse={() => set("weeklyPrice", suggestWeekly(values))} suggestion={suggestWeekly(values)} value={values.weeklyPrice} />
-              </Field>
-              <Field error={errors.monthlyPrice?.message as string | undefined} label="Price per month">
-                <div className="relative">
-                  <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-xs text-muted">{currency}</span>
-                  <Input {...form.register("monthlyPrice")} className="pl-12" inputMode="decimal" placeholder="No monthly rate" />
-                </div>
-                <LongStayHint currency={currency} nights={30} onUse={() => set("monthlyPrice", suggestMonthly(values))} suggestion={suggestMonthly(values)} value={values.monthlyPrice} />
-              </Field>
-            </div>
-            {longStayWarning(values) ? (
-              <p className="mt-2 flex items-start gap-1.5 text-xs text-gold-deep" role="status">
-                <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
-                {longStayWarning(values)}
-              </p>
-            ) : null}
-            {values.paymentTerms === "DEPOSIT" ? (
-              <div className="mt-4">
-                <Field error={errors.depositPercent?.message as string | undefined} label="Deposit to book">
-                  <div className="relative w-36">
-                    <Input {...form.register("depositPercent")} className="pr-8" inputMode="numeric" placeholder="e.g. 30" />
-                    <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted">%</span>
-                  </div>
-                </Field>
-              </div>
-            ) : null}
-            <div className="mt-4">
-              <p className="mb-1.5 text-xs font-medium text-muted">Cancellation</p>
-              <div className="flex flex-wrap gap-1.5">
-                {CANCELLATION_CHOICES.map((days) => (
-                  <Chip key={days || "none"} on={(values.freeCancellationDays ?? "") === days} onClick={() => update({ freeCancellationDays: days })}>
-                    {days === "" ? "Non-refundable" : days === "0" ? "Free until arrival" : `Free until ${days} ${days === "1" ? "day" : "days"} before`}
-                  </Chip>
-                ))}
-              </div>
-              <p className="mt-1.5 text-xs text-muted">{cancellationLabel(values.freeCancellationDays)}.</p>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Shown to guests">
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
+            <div className="mr-auto flex flex-wrap gap-1.5" role="radiogroup" aria-label="Availability">
               <Chip on={values.status !== "INACTIVE"} onClick={() => update({ status: "ACTIVE" })}>
-                Guests can book it
+                Available
               </Chip>
               <Chip on={values.status === "INACTIVE"} onClick={() => update({ status: "INACTIVE" })}>
-                Hidden from guests for now
+                Unavailable
               </Chip>
             </div>
-          </Section>
-
-          <Section description="Chosen from the stay's gallery, so nothing is uploaded twice. The first one leads the room's card." title="Photos">
-            {photos.length && chosenPhotos.length === 0 ? (
-              <p className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-gold/40 bg-gold-soft px-3 py-2 text-sm text-gold-deep" role="status">
-                <TriangleAlert aria-hidden className="size-4 shrink-0" />
-                No photo chosen yet — guests will see this room without a picture.
-                <button
-                  className="font-semibold underline underline-offset-2"
-                  onClick={() => update({ photoKeys: [photos[0].key] })}
-                  type="button"
-                >
-                  Use the first gallery photo
-                </button>
-              </p>
-            ) : null}
-            {photos.length ? (
-              <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-                {photos.map((photo) => {
-                  const at = chosenPhotos.indexOf(photo.key);
-                  return (
-                    <li key={photo.key}>
-                      <button
-                        aria-pressed={at >= 0}
-                        className={cn(
-                          "relative block aspect-4/3 w-full overflow-hidden rounded-md border-2 bg-sand-deep transition-colors",
-                          at >= 0 ? "border-teal" : "border-transparent hover:border-line-strong",
-                        )}
-                        onClick={() =>
-                          update({ photoKeys: at >= 0 ? chosenPhotos.filter((key) => key !== photo.key) : [...chosenPhotos, photo.key] })
-                        }
-                        type="button"
-                      >
-                        <Image alt="" className="object-cover" fill sizes="120px" src={photo.url} unoptimized />
-                        {at >= 0 ? (
-                          <span className="absolute top-1 left-1 grid size-5 place-items-center rounded-full bg-teal text-2xs font-semibold text-white tabular-nums">
-                            {at + 1}
-                          </span>
-                        ) : null}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="flex items-center gap-2 rounded-md border border-dashed border-line-strong bg-sand px-3 py-3 text-sm text-muted">
-                <ImagePlus aria-hidden className="size-4 shrink-0" />
-                Add photos in the stay&apos;s Photos step; they appear here to choose from.
-              </p>
-            )}
-          </Section>
-
-          <Section title="Anything else guests should know?">
-            <Textarea {...form.register("description")} placeholder="The layout, the light, what makes it the one to choose…" rows={3} />
-          </Section>
-
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
             <Button onClick={onCancel} size="sm" type="button" variant="ghost">
               Cancel
             </Button>
             <Button disabled={isSubmitting} onClick={() => void form.handleSubmit(submit, refuse)()} size="sm" type="button">
               {isSubmitting ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : null}
-              {isNew ? words.add : words.save}
+              {isNew ? ROOM_WORDS.add : ROOM_WORDS.save}
             </Button>
           </div>
         </div>
@@ -632,23 +368,6 @@ export function RoomEditor({
           <p className="text-xs font-medium text-muted">How guests will see it</p>
           <RoomCard currency={currency} layout="stacked" photoUrl={firstPhoto} values={values} />
           {firstPhoto ? null : <p className="-mt-1 text-2xs text-gold-deep">Rooms with a photo are chosen far more often than ones without.</p>}
-          <div className="rounded-lg border border-line bg-paper px-3 py-2.5">
-            <p className="mb-1.5 text-xs font-medium text-muted">
-              {checklist.filter((item) => item.done).length} of {checklist.length} details
-            </p>
-            <ul className="flex flex-col gap-1">
-              {checklist.map((item) => (
-                <li className="flex items-center gap-2 text-xs" key={item.label}>
-                  {item.done ? (
-                    <CircleCheck aria-hidden className="size-3.5 text-success" />
-                  ) : (
-                    <CircleDashed aria-hidden className="size-3.5 text-muted" />
-                  )}
-                  <span className={item.done ? "text-ink-soft" : "text-ink"}>{item.label}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
         </aside>
       </div>
       </div>
@@ -669,30 +388,6 @@ function Section({ title, description, children }: { readonly title: string; rea
 }
 
 /** What a week or a month works out at a night, or the price to start from. */
-function LongStayHint({
-  value,
-  suggestion,
-  nights,
-  currency,
-  onUse,
-}: {
-  readonly value: FormValues[string] | undefined;
-  readonly suggestion: string;
-  readonly nights: number;
-  readonly currency: string;
-  readonly onUse: () => void;
-}) {
-  const nightly = perNightOver(typeof value === "string" ? value : "", nights);
-  if (nightly) return <p className="mt-1 text-xs text-muted tabular-nums">Works out at {formatMoney(Number(nightly), currency)} a night.</p>;
-  if (!suggestion) return null;
-  return (
-    <button className="mt-1 inline-flex items-center gap-1 text-xs text-teal-deep hover:underline" onClick={onUse} type="button">
-      <Sparkles aria-hidden className="size-3.5" />
-      Use {formatMoney(Number(suggestion), currency)}
-    </button>
-  );
-}
-
 function Field({ label, error, children }: { readonly label: string; readonly error?: string; readonly children: React.ReactNode }) {
   return (
     <div className="min-w-0">

@@ -17,7 +17,6 @@ import { BulkPhotoUpload } from "@/features/catalog/components/bulk-photo-upload
 import { ListingForm } from "@/features/catalog/components/listing-form/listing-form";
 import { LISTING_GALLERIES, isListing } from "@/features/catalog/components/listing-form/steps";
 import { ResourceForm } from "@/features/catalog/components/resource-form";
-import { CoverageForm } from "@/features/heritage/components/coverage-form";
 import { getResource, isResourceKey } from "@/features/catalog/resources";
 import { galleryOf, withoutField, type FieldValue, type FormValues } from "@/features/catalog/resource";
 import { PageHeader } from "@/features/shell/components/page-header";
@@ -84,11 +83,6 @@ export default async function NewRecordPage(
     /* An administrator's new destination, stay or food starts out live; they may pick Draft instead. */
     ...(publishes && definition.status ? { status: definition.status.live } : {}),
   };
-  /* A timeline entry added from a destination goes back to that destination. */
-  const origin =
-    resource === "destination-histories" && typeof presets.destinationId === "string"
-      ? `/destinations/${presets.destinationId}`
-      : undefined;
   /* Opened from the "What are you adding?" chooser: Back goes back to it. */
   const chooser = query.from === "create" ? { href: "/create", label: "Create destination" } : null;
   /* A listing opened as a type says so: "List a new cafe", not "List a new food listing". */
@@ -102,29 +96,28 @@ export default async function NewRecordPage(
   /* An attraction, a stay or a food listing goes to its desk's reviewer from the form: an editor's or a BDO's to an administrator. */
   const sendsTo = listingTypeOf(resource) && (!canSetStatus(admin.roles, resource) || sendsOwnToAdmin(admin.roles)) ? submissionDesk(admin.roles) : null;
   const formProps = {
-    afterSaveHref: origin ?? (sendsTo && ["PARTNER", "CONTRIBUTOR", "EDITOR", "BDO"].includes(primaryRole(admin.roles) ?? "") ? publishingHref(admin.roles) : undefined),
+    afterSaveHref: sendsTo && ["PARTNER", "CONTRIBUTOR", "EDITOR", "BDO"].includes(primaryRole(admin.roles) ?? "") ? publishingHref(admin.roles) : undefined,
     canPublishOnCreate: publishes,
     canSetStatus: canSetStatus(admin.roles, resource),
-    cancelHref: origin,
     definition,
     presets,
     record: null,
     referenceOptions,
     reviewer: sendsTo ? DESK_REVIEWERS[sendsTo] : undefined,
   };
-  /* A destination, a stay or a food is listed step by step; everything else is one form. */
+  /* A destination, a stay or a food has the listing form, with its sections and checklist; everything else the plain one. */
   const listing = isListing(resource);
   /* A gallery photo is rarely added alone: offer the many-at-once uploader above the single form. */
   const gallery = galleryOf(definition);
   const galleryOwner = gallery ? presets[gallery.owner.name] : undefined;
 
   return (
-    <div className={`mx-auto flex flex-col gap-5 ${listing || resource === "region-coverage" ? "max-w-7xl" : "max-w-4xl"}`}>
+    <div className={`mx-auto flex flex-col gap-5 ${listing ? "max-w-7xl" : "max-w-4xl"}`}>
       <PageHeader
-        backHref={origin ?? chooser?.href ?? listPageOf(resource)}
-        backLabel={origin ? "Destination" : chooser ? chooser.label : listPageLabel(resource, definition.labelPlural)}
-        description={listing ? `List a new ${definition.label.toLowerCase()} in a few short steps. ${definition.description}` : definition.description}
-        title={listing ? `List a new ${noun}` : resource === "region-coverage" ? "Add a royal capital" : `New ${definition.label.toLowerCase()}`}
+        backHref={chooser?.href ?? listPageOf(resource)}
+        backLabel={chooser ? chooser.label : listPageLabel(resource, definition.labelPlural)}
+        description={definition.description}
+        title={listing ? `List a new ${noun}` : `New ${definition.label.toLowerCase()}`}
       />
 
       {gallery ? (
@@ -135,16 +128,7 @@ export default async function NewRecordPage(
         />
       ) : null}
 
-      {/* A royal capital is made beside its region's list as the website shows it. */}
-      {resource === "region-coverage" ? (
-        <CoverageForm
-          canDelete={canDeleteResource(admin.roles, resource)}
-          record={null}
-          referenceOptions={referenceOptions}
-          place={typeof query.place === "string" && /^\d{1,3}$/.test(query.place) ? Number(query.place) : undefined}
-          regionId={typeof presets.regionId === "string" ? presets.regionId : undefined}
-        />
-      ) : listing ? (
+      {listing ? (
         <ListingForm
           {...formProps}
           gallery={{

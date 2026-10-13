@@ -1,135 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Accessibility,
-  AirVent,
-  ArrowUpDown,
-  Baby,
-  Bath,
-  BedSingle,
-  BugOff,
-  Droplets,
-  Footprints,
-  Coffee,
-  DoorClosed,
-  Fan,
-  Flame,
-  LampDesk,
-  Layers,
-  Microwave,
-  MonitorPlay,
-  Moon,
-  Refrigerator,
-  Shirt,
-  Sofa,
-  SprayCan,
-  VolumeX,
-  Wind,
-  Wine,
-  Car,
-  Check,
-  Clock,
-  Compass,
-  ConciergeBell,
-  CookingPot,
-  DoorOpen,
-  Dumbbell,
-  EggFried,
-  Flower2,
-  Heater,
-  Laptop,
-  Luggage,
-  Martini,
-  PawPrint,
-  Plane,
-  Search,
-  ShowerHead,
-  Sparkles,
-  SquareParking,
-  Sun,
-  Trees,
-  Tv,
-  Users,
-  Utensils,
-  Vault,
-  WashingMachine,
-  Waves,
-  Wifi,
-  type LucideIcon,
-} from "lucide-react";
+import { Check, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import type { EnumOption } from "@/features/catalog/resource";
+import type { AmenityOption } from "@/features/catalog/amenities";
+import { AMENITY_ICONS } from "@/features/catalog/amenity-icons";
 import { alphabetical } from "@/features/catalog/resources";
 import { cn } from "@/lib/utils";
-
-const ICONS: Readonly<Record<string, LucideIcon>> = {
-  wifi: Wifi,
-  "wifi-free": Wifi,
-  workspace: Laptop,
-  parking: SquareParking,
-  "parking-free": SquareParking,
-  "airport-shuttle": Plane,
-  "car-hire": Car,
-  pool: Waves,
-  spa: Flower2,
-  gym: Dumbbell,
-  garden: Trees,
-  terrace: Sun,
-  breakfast: EggFried,
-  restaurant: Utensils,
-  bar: Martini,
-  "room-service": ConciergeBell,
-  kitchen: CookingPot,
-  "air-conditioning": AirVent,
-  heating: Heater,
-  "private-bathroom": Bath,
-  balcony: DoorOpen,
-  tv: Tv,
-  safe: Vault,
-  "front-desk-24h": Clock,
-  laundry: WashingMachine,
-  housekeeping: Sparkles,
-  "luggage-storage": Luggage,
-  tours: Compass,
-  "family-rooms": Users,
-  cot: Baby,
-  "pets-allowed": PawPrint,
-  "step-free-access": Accessibility,
-  lift: ArrowUpDown,
-  "accessible-bathroom": ShowerHead,
-  /* A room's own (RoomAmenities). */
-  fan: Fan,
-  "mosquito-net": BugOff,
-  "blackout-curtains": Moon,
-  soundproofing: VolumeX,
-  "hot-water": Flame,
-  shower: ShowerHead,
-  "rain-shower": ShowerHead,
-  bidet: Droplets,
-  towels: Layers,
-  slippers: Footprints,
-  iron: Shirt,
-  bathtub: Bath,
-  hairdryer: Wind,
-  toiletries: SprayCan,
-  bathrobes: Shirt,
-  kettle: Coffee,
-  "coffee-machine": Coffee,
-  minibar: Wine,
-  fridge: Refrigerator,
-  kitchenette: CookingPot,
-  microwave: Microwave,
-  streaming: MonitorPlay,
-  desk: LampDesk,
-  "private-pool": Waves,
-  "seating-area": Sofa,
-  wardrobe: DoorClosed,
-  "step-free": Accessibility,
-  "ground-floor": Layers,
-  "cot-available": Baby,
-  "extra-bed-available": BedSingle,
-};
 
 /** What travellers filter by most, offered first the way booking sites do. */
 const MOST_REQUESTED = [
@@ -147,18 +24,19 @@ interface Amenity {
   readonly value: string;
   readonly group: string;
   readonly label: string;
+  readonly icon?: string;
 }
 
 /** The registry labels an amenity `Group · Name`; the group is how it is laid out here. */
-function split(option: EnumOption): Amenity {
+function split(option: AmenityOption): Amenity {
   const [group, ...rest] = option.label.split(" · ");
   return rest.length
-    ? { value: option.value, group, label: rest.join(" · ") }
-    : { value: option.value, group: "Other", label: option.label };
+    ? { value: option.value, group, label: rest.join(" · "), icon: option.icon }
+    : { value: option.value, group: "Other", label: option.label, icon: option.icon };
 }
 
 interface AmenityPickerProps {
-  readonly options: readonly EnumOption[];
+  readonly options: readonly AmenityOption[];
   readonly value: readonly string[];
   readonly onChange: (value: string[]) => void;
   readonly labelledBy: string;
@@ -240,7 +118,7 @@ export function AmenityPicker({
           <p className="mb-2 text-xs font-medium text-muted">Most requested by guests</p>
           <ul className="flex flex-wrap gap-1.5">
             {popular.map((amenity) => {
-              const Icon = ICONS[amenity.value] ?? Check;
+              const Icon = AMENITY_ICONS[amenity.icon ?? ""] ?? Check;
               const on = selected.has(amenity.value);
               return (
                 <li key={amenity.value}>
@@ -275,7 +153,7 @@ export function AmenityPicker({
               <ul className="clear-left grid gap-x-4 gap-y-0.5 sm:grid-cols-2 2xl:grid-cols-3">
                 {entries.map((amenity) => {
                   /* No stand-in icon: a tick beside an empty checkbox reads as chosen. */
-                  const Icon = ICONS[amenity.value];
+                  const Icon = amenity.icon ? AMENITY_ICONS[amenity.icon] : undefined;
                   const on = selected.has(amenity.value);
                   return (
                     <li key={amenity.value}>

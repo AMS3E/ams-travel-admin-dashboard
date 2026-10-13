@@ -1,5 +1,5 @@
 import { baseApi } from "@/store/api/base-api";
-import type { AdminOverviewResponse, AuditLogResponse } from "./contracts";
+import type { AdminOverviewResponse, AuditLogResponse, DestinationStatsPeriod, DestinationStatsResponse } from "./contracts";
 import type { DestinationResponse, FoodResponse, StayResponse } from "@/features/catalog/api/contracts";
 import type { PublishRequestResponse } from "@/features/publishing/api/contracts";
 export interface DashboardResponse {
@@ -24,6 +24,14 @@ export const dashboardApi = baseApi.injectEndpoints({
       query: () => "dashboard",
       providesTags: ["Dashboard"],
     }),
+    /** Every destination's ratings, reviews, browses, views and Verified standing, for Destination Stats. */
+    getDestinationStats: builder.query<DestinationStatsResponse, DestinationStatsPeriod>({
+      query: ({ from, to }) => ({
+        url: "cms/admin/destination-stats",
+        params: { ...(from ? { from } : {}), ...(to ? { to } : {}) },
+      }),
+      providesTags: ["Dashboard", "Verification"],
+    }),
     /**
      * Clears the whole audit log (full control only). Spring answers the PURGE
      * entry it leaves behind, whose `newData.removed` says how many went.
@@ -34,4 +42,4 @@ export const dashboardApi = baseApi.injectEndpoints({
     }),
   }),
 });
-export const { useGetDashboardQuery, useClearAuditLogMutation } = dashboardApi;
+export const { useGetDashboardQuery, useGetDestinationStatsQuery, useClearAuditLogMutation } = dashboardApi;

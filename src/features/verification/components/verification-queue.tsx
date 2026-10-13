@@ -17,7 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { byName } from "@/features/catalog/resources";
 import { useGetVerificationQueueQuery } from "../api/verification-api";
-import type { VerificationQueueItem } from "../api/contracts";
+import { BASIS_LABELS, decidedVerified, type VerificationQueueItem } from "../api/contracts";
 import { VerifyDrawer, type DrawerFocus } from "./verify-drawer";
 
 type Filter = "awaiting" | "verified" | "all";
@@ -48,7 +48,7 @@ const WRITTEN_BY_FILTER: Readonly<Record<PublishDesk, string>> = {
 
 const EMPTY: Readonly<Record<Filter, string>> = {
   awaiting: "Nothing is waiting: every destination here has been verified.",
-  verified: "No destination is verified yet. Verify one on its invoice or licence.",
+  verified: "No destination is verified yet. Verify one on what it rests on: an official site, a partnership, or an invoice.",
   all: "There is no destination to verify yet.",
 };
 
@@ -107,9 +107,12 @@ export function VerificationQueue({ grants }: { readonly grants: readonly string
   return (
     <section aria-label="Verification queue" className="panel min-w-0 overflow-hidden">
       <p className="border-b border-line bg-sand px-4 py-2 text-xs text-muted">
-        {scopeOf(grants)} Verify on paperwork: attach the invoice or receipt (a
-        PDF or a photo) or give its number, and renew it when a new one comes
-        in. Revoking needs a note.
+        {scopeOf(grants)} A verified place shows as Recommended by AMS Travel
+        in the app. Verify on what it rests on: an official site needs no
+        paperwork, a partner&apos;s listing its agreement, a paid one its invoice
+        or receipt; renew when new paperwork comes in, and say why when you
+        revoke. Recommended by Traveler is earned from reviews and is nobody&apos;s
+        to file or revoke.
       </p>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2.5">
@@ -191,7 +194,7 @@ export function VerificationQueue({ grants }: { readonly grants: readonly string
 
       {open && current ? (
         <VerifyDrawer
-          destination={{ id: current.destinationId, name: current.destinationName, verified: current.verified, desk: current.desk }}
+          destination={{ id: current.destinationId, name: current.destinationName, verified: decidedVerified(current), desk: current.desk }}
           focus={open.focus}
           key={`${open.id}-${open.focus}`}
           onClose={() => setOpen(null)}
@@ -208,14 +211,25 @@ export function VerificationQueue({ grants }: { readonly grants: readonly string
  * than somebody's decision.
  */
 function decisionLine(item: VerificationQueueItem): string {
-  if (item.id == null || !item.createdAt) return item.verified ? "Verified" : "Never verified";
-  return [
-    `${item.verified ? "Verified" : "Revoked"} by ${item.decidedByName ?? "a deleted account"}`,
-    formatDateTime(item.createdAt),
-    item.reference,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const decision =
+    item.id != null && item.createdAt
+      ? [
+          `${decidedVerified(item) ? "Verified" : "Revoked"} by ${item.decidedByName ?? "a deleted account"}`,
+          formatDateTime(item.createdAt),
+          item.reference,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : null;
+  /* The travellers' seal verifies it whatever the last decision was, so it comes first. */
+  if (item.basis === "TRAVELER_SCORE") return ["Verified by the travellers' reviews", decision].filter(Boolean).join(" · ");
+  return decision ?? "Never verified";
+}
+
+/** The star ratings behind the travellers' seal, or on the way to it. */
+function ratingsLine(item: VerificationQueueItem): string | null {
+  if (!item.ratingCount) return null;
+  return `${item.ratingCount.toLocaleString()} ${item.ratingCount === 1 ? "rating" : "ratings"}${item.averageRating != null ? ` at ${item.averageRating}` : ""}`;
 }
 
 function QueueRow({
@@ -260,14 +274,17 @@ function QueueRow({
       <div className="flex flex-wrap items-center gap-2">
         <Badge>{WRITTEN_BY[item.desk]}</Badge>
         <Badge dot tone={status?.tone ?? "neutral"}>{status?.label ?? item.destinationStatus}</Badge>
+        {item.travelerRecommended ? <Badge tone="success">Recommended by Traveler</Badge> : null}
         <span className="flex flex-col items-start gap-0.5">
           <Badge tone={item.verified ? "info" : "neutral"}>
-            {item.verified ? "Verified" : "Not verified"}
+            {item.verified && item.basis ? `Verified · ${BASIS_LABELS[item.basis]}` : item.verified ? "Verified" : "Not verified"}
           </Badge>
-          {item.verified && item.decidedByName ? (
+          {decidedVerified(item) && item.decidedByName ? (
             <span className="text-2xs text-muted" title={item.createdAt ? formatDateTime(item.createdAt) : undefined}>
               by {item.decidedByName}
             </span>
+          ) : ratingsLine(item) ? (
+            <span className="text-2xs text-muted">{ratingsLine(item)}</span>
           ) : null}
         </span>
 
@@ -281,7 +298,7 @@ function QueueRow({
         >
           <History aria-hidden className="size-4" />
         </Button>
-        {item.verified ? (
+        {decidedVerified(item) ? (
           <>
             <Button onClick={() => onOpen("verify")} size="sm" type="button" variant="secondary">
               <RefreshCw aria-hidden className="size-3.5" />

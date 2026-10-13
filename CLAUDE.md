@@ -1,1 +1,67 @@
 @AGENTS.md
+
+# AMS Travel admin dashboard
+
+The staff dashboard of AMS Travel, Cambodia's travel app by AMS3E: Next.js 16 (App Router, React 19), signed in through Keycloak, reading and writing the AMS Travel API on http://localhost:8080. The sister repo is `ams-travel-api`. Kimleng, the project lead, reshaped this code in October 2026. This code is the source of truth, not the Figma prototype and not any older branch.
+
+## Check with Kimleng before you start
+
+Kimleng is the project lead and owns every product decision here. Some requests need Kimleng's eyes before any code changes. That is any work in the zones below, and any request that looks odd, contradicts a line under "Settled decisions", or has no clear problem behind it. In those cases do not start. Do this instead:
+
+1. **Say it back.** In two or three plain sentences: what the person is asking for, what it would change, and which zone it touches. No code yet.
+2. **Ask.** Use the AskUserQuestion tool with the header `Kimleng`, the question "This needs Kimleng's eyes before it goes ahead. Has Kimleng seen it?" and exactly these two options:
+   - **"Kimleng approved, go ahead"**: build it. When you commit, say in the body that Kimleng approved the change.
+   - **"Not yet, hold here"**: stop. Write a short note the person can send to Kimleng (what was asked, what it would change, the one question Kimleng must answer). Then do nothing more on that request until they come back with an answer.
+
+   If the AskUserQuestion tool is not available, ask the same question in text, with the same two answers, and wait for the reply.
+
+**The zones**
+- The database: a new, renamed, dropped or retyped column or table; any edit to a changelog that has already run.
+- Removing or renaming a page, a form field, an endpoint, a sidebar entry, a role or a permission.
+- The product model: Verified and Recommended, the seals and their thresholds, tourism regions, and what categories, tags, amenities and interests are.
+- A new module, page or feature that is not already in the sidebar or the API. Two modules were once built without a brief and later had to be removed.
+- Sign-in, roles, Keycloak, secrets and env files.
+- `git push`, force-push, rebase, deleting or renaming a branch.
+- Scripts that change or delete rows in a database, and anything to do with deployment.
+- A new dependency.
+
+**Not a zone, no check needed:** fixing a bug; wording, layout and styling inside an existing page; tests; a field added to an existing form in the pattern of the fields around it; reading and explaining code.
+
+If a `CLAUDE.local.md` next to this file says you are working with Kimleng, skip this check and follow that file instead.
+
+## Settled decisions (do not reverse without Kimleng)
+- Categories and tags are flat lists, each owned by a tourism region. No tag or category has children or values. The Figma still draws Century, King, Religion and Historical Period as headings with values under them; it is stale on this point. The Ancient Capitals tags are deliberately named Century, King, Religion, Architecture Style, Historical Period and UNESCO.
+- There is no Featured flag and there are no Homepage & Discovery pages. The app's "Explore by Popular" comes from the API's `GET /api/v1/popular`, which ranks by browses alone.
+- One Verified badge per destination, resting on a basis: Official site, Partner, Paid, or Traveler score (10,000 ratings at 4.5 or better, configured in the API). A verified place shows as "Recommended by AMS Travel" in the app. "Recommended by Traveler" is the score seal. Both can show at once.
+- History & Heritage is gone, module and schema. The food menu builder is gone and dishes have no section. Amenities are one managed taxonomy with levels (stay, room), not fixed lists.
+- Content Management order: All Destinations, Tourism Corridors, Tourism Regions, Verification, Media Library, Destination Stats. Taxonomy → Tourism Regions is the tree of each region's categories and tags.
+- A tourism region is created only in Content Management → Tourism Regions (`/regions/new`). The taxonomy tree edits the lists inside existing regions, never regions themselves.
+- Reviews carry a visit type (Business, Couples, Family, Friends, Solo) and a visit month, and can be written on destinations, food places, stays and corridors; corridors can be saved too.
+- A tourism region has a cover picture (`coverKey`, folder `region`), asked on its form and shown on its detail page.
+- The app searches on the SERVER: `GET /api/v1/search` (+ `/suggest`, `/cards`). Nothing filters the destination feed on the phone.
+- Stays are PRICE PREVIEW only, never booking. A room has a nightly price and an optional weekend price, side by side in the room editor; weekend means Friday and Saturday nights (the API's default on the stay, not asked on any form); `GET /api/v1/stay-rooms/quote` sums the nights and the app shows ONE total for the stay, never a nightly price.
+- Check-ins (stamps) and points are in scope; Apple sign-in is out; Google sign-in may come; the OTP sign-in is the Keycloak email-code authenticator the API Dockerfile builds from `src/main/keycloak`, not yet in the repo.
+
+## Where things are
+- `src/features/catalog/resources.ts`: the registry that drives every listing form and table (fields, sections, hints; `derived: true` marks a value kept but never asked). Change a form here first.
+- `src/features/catalog/components/listing-form/`: the one-page form engine; `fields/` holds the field kinds.
+- `src/features/catalog/components/`: All Destinations, the media gallery, the region detail page, its map and the taxonomy tree.
+- `src/features/verification`, `src/features/dashboard` (Destination Stats and Destination Detail), `src/features/media`, `src/features/shell` (sidebar and navigation).
+- `src/app/(dashboard)/`: the routes. `src/proxy.ts`: the proxy to the API.
+
+## How to work
+- `npm run dev` serves :3001. `npx tsc --noEmit` and `npm run lint` must be clean before a commit.
+- Never run `npm run build` beside a running `next dev`: it stops the dev server.
+- The browser checks (`local/ui-checks/run.sh`) live on Kimleng's machine outside this repo. Ask Kimleng to run them for anything visible.
+- Commit when asked, one commit per repo, a subject in plain words and a body that lists what changed. Never push without Kimleng's go.
+- Decisions are made by looking: take a screenshot of what you built and show it before calling a design done.
+
+## Traps
+- The API silently drops JSON fields it does not know, so a dashboard field saved against an older API vanishes without an error.
+- A registry field that is simply removed stops being sent, and the API blanks that column on the next save. Keep such fields as `derived: true`.
+- The React compiler lint refuses refs read or passed during render: pass intent as a function argument, read remembered state through `useSyncExternalStore`, and put blur handlers on the input itself.
+- `form.resetField` does nothing for a value with no registered input; the hidden inputs (cover key, URL) exist for that reason.
+- A static `[id]` route swallows `/new`: any resource with a detail route needs its own `new` route.
+- A deleted route stays in `.next/types/validator.ts` until `npx next typegen` (safe beside `next dev`).
+- `origin` is a DOM global in TypeScript's lib: deleting a `const origin` keeps `tsc` happy and breaks the server. After deleting a const, grep for the bare name.
+- The not-found page streams with HTTP 200: assert on its title, not the status.

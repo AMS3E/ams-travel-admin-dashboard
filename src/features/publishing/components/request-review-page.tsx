@@ -52,7 +52,7 @@ function photosOf(listingId: string, gallery: ResourceDefinition, rows: readonly
     .filter((photo) => photo.key);
 }
 
-/** Rooms or dishes of this listing, each with its first photo, in their order. */
+/** Rooms of this listing, each with its first photo, in their order. */
 function itemsOf(
   listingId: string,
   owner: string,
@@ -96,11 +96,10 @@ export async function RequestReviewPage({ page, id }: { readonly page: string; r
     throw error;
   }
 
-  const [lists, galleryRows, roomRows, dishRows, userId] = await Promise.all([
+  const [lists, galleryRows, roomRows, userId] = await Promise.all([
     getReferenceOptions(definition, "fields"),
     getRecords(galleryDefinition.key).catch(() => []),
     request.targetType === "STAY" ? getRecords("stay-rooms").catch(() => []) : [],
-    request.targetType === "FOOD" ? getRecords("food-menu-items").catch(() => []) : [],
     getBackendUserId(),
   ]);
 
@@ -116,7 +115,6 @@ export async function RequestReviewPage({ page, id }: { readonly page: string; r
   const photos = photosOf(record.id, galleryDefinition, galleryRows);
   const photoUrls = new Map(photos.map((photo) => [photo.key, photo.url]));
   const rooms = itemsOf(record.id, "stayId", getResource("stay-rooms"), roomRows, photoUrls);
-  const dishes = itemsOf(record.id, "foodId", getResource("food-menu-items"), dishRows, photoUrls);
 
   const values = toFormValues(definition, record);
   const kindField = definition.fields.find((field) => field.name === (resource === "destinations" ? "theme" : "type"));
@@ -125,7 +123,6 @@ export async function RequestReviewPage({ page, id }: { readonly page: string; r
   const lines = checkedLines(readinessChecks(definition, kind), {
     ...values,
     rooms: rooms.length ? String(rooms.length) : "",
-    dishes: dishes.length ? String(dishes.length) : "",
   });
 
   const coverKey = typeof values.coverKey === "string" ? values.coverKey : "";
@@ -174,7 +171,6 @@ export async function RequestReviewPage({ page, id }: { readonly page: string; r
             cover={cover}
             currency={currency}
             definition={definition}
-            dishes={dishes}
             kind={kind}
             options={options}
             photos={photos}
