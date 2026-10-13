@@ -41,3 +41,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude Code: personal notes for whoever works here, never shared
+CLAUDE.local.md
