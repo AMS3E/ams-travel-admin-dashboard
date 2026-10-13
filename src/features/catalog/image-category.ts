@@ -24,6 +24,8 @@ export const IMAGE_CATEGORIES = [
   "food",
   /** A corridor's cover. */
   "corridor",
+  /** A tourism region's cover: its Explore card and the banner of its page. */
+  "region",
   /** Partner logos. */
   "partner",
   /**

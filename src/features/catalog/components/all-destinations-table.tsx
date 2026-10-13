@@ -136,7 +136,6 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
           <TableRow className="hover:bg-transparent">
             <TableHeaderCell>Name</TableHeaderCell>
             <TableHeaderCell>Type</TableHeaderCell>
-            <TableHeaderCell className="hidden md:table-cell">Kind</TableHeaderCell>
             <TableHeaderCell>Status</TableHeaderCell>
             <TableHeaderCell className="text-right">
               <span className="sr-only">Actions</span>
@@ -175,7 +174,6 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
                     {row.typeLabel}
                   </span>
                 </TableCell>
-                <TableCell className="hidden text-sm text-ink-soft md:table-cell">{row.kind ?? <span className="text-muted">—</span>}</TableCell>
                 <TableCell>
                   <span className="flex flex-wrap items-center gap-1.5">
                     <Badge dot tone={row.statusTone}>

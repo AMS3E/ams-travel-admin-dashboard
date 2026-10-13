@@ -174,7 +174,7 @@ export function RoomEditor({
 
   /** A problem with a field this editor does not show — said, rather than failing quietly. */
   function refuse(invalid: Record<string, { message?: unknown } | undefined>) {
-    const shown = new Set(["name", "pricePerNight", "description"]);
+    const shown = new Set(["name", "pricePerNight", "weekendPrice", "description"]);
     const hidden = Object.entries(invalid)
       .filter(([name]) => !shown.has(name))
       .map(([name, error]) => `${definition.fields.find((field) => field.name === name)?.label ?? name}: ${String(error?.message ?? "invalid")}`);
@@ -255,16 +255,26 @@ export function RoomEditor({
             <Input {...form.register("name")} aria-invalid={Boolean(errors.name)} maxLength={150} placeholder="e.g. Deluxe Double Room" />
           </Field>
 
-          <Field error={errors.pricePerNight?.message as string | undefined} label="Price per night">
-            <div className="relative">
-              <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-xs text-muted">{currency}</span>
-              <Input {...form.register("pricePerNight")} className="pl-12" inputMode="decimal" placeholder="e.g. 45" />
-            </div>
-            <label className="mt-2 flex items-center gap-2.5 text-sm text-ink-soft">
+          {/* The two prices side by side: the nightly one, and what a Friday or Saturday night costs when that differs. */}
+          <div className="grid gap-x-4 gap-y-1 @md:grid-cols-2">
+            <Field error={errors.pricePerNight?.message as string | undefined} label="Price per night">
+              <div className="relative">
+                <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-xs text-muted">{currency}</span>
+                <Input {...form.register("pricePerNight")} className="pl-12" inputMode="decimal" placeholder="e.g. 45" />
+              </div>
+            </Field>
+            <Field error={errors.weekendPrice?.message as string | undefined} label="Weekend price (optional)">
+              <div className="relative">
+                <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-xs text-muted">{currency}</span>
+                <Input {...form.register("weekendPrice")} className="pl-12" inputMode="decimal" placeholder="Same as every night" />
+              </div>
+            </Field>
+            <p className="text-xs text-muted @md:col-span-2">Friday and Saturday nights. Leave it empty when the price is the same all week.</p>
+            <label className="mt-1 flex items-center gap-2.5 text-sm text-ink-soft @md:col-span-2">
               <input {...form.register("breakfastIncluded")} className="size-4 accent-teal" type="checkbox" />
               Breakfast included in the price
             </label>
-          </Field>
+          </div>
 
           <div className="flex flex-wrap gap-x-8 gap-y-4">
             <Field label="Adults">

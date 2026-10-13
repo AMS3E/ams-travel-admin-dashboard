@@ -17,7 +17,10 @@ export interface ReviewOverview {
 }
 
 /** What a review is about. */
-export type ReviewTarget = "DESTINATION" | "FOOD" | "STAY";
+export type ReviewTarget = "DESTINATION" | "FOOD" | "STAY" | "CORRIDOR";
+
+/** Who the author travelled with, as the app's "Kind of visit" chips offer it. */
+export type ReviewVisitType = "BUSINESS" | "COUPLES" | "FAMILY" | "FRIENDS" | "SOLO";
 
 export type ReviewStatus = "VISIBLE" | "HIDDEN";
 
@@ -34,6 +37,10 @@ export interface ReviewResponse {
   readonly rating: number;
   readonly title: string | null;
   readonly content: string | null;
+  /** Who came, when the author said. */
+  readonly visitType: ReviewVisitType | null;
+  /** The month of the visit as `YYYY-MM`, when the author said. */
+  readonly visitedOn: string | null;
   readonly status: ReviewStatus;
   readonly photos: readonly ReviewPhoto[] | null;
   readonly createdAt: string;

@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import { mediaPath } from "@/features/catalog/resource";
 import Link from "next/link";
 import { ArrowUpRight, ImageIcon, LoaderCircle, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +69,8 @@ export function RegionDetail({ id }: { readonly id: string }) {
     [places],
   );
   const overview = text(row?.description);
+  const coverKey = text(row?.coverKey);
+  const cover = text(row?.coverUrl) || (coverKey ? mediaPath(coverKey) : "");
 
   return (
     <div className="flex flex-col gap-4">
@@ -79,8 +82,13 @@ export function RegionDetail({ id }: { readonly id: string }) {
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <Surface aria-label="Overview">
-          <SurfaceHeader description="The lines under its name on its Discover page." title="Overview" />
+          <SurfaceHeader description="Its cover picture and the lines under its name on its Discover page." title="Overview" />
           <div className="p-4">
+            {cover ? (
+              <Image alt="" className="mb-4 aspect-[2/1] w-full rounded-md object-cover ring-1 ring-line" data-field="cover" height={320} src={cover} unoptimized width={640} />
+            ) : (
+              <p className="mb-4 text-xs text-muted" data-field="cover">No cover picture yet: choose one on its form.</p>
+            )}
             {overview ? <div className={STORY_CLASSES} dangerouslySetInnerHTML={{ __html: overview }} /> : <p className="text-sm text-muted">Nothing written yet.</p>}
           </div>
         </Surface>

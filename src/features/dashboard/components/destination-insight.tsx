@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { visitLine } from "@/features/dashboard/reviews";
 import Image from "next/image";
 import { Eye, ImageIcon, MapPin, MessageSquare, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -132,6 +133,7 @@ export function DestinationInsight({ id, grants }: { readonly id: string; readon
                         <div>
                           <h3 className="text-sm font-medium text-ink">{review.authorName || "Traveler"}</h3>
                           <p className="mt-0.5 text-xs text-muted">{formatDateTime(review.createdAt)}</p>
+                          {visitLine(review) ? <p className="mt-0.5 text-xs text-muted">{visitLine(review)}</p> : null}
                         </div>
                         <span className="flex items-center gap-1 text-xs font-medium text-ink-soft tabular-nums">
                           <Star aria-hidden className="size-3.5 fill-gold text-gold" />
