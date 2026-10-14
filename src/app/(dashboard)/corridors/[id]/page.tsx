@@ -4,9 +4,10 @@ import { Eye, ListOrdered, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Metric, MetricStrip } from "@/components/ui/metric-strip";
-import { canSetStatus } from "@/features/auth/permissions";
+import { canCreateResource, canDeleteResource, canSetStatus } from "@/features/auth/permissions";
 import { mapsSettings } from "@/features/corridors/api/corridors.server";
 import { loadCorridorPage } from "@/features/corridors/api/load-corridor.server";
+import { CorridorGallery } from "@/features/corridors/components/corridor-gallery";
 import { ItineraryView } from "@/features/corridors/components/itinerary-view";
 import { PublishButton } from "@/features/corridors/components/publish-button";
 import { ROUTE_STATUS, formatBudget, formatDistance, formatDuration, formatMinutes } from "@/features/corridors/format";
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: CorridorPageProps): Promise<M
   return { title: itinerary.corridor.name };
 }
 
-/** A corridor at a glance: its standing, its figures, and its itinerary on the map. */
+/** A corridor at a glance: its standing, its figures, its itinerary on the map, and its photos. */
 export default async function CorridorDetailPage({ params }: CorridorPageProps) {
   const { id } = await params;
   const { admin, itinerary } = await loadCorridorPage(id);
@@ -82,6 +83,12 @@ export default async function CorridorDetailPage({ params }: CorridorPageProps) 
       ) : null}
 
       <ItineraryView itinerary={itinerary} maps={mapsSettings()} />
+
+      <CorridorGallery
+        canAdd={canCreateResource(admin.roles, "corridor-media")}
+        canDelete={canDeleteResource(admin.roles, "corridor-media")}
+        corridor={corridor}
+      />
     </div>
   );
 }

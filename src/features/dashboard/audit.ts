@@ -16,8 +16,8 @@ function singular(word: string): string {
   return word;
 }
 
-/** The three galleries are one API table, audited as `MediaItem`. */
-const GALLERIES: ReadonlySet<ResourceKey> = new Set(["destination-media", "stay-media", "food-media"]);
+/** The four galleries are one API table, audited as `MediaItem`. */
+const GALLERIES: ReadonlySet<ResourceKey> = new Set(["destination-media", "stay-media", "food-media", "corridor-media"]);
 
 export function entityTypeOf(key: ResourceKey): string {
   if (GALLERIES.has(key)) return "MediaItem";

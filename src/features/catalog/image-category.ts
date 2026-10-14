@@ -26,6 +26,8 @@ export const IMAGE_CATEGORIES = [
   "corridor",
   /** A tourism region's cover: its Explore card and the banner of its page. */
   "region",
+  /** A province's cover: its card on the app's province list and the top of its page. */
+  "province",
   /** Partner logos. */
   "partner",
   /**

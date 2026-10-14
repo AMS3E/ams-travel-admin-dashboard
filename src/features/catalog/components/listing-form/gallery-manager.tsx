@@ -12,7 +12,7 @@ import type { CatalogRecord } from "@/features/catalog/api/contracts";
 import { IMAGE_ACCEPT } from "@/features/catalog/media-upload";
 import { galleryOf, mediaPath, toFormValues } from "@/features/catalog/resource";
 import { getResource } from "@/features/catalog/resources";
-import { LISTING_GALLERIES, type ListingKey } from "@/features/catalog/components/listing-form/steps";
+import { GALLERIES, type GalleryOwner } from "@/features/catalog/components/listing-form/steps";
 import {
   progressLabel,
   useGalleryRows,
@@ -36,7 +36,8 @@ export interface CoverPhoto {
 }
 
 interface GalleryManagerProps {
-  readonly listing: ListingKey;
+  /** Whose photos: a destination's, a stay's, a food listing's or a tourism corridor's. */
+  readonly listing: GalleryOwner;
   /** Null while the listing is being created. */
   readonly listingId: string | null;
   readonly pending: readonly PendingPhoto[];
@@ -97,7 +98,7 @@ export function GalleryManager({
   canDelete,
   onBusyChange,
 }: GalleryManagerProps) {
-  const definition = getResource(LISTING_GALLERIES[listing]);
+  const definition = getResource(GALLERIES[listing]);
   const gallery = galleryOf(definition)!;
   const order = definition.orderField;
   const input = useRef<HTMLInputElement>(null);

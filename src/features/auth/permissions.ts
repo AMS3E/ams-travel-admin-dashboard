@@ -22,6 +22,11 @@ const DESTINATION_CONTENT: ReadonlySet<ResourceKey> = new Set([
   "destination-media",
 ]);
 
+/** A tourism corridor's photographs: written and removed by whoever curates corridors, as the corridor is. */
+const CORRIDOR_CONTENT: ReadonlySet<ResourceKey> = new Set([
+  "corridor-media",
+]);
+
 /**
  * Stays and foods (and a food's photos): the editors', and a partner
  * member's for their own partner's rows — which rows those are is the API's
@@ -80,7 +85,7 @@ export function canManageResource(
   if (resource === "destinations") {
     return roles.some((role) => DESTINATION_PERMISSIONS.has(role));
   }
-  if (resource === "corridors") return roles.includes("PERM_CORRIDOR_CURATE");
+  if (resource === "corridors" || CORRIDOR_CONTENT.has(resource)) return roles.includes("PERM_CORRIDOR_CURATE");
   if (DESTINATION_CONTENT.has(resource)) return roles.includes("PERM_DESTINATION_EDIT_ANY");
   if (LISTINGS.has(resource)) {
     return roles.includes("PERM_DESTINATION_EDIT_ANY") || roles.includes("PERM_LISTING_EDIT_OWN");
@@ -193,7 +198,7 @@ export function canDeleteResource(
   if (DESTINATION_CONTENT.has(resource)) {
     return roles.some((role) => DESTINATION_WRITERS.has(role));
   }
-  if (LISTINGS.has(resource)) {
+  if (LISTINGS.has(resource) || CORRIDOR_CONTENT.has(resource)) {
     return canManageResource(roles, resource);
   }
   /* Corridors, the taxonomy, badges and seasons: other rows point at them. */

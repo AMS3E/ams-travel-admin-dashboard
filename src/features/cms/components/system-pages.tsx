@@ -128,6 +128,7 @@ const advanced: ResourceKey[] = [
   "stay-rooms",
   "food-media",
   "food-menu-items",
+  "corridor-media",
   "badge-definitions",
   "badge-periods",
   "seasons",
