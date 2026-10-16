@@ -9,6 +9,8 @@ import {
   navGroups,
   type NavItem,
 } from "@/features/shell/nav";
+import { useNavText } from "@/features/shell/nav-text";
+import { useTranslations } from "next-intl";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setGroupOpen } from "@/store/slices/sidebar-slice";
 import { cn } from "@/lib/utils";
@@ -33,14 +35,17 @@ export function SidebarNav({
   const dispatch = useAppDispatch();
   const chosen = useAppSelector((state) => state.sidebar.groups);
   const groups = navGroups(roles);
+  const t = useTranslations("shell.sidebar");
+  const nav = useNavText();
 
   function renderLink(item: NavItem, nested: boolean) {
     const active = isNavigationActive(item, pathname);
     const Icon = item.icon;
+    const label = nav.label(item.text);
     return (
       <Link
         aria-current={active ? "page" : undefined}
-        aria-label={collapsed ? item.label : undefined}
+        aria-label={collapsed ? label : undefined}
         className={cn(
           /* One line for most; a long name — Create Historical Coverage — takes a second rather than being cut. */
           "group/link relative flex min-h-8 items-center gap-2.5 rounded-md py-1 text-sm transition-colors",
@@ -51,30 +56,33 @@ export function SidebarNav({
         )}
         href={item.href}
         onClick={onNavigate}
-        title={collapsed ? item.label : undefined}
+        title={collapsed ? label : undefined}
       >
         <Icon
           aria-hidden
           className={cn("size-4 shrink-0", active ? "text-teal" : "text-muted group-hover/link:text-ink-soft")}
           strokeWidth={1.75}
         />
-        {!collapsed ? <span className="line-clamp-2 min-w-0 flex-1 leading-tight">{item.label}</span> : null}
+        {!collapsed ? <span className="line-clamp-2 min-w-0 flex-1 leading-tight">{label}</span> : null}
       </Link>
     );
   }
 
   return (
-    <nav aria-label="CMS navigation" className={cn("flex flex-col pb-4", collapsed ? "gap-1 px-2" : "gap-0.5 px-2.5")}>
+    <nav aria-label={t("navigation")} className={cn("flex flex-col pb-4", collapsed ? "gap-1 px-2" : "gap-0.5 px-2.5")}>
       {renderLink(dashboardItem, false)}
 
       {groups.map((group) => {
-        const id = "nav-" + group.title.replaceAll(/[^A-Za-z0-9]+/g, "-");
+        /* Open or closed is remembered by the group, not by its title, which changes with the language. */
+        const stateKey = group.desk ? `${group.key}-${group.desk}` : group.key;
+        const id = `nav-${stateKey}`;
+        const title = nav.group(group);
         const holdsCurrent = group.items.some((item) => isNavigationActive(item, pathname));
-        const open = chosen[group.title] ?? holdsCurrent;
+        const open = chosen[stateKey] ?? holdsCurrent;
 
         if (collapsed) {
           return (
-            <section aria-label={group.title} className="mt-1 flex flex-col gap-1 border-t border-line pt-2" key={group.title}>
+            <section aria-label={title} className="mt-1 flex flex-col gap-1 border-t border-line pt-2" key={stateKey}>
               <ul className="flex flex-col gap-0.5">
                 {group.items.map((item) => (
                   <li key={item.href}>{renderLink(item, false)}</li>
@@ -85,21 +93,21 @@ export function SidebarNav({
         }
 
         return (
-          <section className="mt-3 first-of-type:mt-4" key={group.title}>
+          <section className="mt-3 first-of-type:mt-4" key={stateKey}>
             <button
               aria-controls={id}
               aria-expanded={open}
               className="group/head flex h-7 w-full items-center gap-1.5 rounded-md px-2 text-left text-xs font-medium text-muted transition-colors hover:bg-sand-deep hover:text-ink-soft"
-              onClick={() => dispatch(setGroupOpen({ title: group.title, open: !open }))}
+              onClick={() => dispatch(setGroupOpen({ title: stateKey, open: !open }))}
               type="button"
             >
               <ChevronRight
                 aria-hidden
                 className={cn("size-3.5 shrink-0 transition-transform", open && "rotate-90")}
               />
-              <span className="min-w-0 flex-1 truncate">{group.title}</span>
+              <span className="min-w-0 flex-1 truncate">{title}</span>
               {!open && holdsCurrent ? (
-                <span aria-hidden className="size-1.5 rounded-full bg-teal" title="The current page is in this group" />
+                <span aria-hidden className="size-1.5 rounded-full bg-teal" title={t("currentInGroup")} />
               ) : !open ? (
                 <span className="text-2xs text-muted/80 tabular-nums opacity-0 transition-opacity group-hover/head:opacity-100">
                   {group.items.length}

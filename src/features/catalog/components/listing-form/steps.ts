@@ -10,11 +10,14 @@ import {
   ChefHat,
   type LucideIcon,
 } from "lucide-react";
+import { createTranslator, type _Translator, type Messages } from "next-intl";
+import englishForms from "@locales/en/forms.json";
 import type {
   FieldValue,
   ResourceDefinition,
   ResourceKey,
 } from "@/features/catalog/resource";
+import { getResource } from "@/features/catalog/resources";
 
 /**
  * The listing forms — a destination, a stay, a food — as one page of sections,
@@ -51,6 +54,13 @@ export const GALLERIES: Readonly<Record<GalleryOwner, ResourceKey>> = {
   corridors: "corridor-media",
 };
 
+/** The words of the sections, from `useTranslations("forms.steps")` or `getTranslations("forms.steps")`. */
+export type StepWords = _Translator<Messages, "forms.steps">;
+
+/** English, for a caller that passes no words of its own. */
+const ENGLISH: StepWords = createTranslator({ locale: "en", messages: { forms: englishForms }, namespace: "forms.steps" });
+const ENGLISH_LABELS: Readonly<Record<string, string>> = englishForms.steps.labels;
+
 export interface StepGroup {
   readonly title?: string;
   readonly description?: string;
@@ -63,6 +73,8 @@ export interface StepGroup {
   readonly columns?: "one";
   /** The stay's rooms block follows this group. */
   readonly rooms?: true;
+  /** The title says what its first field's own label says, so the form shows only one of them. */
+  readonly echoes?: boolean;
 }
 
 export interface ListingStep {
@@ -109,261 +121,261 @@ export interface ReadinessCheck {
   readonly required?: boolean;
 }
 
-/** The quote at the top of the page, with who said it: asked on every kind of listing. */
-const SLOGAN_GROUP: StepGroup = { title: "Slogan", description: "A quote the app shows at the top of the page, with who said it if anyone did.", fields: ["slogan", "sloganBy"] };
+/** What a listing's words call it: a stay, or a place. */
+type Noun = "place" | "stay";
+/** A line of the navigator or the checklist, by its key under `labels`. */
+type Label = keyof typeof englishForms.steps.labels;
 
-/** `has`: whether this kind of listing carries a web address (slug). */
-const about = (noun: string, has: { readonly slug?: boolean } = {}): ListingStep => ({
-  id: "about",
-  /* "Details", not "About": the app's word About is the long text's, and the section holds more than it. */
-  title: "Details",
-  question: `What's this ${noun} called, and what's it like?`,
-  description: "A name, and the full story.",
-  icon: FileText,
-  tip: {
-    title: "Write for a first-time visitor",
-    body: "Lead with what makes it worth the trip. The app shows the first lines on the page; the rest opens under Read more.",
-  },
-  groups: [
-    /* The name takes the row, its web address under it. */
-    { fields: ["name", ...(has.slug ? ["slug"] : [])], columns: "one" },
-    SLOGAN_GROUP,
-    { fields: ["description"] },
-  ],
-  /* What the navigator lists under Details: the three things written here, whether or not they are checks. */
-  places: [
-    { label: "Name", field: "name" },
-    { label: "Slogan", field: "slogan" },
-    { label: "About", field: "description" },
-  ],
-});
+/** A group's title, by its key under `labels`; `echoes` is worked out once the fields are known. */
+interface GroupDraft extends Omit<StepGroup, "title"> {
+  readonly label?: Label;
+  readonly title?: string;
+}
 
-/**
- * Where it is, for every kind of listing: the link box, the map, and the
- * province and address the pin fills in. `found` says how travellers come
- * across this kind — a stay or a food listing by its pin, not by a page.
- */
-const locationStep = (noun: string, found?: string): ListingStep => ({
-  id: "location",
-  title: "Location",
-  question: "Where is it?",
-  description: `Paste the ${noun}'s Google Maps link, or find it on the map. Its province and address are filled in from the pin, for you to check.`,
-  icon: MapPin,
-  tip: {
-    title: "Putting the pin on the place",
-    body: `${found ? `${found} ` : ""}Copy the ${noun}'s link in Google Maps (Share, then Copy link) and paste it here, or search it by name. Then switch to Satellite and drag the pin onto the entrance. At the place with a phone? Use the crosshair on the map. A pair of coordinates typed into the box works too.`,
-  },
-  /* One group, no line between: the map first, and under it the province and the address the pin fills in. */
-  groups: [{ fields: ["latitude", "longitude", "provinceId", "address"] }],
-});
+interface StepDraft extends Omit<ListingStep, "groups" | "places"> {
+  readonly groups: readonly GroupDraft[];
+  readonly places?: readonly { readonly label: Label; readonly field: string }[];
+}
 
-/** Who runs a stay or a food listing and how travellers reach it: the same three groups, every box the full width. */
-const contact = (noun: string): ListingStep => ({
-  id: "contact",
-  title: "Contact",
-  question: "Who runs it, and how do travellers get in touch?",
-  description: "Who looks after this listing, and the ways to reach it.",
-  icon: Phone,
-  tip: {
-    title: "One number that answers",
-    body: "A number that is answered beats three that are not. Put the one travellers should use, and the chat app it is on.",
-  },
-  groups: [
-    { title: "Who runs it", fields: ["ownerUserId"], columns: "one" },
-    { title: "Contact details", description: "Shown on the listing so travellers can ask before they go.", fields: ["phone", "contactEmail", "website"], columns: "one" },
-    {
-      title: "Messaging apps",
-      description: `Most travellers in Cambodia ask on Telegram or WhatsApp first; the ${noun}'s page opens a chat.`,
-      fields: ["telegram", "whatsapp", "facebookUrl"],
-      columns: "one",
+/** The sections of every kind of listing, in the words given. */
+function stepsIn(t: StepWords): Readonly<Record<ListingKey, readonly StepDraft[]>> {
+  /** The quote at the top of the page, with who said it: asked on every kind of listing. */
+  const sloganGroup: GroupDraft = { label: "slogan", description: t("slogan.description"), fields: ["slogan", "sloganBy"] };
+
+  /** `has`: whether this kind of listing carries a web address (slug). */
+  const about = (noun: Noun, has: { readonly slug?: boolean } = {}): StepDraft => ({
+    id: "about",
+    /* "Details", not "About": the app's word About is the long text's, and the section holds more than it. */
+    title: t("about.title"),
+    question: t("about.question", { noun }),
+    description: t("about.description"),
+    icon: FileText,
+    tip: { title: t("about.tipTitle"), body: t("about.tipBody") },
+    groups: [
+      /* The name takes the row, its web address under it. */
+      { fields: ["name", ...(has.slug ? ["slug"] : [])], columns: "one" },
+      sloganGroup,
+      { fields: ["description"] },
+    ],
+    /* What the navigator lists under Details: the three things written here, whether or not they are checks. */
+    places: [
+      { label: "name", field: "name" },
+      { label: "slogan", field: "slogan" },
+      { label: "about", field: "description" },
+    ],
+  });
+
+  /**
+   * Where it is, for every kind of listing: the link box, the map, and the
+   * province and address the pin fills in. `found` says how travellers come
+   * across this kind — a stay or a food listing by its pin, not by a page.
+   */
+  const locationStep = (noun: Noun, found?: "stays" | "foods"): StepDraft => ({
+    id: "location",
+    title: t("location.title"),
+    question: t("location.question"),
+    description: t("location.description", { noun }),
+    icon: MapPin,
+    tip: {
+      title: t("location.tipTitle"),
+      body: `${found ? `${t(`location.found.${found}`)} ` : ""}${t("location.tipBody", { noun })}`,
     },
-  ],
-  places: [
-    { label: "Who runs it", field: "ownerUserId" },
-    { label: "Contact details", field: "phone" },
-    { label: "Messaging apps", field: "telegram" },
-  ],
-});
+    /* One group, no line between: the map first, and under it the province and the address the pin fills in. */
+    groups: [{ fields: ["latitude", "longitude", "provinceId", "address"] }],
+  });
 
-const photos = (noun: string): ListingStep => ({
-  id: "photos",
-  title: "Photos",
-  question: "Show it at its best",
-  description: `Every photo travellers can page through. The cover is the first thing they see of this ${noun} — on cards, in search, and across the top of its page: choose it among them.`,
-  icon: ImagePlus,
-  tip: {
-    title: "What makes a great cover",
-    body: "A bright landscape photo of the place itself, with no text, logos or collages. 1600 × 900 pixels or larger stays sharp everywhere.",
-  },
-  /* No field of its own: the gallery is the section, and the cover is one of its photos. */
-  groups: [],
-});
+  /** Who runs a stay or a food listing and how travellers reach it: the same three groups, every box the full width. */
+  const contact = (noun: Noun): StepDraft => ({
+    id: "contact",
+    title: t("contact.title"),
+    question: t("contact.question"),
+    description: t("contact.description"),
+    icon: Phone,
+    tip: { title: t("contact.tipTitle"), body: t("contact.tipBody") },
+    groups: [
+      { label: "owner", fields: ["ownerUserId"], columns: "one" },
+      { label: "contactDetails", description: t("contact.detailsDescription"), fields: ["phone", "contactEmail", "website"], columns: "one" },
+      {
+        label: "messaging",
+        description: t("contact.messagingDescription", { noun }),
+        fields: ["telegram", "whatsapp", "facebookUrl"],
+        columns: "one",
+      },
+    ],
+    places: [
+      { label: "owner", field: "ownerUserId" },
+      { label: "contactDetails", field: "phone" },
+      { label: "messaging", field: "telegram" },
+    ],
+  });
 
-const review: ListingStep = {
-  id: "review",
-  title: "Review",
-  question: "Ready to go live?",
-  description: "Check what is still missing. Publishing and saving are the buttons at the top.",
-  icon: Rocket,
-  tip: {
-    title: "Nothing here is final",
-    body: "A published listing appears on the website straight away. A draft stays in the dashboard until it is published, and either can be changed later.",
-  },
-  /* No field of its own: the checklist is the section. */
-  groups: [],
-  review: true,
-};
+  const photos = (noun: Noun): StepDraft => ({
+    id: "photos",
+    title: t("photos.title"),
+    question: t("photos.question"),
+    description: t("photos.description", { noun }),
+    icon: ImagePlus,
+    tip: { title: t("photos.tipTitle"), body: t("photos.tipBody") },
+    /* No field of its own: the gallery is the section, and the cover is one of its photos. */
+    groups: [],
+  });
 
-const STEPS: Readonly<Record<ListingKey, readonly ListingStep[]>> = {
+  const review: StepDraft = {
+    id: "review",
+    title: t("review.title"),
+    question: t("review.question"),
+    description: t("review.description"),
+    icon: Rocket,
+    tip: { title: t("review.tipTitle"), body: t("review.tipBody") },
+    /* No field of its own: the checklist is the section. */
+    groups: [],
+    review: true,
+  };
+
+  return {
+    destinations: [
+      about("place", { slug: true }),
+      /* Photos right after the words: the cover is the first thing a traveller sees. */
+      photos("place"),
+      locationStep("place"),
+      {
+        id: "classification",
+        title: t("classification.title"),
+        question: t("classification.question"),
+        description: t("classification.description"),
+        icon: Tags,
+        tip: { title: t("classification.tipTitle"), body: t("classification.tipBody") },
+        groups: [
+          { label: "tourismRegion", fields: ["tourismRegionIds"] },
+          { label: "categories", fields: ["categoryIds"] },
+          /* The region's own tags, with no heading of their own. */
+          { fields: ["tagIds"] },
+          { label: "interests", description: t("classification.interestsDescription"), fields: ["interestIds"] },
+        ],
+        places: [
+          { label: "tourismRegion", field: "tourismRegionIds" },
+          { label: "categories", field: "categoryIds" },
+          { label: "tags", field: "tagIds" },
+          { label: "interests", field: "interestIds" },
+        ],
+      },
+      review,
+    ],
+
+    stays: [
+      about("stay"),
+      photos("stay"),
+      locationStep("stay", "stays"),
+      contact("stay"),
+      {
+        id: "facilities",
+        title: t("facilities.title"),
+        question: t("facilities.question"),
+        description: t("facilities.description"),
+        icon: Sparkles,
+        tip: { title: t("facilities.tipTitle"), body: t("facilities.tipBody") },
+        groups: [
+          /* The type first — the Stays shelf of the taxonomy — then the stars: the type decides which rooms the stay is offered later. */
+          { fields: ["interestIds"] },
+          { fields: ["starRating"] },
+          /* Breakfast and parking are chips in this list, as the app shows them; the rooms follow the list. */
+          { fields: ["amenities"], rooms: true },
+          { label: "policies", description: t("facilities.policiesDescription"), fields: ["policies"] },
+        ],
+        places: [
+          { label: "type", field: "interestIds" },
+          { label: "starRating", field: "starRating" },
+          { label: "facilities", field: "amenities" },
+          { label: "rooms", field: "rooms" },
+          { label: "policies", field: "policies" },
+        ],
+      },
+      review,
+    ],
+
+    foods: [
+      {
+        ...about("place", { slug: true }),
+        tip: { title: t("foodAbout.tipTitle"), body: t("foodAbout.tipBody") },
+      },
+      photos("place"),
+      locationStep("place", "foods"),
+      contact("place"),
+      {
+        id: "menu",
+        title: t("menu.title"),
+        question: t("menu.question"),
+        description: t("menu.description"),
+        icon: ChefHat,
+        tip: { title: t("menu.tipTitle"), body: t("menu.tipBody") },
+        groups: [
+          /* The type first — the Food shelf of the taxonomy. */
+          { fields: ["interestIds"] },
+          /* The price range alone: the from-price follows the cheapest dish by itself, and the currency stays at its default. */
+          { fields: ["priceRange"] },
+          { fields: ["paymentMethods"] },
+          /* Parked here for now: the hours left the Contact section and have no home of their own yet. */
+          { label: "hours", fields: ["openingHours"] },
+        ],
+        places: [
+          { label: "type", field: "interestIds" },
+          { label: "priceRange", field: "priceRange" },
+          { label: "pay", field: "paymentMethods" },
+          { label: "hours", field: "openingHours" },
+        ],
+      },
+      review,
+    ],
+  };
+}
+
+type CheckDraft = Omit<ReadinessCheck, "label"> & { readonly label: Label };
+
+const CHECKS: Readonly<Record<ListingKey, readonly CheckDraft[]>> = {
   destinations: [
-    about("place", { slug: true }),
-    /* Photos right after the words: the cover is the first thing a traveller sees. */
-    photos("place"),
-    locationStep("place"),
-    {
-      id: "classification",
-      title: "Where it appears",
-      question: "What kind of place is it?",
-      description: "Its tourism region with that region's own categories and tags, then the interests travellers find it under.",
-      icon: Tags,
-      tip: {
-        title: "One region, its own lists",
-        body: "Choose the region the place is best known for. Only that region's categories and tags are offered, and the place is listed on its Discover page. Interests are separate: tick what a traveller comes for, whatever the region.",
-      },
-      groups: [
-        { title: "Tourism region", fields: ["tourismRegionIds"] },
-        { title: "Categories", fields: ["categoryIds"] },
-        /* The region's own tags, with no heading of their own. */
-        { fields: ["tagIds"] },
-        { title: "Interests", description: "The Interests tab and province pages it is listed under.", fields: ["interestIds"] },
-      ],
-      places: [
-        { label: "Tourism region", field: "tourismRegionIds" },
-        { label: "Categories", field: "categoryIds" },
-        { label: "Tags", field: "tagIds" },
-        { label: "Interests", field: "interestIds" },
-      ],
-    },
-    review,
-  ],
-
-  stays: [
-    about("stay"),
-    photos("stay"),
-    locationStep("stay", "Travellers see this stay on the page of every destination within 50 km of its pin — a hotel in Siem Reap on Angkor Wat's page, say."),
-    contact("stay"),
-    {
-      id: "facilities",
-      title: "Rooms & facilities",
-      question: "What is the property, and what does it offer?",
-      description: "The type of property, its facilities and policies, and each kind of room once.",
-      icon: Sparkles,
-      tip: {
-        title: "Only list what is there",
-        body: "A guest who chooses a stay for its pool expects to find one. Leave out anything seasonal or on request. Add each kind of room once; copy a room to make the next one like it, and mark one unavailable instead of deleting it.",
-      },
-      groups: [
-        /* The type first — the Stays shelf of the taxonomy — then the stars: the type decides which rooms the stay is offered later. */
-        { fields: ["interestIds"] },
-        { fields: ["starRating"] },
-        /* Breakfast and parking are chips in this list, as the app shows them; the rooms follow the list. */
-        { fields: ["amenities"], rooms: true },
-        { title: "Stay policies", description: "Check-in and check-out, children, pets, smoking, how guests pay — written out, the way the app shows them.", fields: ["policies"] },
-      ],
-      places: [
-        { label: "Type", field: "interestIds" },
-        { label: "Star rating", field: "starRating" },
-        { label: "Facilities", field: "amenities" },
-        { label: "Rooms", field: "rooms" },
-        { label: "Stay policies", field: "policies" },
-      ],
-    },
-    review,
-  ],
-
-  foods: [
-    {
-      ...about("place", { slug: true }),
-      tip: {
-        title: "Lead with what people come for",
-        body: "“Charcoal-grilled river fish, open late” tells a traveller more than “good food and friendly service”. The app shows the first lines on the page; the rest opens under Read more.",
-      },
-    },
-    photos("place"),
-    locationStep("place", "Travellers see this place on the page of every destination within 50 km of its pin — a noodle shop in Siem Reap on Angkor Wat's page, say."),
-    contact("place"),
-    {
-      id: "menu",
-      title: "Food & drink",
-      question: "What does it serve, and what does it cost?",
-      description: "The type of place, its price range, how people pay, and when it is open.",
-      icon: ChefHat,
-      tip: {
-        title: "What travellers check first",
-        body: "The type and the price range are what the app filters by, and the opening hours save a wasted trip. Today's dishes live on the place's Facebook page, which has its own box under Contact.",
-      },
-      groups: [
-        /* The type first — the Food shelf of the taxonomy. */
-        { fields: ["interestIds"] },
-        /* The price range alone: the from-price follows the cheapest dish by itself, and the currency stays at its default. */
-        { fields: ["priceRange"] },
-        { fields: ["paymentMethods"] },
-        /* Parked here for now: the hours left the Contact section and have no home of their own yet. */
-        { title: "Opening hours", fields: ["openingHours"] },
-      ],
-      places: [
-        { label: "Type", field: "interestIds" },
-        { label: "Price range", field: "priceRange" },
-        { label: "Ways to pay", field: "paymentMethods" },
-        { label: "Opening hours", field: "openingHours" },
-      ],
-    },
-    review,
-  ],
-};
-
-const CHECKS: Readonly<Record<ListingKey, readonly ReadinessCheck[]>> = {
-  destinations: [
-    { label: "Tourism region", fields: ["tourismRegionIds"], required: true },
-    { label: "Name", fields: ["name"], required: true },
+    { label: "tourismRegion", fields: ["tourismRegionIds"], required: true },
+    { label: "name", fields: ["name"], required: true },
     /* In the navigator it is the row under the map — the province and the address — so it is named for the address. */
-    { label: "Address", fields: ["provinceId"], required: true },
-    { label: "Cover and gallery", fields: ["coverKey"], step: "photos" },
-    { label: "Map pin", fields: ["latitude", "longitude"], all: true },
-    { label: "Categories", fields: ["categoryIds"] },
-    { label: "Interests", fields: ["interestIds"] },
+    { label: "address", fields: ["provinceId"], required: true },
+    { label: "cover", fields: ["coverKey"], step: "photos" },
+    { label: "pin", fields: ["latitude", "longitude"], all: true },
+    { label: "categories", fields: ["categoryIds"] },
+    { label: "interests", fields: ["interestIds"] },
   ],
   stays: [
-    { label: "Type", fields: ["interestIds"], required: true },
-    { label: "Name", fields: ["name"], required: true },
-    { label: "Map pin", fields: ["latitude", "longitude"], all: true, required: true },
-    { label: "Address", fields: ["provinceId"] },
-    { label: "Rooms", fields: ["rooms"], virtual: true, step: "facilities", id: "rooms" },
-    { label: "Stay policies", fields: ["policies"] },
-    { label: "Messaging apps", fields: ["telegram", "whatsapp", "facebookUrl"] },
-    { label: "Cover and gallery", fields: ["coverKey"], step: "photos" },
-    { label: "Facilities", fields: ["amenities"] },
+    { label: "type", fields: ["interestIds"], required: true },
+    { label: "name", fields: ["name"], required: true },
+    { label: "pin", fields: ["latitude", "longitude"], all: true, required: true },
+    { label: "address", fields: ["provinceId"] },
+    { label: "rooms", fields: ["rooms"], virtual: true, step: "facilities", id: "rooms" },
+    { label: "policies", fields: ["policies"] },
+    { label: "messaging", fields: ["telegram", "whatsapp", "facebookUrl"] },
+    { label: "cover", fields: ["coverKey"], step: "photos" },
+    { label: "facilities", fields: ["amenities"] },
   ],
   foods: [
-    { label: "Type", fields: ["interestIds"], required: true },
-    { label: "Name", fields: ["name"], required: true },
-    { label: "Map pin", fields: ["latitude", "longitude"], all: true, required: true },
-    { label: "Address", fields: ["provinceId"] },
-    { label: "Cover and gallery", fields: ["coverKey"], step: "photos" },
-    { label: "Opening hours", fields: ["openingHours"] },
-    { label: "Messaging apps", fields: ["telegram", "whatsapp", "facebookUrl"] },
-    { label: "Price range", fields: ["priceRange"], id: "price" },
-    { label: "Ways to pay", fields: ["paymentMethods"] },
+    { label: "type", fields: ["interestIds"], required: true },
+    { label: "name", fields: ["name"], required: true },
+    { label: "pin", fields: ["latitude", "longitude"], all: true, required: true },
+    { label: "address", fields: ["provinceId"] },
+    { label: "cover", fields: ["coverKey"], step: "photos" },
+    { label: "hours", fields: ["openingHours"] },
+    { label: "messaging", fields: ["telegram", "whatsapp", "facebookUrl"] },
+    { label: "priceRange", fields: ["priceRange"], id: "price" },
+    { label: "pay", fields: ["paymentMethods"] },
   ],
 };
 
 /**
  * The steps for this listing, holding only fields the registry declares, with
- * any declared field no step names gathered before the review.
+ * any declared field no step names gathered before the review. `t` gives the
+ * words; English when none is given.
  */
-export function listingSteps(definition: ResourceDefinition, kind?: string): readonly ListingStep[] {
+export function listingSteps(definition: ResourceDefinition, kind?: string, t: StepWords = ENGLISH): readonly ListingStep[] {
   if (!isListing(definition.key)) return [];
   const declared = new Set(definition.fields.map((field) => field.name));
+  /* The registry's own labels, in English, to tell a group title that repeats its field's label in any language. */
+  const englishLabels = new Map(getResource(definition.key).fields.map((field) => [field.name, field.label]));
   const placed = new Set<string>();
   /*
    * A field only some kinds are asked, and this kind is not one of them: a
@@ -378,25 +390,31 @@ export function listingSteps(definition: ResourceDefinition, kind?: string): rea
    * A step this kind does not have — one whose every question is for other
    * kinds — is left out, and its fields with it.
    */
-  const omitted = (step: ListingStep) => {
+  const omitted = (step: StepDraft) => {
     const names = step.groups.flatMap((group) => group.fields);
     return names.length > 0 && names.every(notAsked);
   };
-  for (const step of STEPS[definition.key]) {
+  const drafts = stepsIn(t)[definition.key];
+  for (const step of drafts) {
     if (omitted(step)) step.groups.forEach((group) => group.fields.forEach((name) => placed.add(name)));
   }
   /* The same sections, in the same words, whatever kind of stay or place it is. */
-  const steps = STEPS[definition.key].filter((step) => !omitted(step)).map((step) => ({
+  const steps: ListingStep[] = drafts.filter((step) => !omitted(step)).map((step) => ({
     ...step,
+    places: step.places?.map((place) => ({ label: t(`labels.${place.label}`), field: place.field })),
     groups: step.groups
-      .map((group) => ({
-        ...group,
-        fields: group.fields.filter((name) => {
+      .map(({ label, ...group }) => {
+        const fields = group.fields.filter((name) => {
           if (!declared.has(name)) return false;
           placed.add(name);
           return true;
-        }),
-      }))
+        });
+        return {
+          ...group,
+          ...(label ? { title: t(`labels.${label}`), echoes: englishLabels.get(fields[0] ?? "") === ENGLISH_LABELS[label] } : {}),
+          fields,
+        };
+      })
       .filter((group) => group.fields.length > 0),
   }));
 
@@ -406,17 +424,17 @@ export function listingSteps(definition: ResourceDefinition, kind?: string): rea
 
   const extra: ListingStep = {
     id: "more",
-    title: "More details",
-    question: "Anything else?",
-    description: "The last few details this listing can hold.",
+    title: t("more.title"),
+    question: t("more.question"),
+    description: t("more.description"),
     icon: ListChecks,
-    tip: { title: "Optional", body: "Fill in what you know; everything here can be added later." },
+    tip: { title: t("more.tipTitle"), body: t("more.tipBody") },
     groups: [{ fields: rest }],
   };
   return [...steps.slice(0, -1), extra, steps.at(-1)!];
 }
 
-export function readinessChecks(definition: ResourceDefinition, kind?: string): readonly ReadinessCheck[] {
+export function readinessChecks(definition: ResourceDefinition, kind?: string, t: StepWords = ENGLISH): readonly ReadinessCheck[] {
   if (!isListing(definition.key)) return [];
   const declared = new Set(definition.fields.map((field) => field.name));
   /* A line about one field reads as that field does, where a field still has a label of its kind's. */
@@ -424,9 +442,9 @@ export function readinessChecks(definition: ResourceDefinition, kind?: string): 
     kind ? definition.fields.find((field) => field.name === name)?.labelFor?.labels[kind] : undefined;
   return CHECKS[definition.key]
     .filter((check) => check.virtual || check.fields.every((name) => declared.has(name)))
-    .map((check) => {
+    .map((check): ReadinessCheck => {
       const own = check.fields.length === 1 && !check.virtual ? labelFor(check.fields[0]) : undefined;
-      return own ? { ...check, label: own } : check;
+      return { ...check, label: own || t(`labels.${check.label}`) };
     })
     .filter((check) => check.label !== "");
 }

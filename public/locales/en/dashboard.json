@@ -1,0 +1,133 @@
+{
+  "title": "Dashboard",
+  "description": {
+    "owner": "Your listings, your requests, and anything waiting on you.",
+    "reviewer": "What is waiting for your decision, and what your desk has published.",
+    "all": "Overview of destinations, publishing activity and tourism content."
+  },
+  "refresh": "Refresh",
+  "refreshLabel": "Refresh dashboard",
+  "createNew": "Create new",
+  "failures": "Some data could not be loaded: {list}. Refresh to try again.",
+  "viewAll": "View all",
+  "metrics": {
+    "yourListings": "Your listings",
+    "yourListingsHint": "Attractions, stays and food listings",
+    "live": "Live",
+    "liveHint": "On the website now",
+    "waiting": "Waiting on review",
+    "waitingHint": "With a reviewer",
+    "sentBack": "Sent back to you",
+    "sentBackHint": "Yours to fix and send again",
+    "destinations": "Destinations",
+    "destinationsHint": "{count} published",
+    "published": "Published",
+    "publishedHint": "{percent}% of the catalogue",
+    "unpublished": "Unpublished",
+    "unpublishedHint": "Off the public site",
+    "createdToday": "Created today",
+    "createdYesterday": "{count} yesterday",
+    "noneYesterday": "None yesterday",
+    "approvedToday": "Approved today",
+    "stillWaiting": "{count} still waiting",
+    "approvedYesterday": "{count} yesterday",
+    "nothingWaiting": "Nothing waiting",
+    "reviews": "Reviews",
+    "reviewsHidden": "Reviews hidden",
+    "ofWritten": "of {count} written",
+    "allVisible": "All visible on the website",
+    "noneWritten": "None written yet"
+  },
+  "requests": {
+    "titleReview": "Waiting for your decision",
+    "titleOwn": "Your open requests",
+    "descriptionReview": "Submitted to your desk and not yet decided",
+    "descriptionOwn": "Your requests still with a reviewer, or sent back to you",
+    "destination": "Destination",
+    "submittedBy": "Submitted by",
+    "desk": "Desk",
+    "submitted": "Submitted",
+    "status": "Status",
+    "loading": "Loading requests…",
+    "noneReview": "No requests are waiting for a decision.",
+    "noneOwn": "You have no open requests.",
+    "unknownAccount": "Unknown account"
+  },
+  "listings": {
+    "titleOwn": "Your listings",
+    "titleAll": "Recently updated listings",
+    "descriptionOwn": "Yours, the most recently changed first",
+    "descriptionAll": "The listings changed most recently",
+    "nothingWritten": "Nothing written yet",
+    "published": "Published",
+    "archived": "Archived",
+    "draft": "Draft",
+    "loading": "Loading listings…",
+    "noneOwn": "You have not written a listing yet.",
+    "none": "No listings yet."
+  },
+  "attention": {
+    "title": "Needs you now",
+    "pending": "Publish requests awaiting a decision",
+    "returned": "Requests sent back for changes",
+    "cover": "Drafts without a cover photo",
+    "pitch": "Published with nothing in About",
+    "pin": "Published without a map pin",
+    "reviews": "Reviews hidden from the public site",
+    "checking": "Checking…",
+    "none": "Nothing is waiting on you."
+  },
+  "activity": {
+    "title": "Recent activity",
+    "line": "<b>{name}</b> {action, select, CREATE {created} UPDATE {updated} DELETE {deleted} other {cleared}} {type}",
+    "system": "System",
+    "loading": "Loading activity…",
+    "empty": "Your team's latest changes will appear here.",
+    "unavailable": "Recent activity is unavailable."
+  },
+  "growth": {
+    "title": "Destination growth",
+    "description": "Attractions, stays and food listings created each {unit, select, day {day} week {week} other {month}}",
+    "period": "Destination growth period",
+    "ranges": {
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "3m": "Last 3 months",
+      "6m": "Last 6 months",
+      "12m": "Last 12 months",
+      "custom": "Custom range"
+    },
+    "created": "<b>{total}</b> created in this period",
+    "from": "From date",
+    "to": "To date",
+    "chartLabel": "Destinations created per {unit, select, day {day} week {week} other {month}}: {points}",
+    "series": "New destinations",
+    "chooseDates": "Choose a start and end date.",
+    "nothing": "Nothing was created in this period.",
+    "unavailable": "Destination growth data is unavailable."
+  },
+  "chartDates": {
+    "tickDay": "{monthShort} {day}",
+    "tickMonth": "{monthShort}",
+    "labelDay": "{monthShort} {day}, {year}",
+    "labelMonth": "{month} {year}"
+  },
+  "status": {
+    "title": "Content status",
+    "description": "Each destination, by status and its latest request",
+    "Published": "Published",
+    "Pending": "Pending",
+    "Draft": "Draft",
+    "Rejected": "Rejected",
+    "unavailable": "Content status data is unavailable."
+  },
+  "sources": {
+    "overview": "Overview",
+    "destinations": "Destinations",
+    "requests": "Publish requests",
+    "audit": "Audit activity",
+    "mine": "Your requests",
+    "stays": "Stays",
+    "foods": "Food listings"
+  }
+}

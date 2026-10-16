@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Search, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,7 @@ export function MultiSelectField({
   searchThreshold = 12,
   ordered = false,
 }: MultiSelectFieldProps) {
+  const t = useTranslations("forms.multiSelect");
   const [term, setTerm] = useState("");
   const selected = useMemo(() => new Set(value), [value]);
   const labels = useMemo(
@@ -63,9 +65,9 @@ export function MultiSelectField({
   const chosen = useMemo(
     () =>
       ordered
-        ? value.map((item) => ({ value: item, label: labels.get(item) ?? "Unavailable row" }))
+        ? value.map((item) => ({ value: item, label: labels.get(item) ?? t("unavailable") }))
         : options.filter((option) => selected.has(option.value)),
-    [ordered, value, labels, options, selected],
+    [ordered, value, labels, options, selected, t],
   );
 
   function toggle(option: string) {
@@ -118,7 +120,7 @@ export function MultiSelectField({
                 <span className="w-5 shrink-0 text-right tabular-nums">{index + 1}.</span>
                 <span className="min-w-0 flex-1 truncate">{option.label}</span>
                 <button
-                  aria-label={`Move ${option.label} earlier`}
+                  aria-label={t("earlier", { label: option.label })}
                   className="grid size-6 place-items-center rounded-sm hover:bg-primary hover:text-primary-foreground disabled:opacity-40"
                   disabled={index === 0}
                   onClick={() => move(index, -1)}
@@ -127,7 +129,7 @@ export function MultiSelectField({
                   <ArrowUp aria-hidden className="size-3" />
                 </button>
                 <button
-                  aria-label={`Move ${option.label} later`}
+                  aria-label={t("later", { label: option.label })}
                   className="grid size-6 place-items-center rounded-sm hover:bg-primary hover:text-primary-foreground disabled:opacity-40"
                   disabled={index === chosen.length - 1}
                   onClick={() => move(index, 1)}
@@ -136,7 +138,7 @@ export function MultiSelectField({
                   <ArrowDown aria-hidden className="size-3" />
                 </button>
                 <button
-                  aria-label={`Remove ${option.label}`}
+                  aria-label={t("remove", { label: option.label })}
                   className="grid size-6 place-items-center rounded-sm hover:bg-primary hover:text-primary-foreground"
                   onClick={() => toggle(option.value)}
                   type="button"
@@ -153,7 +155,7 @@ export function MultiSelectField({
                 <button
                   className="inline-flex items-center gap-1 rounded-sm border border-teal/15 bg-teal-soft px-2 py-0.5 text-xs font-medium text-teal-deep transition-colors hover:border-teal/40"
                   onClick={() => toggle(option.value)}
-                  title={`Remove ${option.label}`}
+                  title={t("remove", { label: option.label })}
                   type="button"
                 >
                   {option.label}
@@ -172,10 +174,10 @@ export function MultiSelectField({
             className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted"
           />
           <Input
-            aria-label="Filter options"
+            aria-label={t("filter")}
             className="h-8 pl-8 text-sm"
             onChange={(event) => setTerm(event.target.value)}
-            placeholder="Filter…"
+            placeholder={t("filterPlaceholder")}
             type="search"
             value={term}
           />
@@ -193,14 +195,14 @@ export function MultiSelectField({
               <span className="min-w-0 flex-1 truncate text-ink-soft">
                 {option.label}
               </span>
-              {option.inactive ? <Badge tone="inactive">Retired</Badge> : null}
+              {option.inactive ? <Badge tone="inactive">{t("retired")}</Badge> : null}
             </label>
           </li>
         ))}
 
         {visible.length === 0 ? (
           <li className="px-2 py-3 text-xs text-muted">
-            {options.length ? "Nothing matches that." : emptyLabel}
+            {options.length ? t("noMatch") : emptyLabel}
           </li>
         ) : null}
       </ul>

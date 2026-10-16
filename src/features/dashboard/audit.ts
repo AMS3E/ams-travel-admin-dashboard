@@ -2,6 +2,9 @@ import type { BadgeTone } from "@/components/ui/badge";
 import type { AuditAction, AuditData, AuditLogResponse } from "@/features/dashboard/api/contracts";
 import type { ResourceKey } from "@/features/catalog/resource";
 import { RESOURCE_KEYS, RESOURCES } from "@/features/catalog/resources";
+import { ENGLISH_DATES, ZONE, datePartsOf, fillDate, type DateParts, type DateWords } from "@/i18n/dates";
+
+export type { DateWords };
 
 /* `entityType` is the entity's class name; registry keys are plural slugs, so one is derived from the other. */
 function singular(word: string): string {
@@ -111,11 +114,12 @@ export function fieldChangesOf(
 /** Who made a change, as a row says it: their name, else their e-mail. */
 export function actorOf(
   entry: Pick<AuditLogResponse, "userName" | "userId"> & Partial<Pick<AuditLogResponse, "userEmail">>,
+  words: Pick<AuditWords, "deletedAccount" | "system"> = ENGLISH_WORDS,
 ): string {
   return (
     entry.userName?.trim() ||
     entry.userEmail?.trim() ||
-    (entry.userId ? "A deleted account" : "System")
+    (entry.userId ? words.deletedAccount : words.system)
   );
 }
 
@@ -125,12 +129,12 @@ export interface AuditPerson {
 }
 
 /** The people who made the entries, A to Z, for the By filter; automatic changes have no one to pick. */
-export function peopleOf(entries: readonly AuditLogResponse[]): readonly AuditPerson[] {
+export function peopleOf(entries: readonly AuditLogResponse[], words: AuditWords = ENGLISH_WORDS): readonly AuditPerson[] {
   const people = new Map<string, string>();
   for (const entry of entries) {
-    if (entry.userId && !people.has(entry.userId)) people.set(entry.userId, actorOf(entry));
+    if (entry.userId && !people.has(entry.userId)) people.set(entry.userId, actorOf(entry, words));
   }
-  return [...people].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  return [...people].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name, "en"));
 }
 
 const ACRONYMS: Readonly<Record<string, string>> = { id: "ID", api: "API", url: "URL", ip: "IP", uuid: "UUID", seo: "SEO" };
@@ -192,12 +196,12 @@ export type AuditValue =
   | { readonly kind: "null" }
   | { readonly kind: "empty" }
   | { readonly kind: "hidden" }
-  | { readonly kind: "boolean"; readonly text: string; readonly raw: string }
+  | { readonly kind: "boolean"; readonly value: boolean; readonly raw: string }
   | { readonly kind: "number"; readonly text: string }
   | { readonly kind: "date"; readonly text: string; readonly raw: string }
   | { readonly kind: "id"; readonly raw: string; readonly name: string | null }
   | { readonly kind: "text"; readonly text: string }
-  | { readonly kind: "json"; readonly text: string; readonly summary: string };
+  | { readonly kind: "json"; readonly text: string; readonly count: number; readonly shape: "list" | "fields" };
 
 export interface AuditFieldChange {
   readonly field: string;
@@ -251,32 +255,90 @@ export interface AuditRow {
   readonly haystack: string;
 }
 
-const ZONE = "Asia/Phnom_Penh";
-const DAY_KEY = new Intl.DateTimeFormat("en-CA", { timeZone: ZONE, dateStyle: "short" });
-const DAY_LABEL = new Intl.DateTimeFormat("en-GB", { timeZone: ZONE, weekday: "long", day: "numeric", month: "long" });
-const DAY_LABEL_YEAR = new Intl.DateTimeFormat("en-GB", { timeZone: ZONE, weekday: "long", day: "numeric", month: "long", year: "numeric" });
-const YEAR = new Intl.DateTimeFormat("en-GB", { timeZone: ZONE, year: "numeric" });
-const TIME = new Intl.DateTimeFormat("en-GB", { timeZone: ZONE, hour: "2-digit", minute: "2-digit" });
-const FULL = new Intl.DateTimeFormat("en-GB", { timeZone: ZONE, dateStyle: "full", timeStyle: "medium" });
-const STAMP = new Intl.DateTimeFormat("en-GB", { timeZone: ZONE, dateStyle: "medium", timeStyle: "medium" });
-/* A value written without a zone is wall-clock time, shown as written. */
-const WALL_STAMP = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", dateStyle: "medium", timeStyle: "medium" });
-const WALL_DAY = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", dateStyle: "medium" });
-const NUMBER = new Intl.NumberFormat("en-GB");
+/** What a row is written in: the language's own words, and how it says dates and numbers. */
+export interface AuditWords {
+  /** An Intl locale for numbers: "en-GB", "km-KH". */
+  readonly locale: string;
+  readonly dates: DateWords;
+  readonly today: string;
+  readonly yesterday: string;
+  readonly system: string;
+  readonly deletedAccount: string;
+  readonly newRecord: string;
+  readonly recordRemoved: string;
+  readonly noFieldChanges: string;
+  readonly allRemoved: string;
+  readonly removed: (count: number) => string;
+  readonly action: (action: AuditAction) => string;
+  /** `Destination` → "Destination"; falls back to the English name. */
+  readonly typeLabel: (entityType: string) => string;
+  /** `openingHours` → "Opening hours"; falls back to the English name. */
+  readonly fieldLabel: (field: string) => string;
+}
 
-export function formatCount(value: number): string {
-  return NUMBER.format(value);
+export const ENGLISH_WORDS: AuditWords = {
+  locale: "en-GB",
+  dates: ENGLISH_DATES,
+  today: "Today",
+  yesterday: "Yesterday",
+  system: "System",
+  deletedAccount: "A deleted account",
+  newRecord: "New record",
+  recordRemoved: "Record removed",
+  noFieldChanges: "No field changes",
+  allRemoved: "All entries removed",
+  removed: (count) => `${plural(count, "entry", "entries")} removed`,
+  action: (action) => AUDIT_ACTION_LABELS[action],
+  typeLabel: auditTypeLabel,
+  fieldLabel,
+};
+
+/** The ways a row writes a moment, in one language. */
+function datesOf(words: AuditWords) {
+  const { dates } = words;
+  const seconds = (parts: DateParts) => `${parts.hour}:${parts.minute}:${parts.second}`;
+  return {
+    /** "14:32", in Cambodia. */
+    time: (at: Date) => {
+      const parts = datePartsOf(at, ZONE);
+      return `${parts.hour}:${parts.minute}`;
+    },
+    full: (at: Date) => {
+      const parts = datePartsOf(at, ZONE);
+      return fillDate(dates.full, parts, dates, seconds(parts));
+    },
+    /** A day's heading; the year only when it is not this one. */
+    day: (at: Date, now: Date) => {
+      const parts = datePartsOf(at, ZONE);
+      return fillDate(parts.year === datePartsOf(now, ZONE).year ? dates.day : dates.dayYear, parts, dates, "");
+    },
+    /** A stored timestamp: Cambodian time when it carries a zone, as written when it does not. */
+    stamp: (at: Date, zoned: boolean) => {
+      const parts = datePartsOf(at, zoned ? ZONE : "UTC");
+      return fillDate(dates.stamp, parts, dates, seconds(parts));
+    },
+    date: (day: Date) => fillDate(dates.date, datePartsOf(day, "UTC"), dates, ""),
+  };
+}
+
+type Dates = ReturnType<typeof datesOf>;
+
+export function formatCount(value: number, locale = "en-GB"): string {
+  return value.toLocaleString(locale);
 }
 
 export function plural(count: number, one: string, many: string): string {
   return `${formatCount(count)} ${count === 1 ? one : many}`;
 }
 
-function dayOf(at: Date, now: Date): string {
-  const key = DAY_KEY.format(at);
-  const date = YEAR.format(at) === YEAR.format(now) ? DAY_LABEL.format(at) : DAY_LABEL_YEAR.format(at);
-  if (key === DAY_KEY.format(now)) return `Today · ${date}`;
-  if (key === DAY_KEY.format(new Date(now.valueOf() - 86_400_000))) return `Yesterday · ${date}`;
+function dayOf(at: Date, now: Date, words: AuditWords, dates: Dates): string {
+  const day = (moment: Date) => {
+    const parts = datePartsOf(moment, ZONE);
+    return `${parts.year}-${parts.month}-${parts.day}`;
+  };
+  const date = dates.day(at, now);
+  if (day(at) === day(now)) return `${words.today} · ${date}`;
+  if (day(at) === day(new Date(now.valueOf() - 86_400_000))) return `${words.yesterday} · ${date}`;
   return date;
 }
 
@@ -291,38 +353,34 @@ const SENSITIVE = /password|passcode|secret|token|api[-_]?key|credential|private
 /* Fields an update summary names first. */
 const PRIORITY = ["name", "title", "status", "slug", "caption", "code"];
 
-function dateValue(value: string): AuditValue | null {
+function dateValue(value: string, dates: Dates): AuditValue | null {
   if (DATE_ONLY.test(value)) {
     const day = new Date(`${value}T00:00:00Z`);
-    return Number.isNaN(day.valueOf()) ? null : { kind: "date", text: WALL_DAY.format(day), raw: value };
+    return Number.isNaN(day.valueOf()) ? null : { kind: "date", text: dates.date(day), raw: value };
   }
   if (!TIMESTAMP.test(value)) return null;
   const zoned = ZONED.test(value);
   const at = new Date(zoned ? value : `${value}Z`);
   if (Number.isNaN(at.valueOf())) return null;
-  return { kind: "date", text: (zoned ? STAMP : WALL_STAMP).format(at), raw: value };
+  return { kind: "date", text: dates.stamp(at, zoned), raw: value };
 }
 
-function valueOf(field: string, value: unknown, names: ReadonlyMap<string, string>): AuditValue {
+function valueOf(field: string, value: unknown, names: ReadonlyMap<string, string>, dates: Dates): AuditValue {
   if (value === undefined) return { kind: "absent" };
   if (value === null) return { kind: "null" };
   if (SENSITIVE.test(field)) return { kind: "hidden" };
-  if (typeof value === "boolean") return { kind: "boolean", text: value ? "Yes" : "No", raw: String(value) };
+  if (typeof value === "boolean") return { kind: "boolean", value, raw: String(value) };
   if (typeof value === "number") return { kind: "number", text: String(value) };
   if (typeof value === "string") {
     if (value === "") return { kind: "empty" };
     if (UUID.test(value)) return { kind: "id", raw: value, name: names.get(value) ?? null };
-    return dateValue(value) ?? { kind: "text", text: value };
+    return dateValue(value, dates) ?? { kind: "text", text: value };
   }
   if (Array.isArray(value)) {
-    return { kind: "json", text: JSON.stringify(value, null, 2), summary: plural(value.length, "item", "items") };
+    return { kind: "json", text: JSON.stringify(value, null, 2), count: value.length, shape: "list" };
   }
   if (typeof value === "object") {
-    return {
-      kind: "json",
-      text: JSON.stringify(value, null, 2),
-      summary: plural(Object.keys(value).length, "field", "fields"),
-    };
+    return { kind: "json", text: JSON.stringify(value, null, 2), count: Object.keys(value).length, shape: "fields" };
   }
   return { kind: "text", text: String(value) };
 }
@@ -346,23 +404,19 @@ function rank(field: string): number {
   return index === -1 ? PRIORITY.length : index;
 }
 
-function summaryOf(action: AuditAction, changes: readonly AuditFieldChange[], removed: number | null): AuditSummary {
+function summaryOf(action: AuditAction, changes: readonly AuditFieldChange[], removed: number | null, words: AuditWords): AuditSummary {
   const title = changes.map((change) => change.label).join(", ");
   switch (action) {
     case "PURGE":
-      return {
-        fields: [],
-        more: 0,
-        note: removed == null ? "All entries removed" : `${plural(removed, "entry", "entries")} removed`,
-        title: "",
-      };
+      return { fields: [], more: 0, note: removed == null ? words.allRemoved : words.removed(removed), title: "" };
     case "CREATE":
-      return { fields: [], more: 0, note: "New record", title };
+      return { fields: [], more: 0, note: words.newRecord, title };
     case "DELETE":
-      return { fields: [], more: 0, note: "Record removed", title };
+      return { fields: [], more: 0, note: words.recordRemoved, title };
     case "UPDATE": {
-      if (!changes.length) return { fields: [], more: 0, note: "No field changes", title };
-      const ordered = [...changes].sort((a, b) => rank(a.field) - rank(b.field) || a.label.localeCompare(b.label));
+      if (!changes.length) return { fields: [], more: 0, note: words.noFieldChanges, title };
+      /* "en" collation on purpose: the server and a browser without Khmer data must sort alike. */
+      const ordered = [...changes].sort((a, b) => rank(a.field) - rank(b.field) || a.label.localeCompare(b.label, "en"));
       /* "+1 more" takes the room of the name it hides, so three show whole. */
       const shown = ordered.length <= 3 ? ordered : ordered.slice(0, 2);
       return { fields: shown.map((change) => change.label), more: ordered.length - shown.length, note: null, title };
@@ -371,7 +425,8 @@ function summaryOf(action: AuditAction, changes: readonly AuditFieldChange[], re
 }
 
 /** The feed as rows: named, linked, summarised and searchable. */
-export function auditRowsOf(entries: readonly AuditLogResponse[], now = new Date()): readonly AuditRow[] {
+export function auditRowsOf(entries: readonly AuditLogResponse[], now = new Date(), words: AuditWords = ENGLISH_WORDS): readonly AuditRow[] {
+  const dates = datesOf(words);
   /* A name found on any entry names every entry of that record. */
   const names = new Map<string, string>();
   /* A record deleted in the feed is not linked: its page would be a 404. */
@@ -393,17 +448,17 @@ export function auditRowsOf(entries: readonly AuditLogResponse[], now = new Date
           .filter((change) => !BOOKKEEPING.has(change.field))
           .map((change) => ({
             field: change.field,
-            label: fieldLabel(change.field),
-            before: entry.oldData == null ? null : valueOf(change.field, change.before, names),
-            after: entry.newData == null ? null : valueOf(change.field, change.after, names),
+            label: words.fieldLabel(change.field),
+            before: entry.oldData == null ? null : valueOf(change.field, change.before, names, dates),
+            after: entry.newData == null ? null : valueOf(change.field, change.after, names, dates),
             blank: whole && isBlank(change.before ?? change.after),
           }));
     const removed = purge ? snapshotOf(entry.newData).removed : null;
     const removedCount = typeof removed === "number" ? removed : null;
     const entityId = purge ? null : entry.entityId;
     const name = entityId ? (names.get(entityId) ?? null) : null;
-    const typeLabel = auditTypeLabel(entry.entityType);
-    const actor = actorOf(entry);
+    const typeLabel = words.typeLabel(entry.entityType);
+    const actor = actorOf(entry, words);
     const actorEmail = entry.userEmail && entry.userEmail !== actor ? entry.userEmail : null;
 
     return {
@@ -418,11 +473,11 @@ export function auditRowsOf(entries: readonly AuditLogResponse[], now = new Date
       actorEmail,
       userId: entry.userId,
       iso: entry.createdAt,
-      time: Number.isNaN(at.valueOf()) ? "—" : TIME.format(at),
-      day: Number.isNaN(at.valueOf()) ? "" : dayOf(at, now),
-      at: Number.isNaN(at.valueOf()) ? entry.createdAt : FULL.format(at),
+      time: Number.isNaN(at.valueOf()) ? "—" : dates.time(at),
+      day: Number.isNaN(at.valueOf()) ? "" : dayOf(at, now, words, dates),
+      at: Number.isNaN(at.valueOf()) ? entry.createdAt : dates.full(at),
       changes,
-      summary: summaryOf(entry.action, changes, removedCount),
+      summary: summaryOf(entry.action, changes, removedCount, words),
       removed: removedCount,
       ipAddress: entry.ipAddress,
       userAgent: entry.userAgent,
@@ -430,6 +485,7 @@ export function auditRowsOf(entries: readonly AuditLogResponse[], now = new Date
       haystack: [
         String(entry.id),
         `#${entry.id}`,
+        words.action(entry.action),
         AUDIT_ACTION_LABELS[entry.action],
         entry.action,
         typeLabel,
@@ -440,7 +496,8 @@ export function auditRowsOf(entries: readonly AuditLogResponse[], now = new Date
         entry.userEmail,
         entry.userId,
         entry.ipAddress,
-        ...changes.flatMap((change) => [change.field, change.label]),
+        ...changes.flatMap((change) => [change.field, change.label, fieldLabel(change.field)]),
+        auditTypeLabel(entry.entityType),
       ]
         .filter(Boolean)
         .join(" ")

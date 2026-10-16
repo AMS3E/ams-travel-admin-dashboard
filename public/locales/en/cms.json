@@ -1,0 +1,127 @@
+{
+  "status": {
+    "PUBLISHED": "Published",
+    "DRAFT": "Draft",
+    "ARCHIVED": "Archived"
+  },
+  "listing": {
+    "DESTINATION": "Attraction",
+    "STAY": "Stay",
+    "FOOD": "Food listing"
+  },
+  "listings": "{count, plural, one {# listing} other {# listings}}",
+  "deskPlural": {
+    "PARTNER": "Partner listings",
+    "CONTRIBUTOR": "Contributor drafts",
+    "STAFF": "Editor and BDO submissions"
+  },
+  "reviewer": {
+    "PARTNER": "a BDO",
+    "CONTRIBUTOR": "an editor",
+    "STAFF": "an administrator"
+  },
+  "drafts": {
+    "label": "Drafts",
+    "search": "Search workspace content",
+    "searchPlaceholder": "Search attractions, stays, food…",
+    "show": "Show drafts",
+    "views": {
+      "all": "All drafts",
+      "review": "Waiting for your review",
+      "waiting": "With a reviewer",
+      "returned": "Sent back for changes",
+      "unsent": "Not with a reviewer"
+    },
+    "scopeDeskAndOwn": "{desk} submitted to you, and your own drafts.",
+    "scopeDesk": "{what} submitted to your desk and not yet published. Review one to read it in full, edit it and decide.",
+    "scopeOwn": "Your drafts. Edit one, then send it for review when it is ready.",
+    "submissions": {
+      "EDITOR": "Editor submissions",
+      "BDO": "BDO submissions"
+    },
+    "noProfile": "Your content profile could not be loaded. Reload this page to try again.",
+    "failures": "Some workspace data could not be loaded: {list}. Refresh to try again.",
+    "empty": {
+      "search": "Try another name.",
+      "review": "Nothing is waiting for your decision.",
+      "none": "Unpublished attractions, stays and food listings in your workspace appear here.",
+      "title": "No drafts match this view"
+    },
+    "sendFailed": "It could not be sent to {reviewer}: {problem}",
+    "noAddress": "No address yet",
+    "from": "from {name}",
+    "changed": "changed {when}",
+    "feedback": {
+      "label": "Feedback",
+      "earlier": "Earlier feedback",
+      "from": "{label} from {name}:",
+      "plain": "{label}:"
+    },
+    "notSent": "Not sent",
+    "review": "Review",
+    "viewRequest": "View request",
+    "edit": "Edit",
+    "sendAgain": "Send again",
+    "send": "Send for review"
+  },
+  "reviews": {
+    "label": "Reviews",
+    "search": "Search reviews",
+    "searchPlaceholder": "Search reviews…",
+    "visibility": "Review visibility",
+    "all": "All reviews",
+    "count": "{count, plural, one {# review} other {# reviews}}",
+    "targetNamed": "{target}: {name}",
+    "hide": "Hide review",
+    "show": "Show review",
+    "empty": {
+      "filtered": "Try another search or visibility.",
+      "none": "Reviews appear here once travellers write them.",
+      "title": "No reviews match this view"
+    }
+  },
+  "partners": {
+    "label": "Partner listings",
+    "search": "Search listings",
+    "searchPlaceholder": "Search listings…",
+    "intro": "Attractions, stays and food listings partners have submitted for publication, as your workspace sees them.",
+    "fallback": "Partner listing",
+    "empty": {
+      "description": "Listings partners submit for publication appear here.",
+      "title": "No matches in your workspace yet"
+    }
+  },
+  "roles": {
+    "loading": "Loading team members…",
+    "summary": "{count, plural, one {# team member} other {# team members}} across {roles} roles",
+    "newAccount": "New account",
+    "labels": {
+      "ADMIN": "Administrator",
+      "EDITOR": "Editor",
+      "BDO": "BDO",
+      "CONTRIBUTOR": "Contributor",
+      "PARTNER": "Partner"
+    },
+    "access": {
+      "PARTNER": "Only their own listings, their business's stays and food, photos, and publishing requests.",
+      "CONTRIBUTOR": "Only their own attractions, stays and food listings, photos, and publishing requests.",
+      "EDITOR": "Editorial destinations, stays, food and corridors, contributor submissions, and review moderation. No account management or platform totals.",
+      "BDO": "Partner submissions and publishing decisions, and the catalogue. No contributor drafts or account administration.",
+      "ADMIN": "All workspaces, account management, partners, role assignment, badges, and platform statistics."
+    },
+    "also": "Also {roles}",
+    "disabled": "Disabled",
+    "nobody": "Nobody holds this role yet."
+  },
+  "settings": {
+    "catalogue": {
+      "title": "Catalogue configuration",
+      "description": "Stay and food photography, badges, the periods they are earned in, and the seasons that set those periods."
+    },
+    "account": {
+      "title": "Account",
+      "description": "Update your name, contact details, and profile image.",
+      "edit": "Edit profile"
+    }
+  }
+}

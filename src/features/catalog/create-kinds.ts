@@ -18,30 +18,20 @@ export interface CreateKind {
   readonly href: string;
 }
 
+/** A kind's name and line, in the reader's language (`forms.create.kinds`). */
+export type CreateKindWords = (key: CreateKindKey) => { readonly title: string; readonly description: string };
+
 /** Marks a form opened from the chooser, so its Back goes back to it. */
 const FROM = "from=create";
 
-const KINDS: readonly CreateKind[] = [
-  {
-    key: "destinations",
-    title: "Attraction",
-    description: "A temple, a beach, a waterfall, a museum, a village — a place worth the trip.",
-    href: `/destinations/new?${FROM}`,
-  },
-  {
-    key: "foods",
-    title: "Food",
-    description: "A restaurant, a cafe, a street-food stall, a market, a bakery or a bar.",
-    href: `/foods/new?${FROM}`,
-  },
-  {
-    key: "stays",
-    title: "Stay",
-    description: "A hotel, a guesthouse, a hostel, a resort, a homestay or a villa.",
-    href: `/stays/new?${FROM}`,
-  },
+const KINDS: readonly { readonly key: CreateKindKey; readonly href: string }[] = [
+  { key: "destinations", href: `/destinations/new?${FROM}` },
+  { key: "foods", href: `/foods/new?${FROM}` },
+  { key: "stays", href: `/stays/new?${FROM}` },
 ];
 
-export function createKinds(roles: readonly string[]): readonly CreateKind[] {
-  return KINDS.filter((kind) => canCreateResource(roles, kind.key)).toSorted((a, b) => byName(a.title, b.title));
+export function createKinds(roles: readonly string[], words: CreateKindWords): readonly CreateKind[] {
+  return KINDS.filter((kind) => canCreateResource(roles, kind.key))
+    .map((kind) => ({ ...kind, ...words(kind.key) }))
+    .toSorted((a, b) => byName(a.title, b.title));
 }

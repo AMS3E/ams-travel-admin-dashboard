@@ -1,5 +1,8 @@
 "use client";
 
+import { useMemo } from "react";
+import { createTranslator, useTranslations, type _Translator, type Messages } from "next-intl";
+import englishForms from "@locales/en/forms.json";
 import { useSaveRecordMutation } from "@/features/catalog/api/catalog-api";
 import type { MediaResponse } from "@/features/catalog/api/contracts";
 import {
@@ -10,7 +13,7 @@ import {
 } from "@/features/catalog/media-upload";
 import { mediaPath, toFormValues, type Gallery, type ResourceDefinition } from "@/features/catalog/resource";
 import { useUploadMediaBatch } from "@/features/media/api/media-api";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
 
 export interface UploadProgress {
   readonly phase: "preparing" | "uploading" | "saving";
@@ -26,22 +29,41 @@ export interface UploadOutcome {
   readonly error?: string;
 }
 
-/** A progress line a person can read. */
-export function progressLabel(progress: UploadProgress): string {
-  const count = `${progress.done} of ${progress.total}`;
-  switch (progress.phase) {
-    case "preparing":
-      return `Preparing photos · ${count}`;
-    case "uploading":
-      return `Uploading photos · ${count}`;
-    case "saving":
-      return `Adding to the gallery · ${count}`;
-  }
+/** The words of an upload, from `useTranslations("forms.upload")`. */
+export type UploadWords = _Translator<Messages, "forms.upload">;
+
+/** English, for a caller that passes no words of its own. */
+const ENGLISH: UploadWords = createTranslator({ locale: "en", messages: { forms: englishForms }, namespace: "forms.upload" });
+
+/** A progress line a person can read; English unless words are given. */
+export function progressLabel(progress: UploadProgress, t: UploadWords = ENGLISH): string {
+  return t(`progress.${progress.phase}`, { done: progress.done, total: progress.total });
+}
+
+/** Why a picked photo cannot be used, in words; null when it can. */
+function problemOf(file: File, t: UploadWords): string | null {
+  const problem = imageProblem(file);
+  return problem ? t(`problems.${problem}`, { name: file.name }) : null;
+}
+
+/** An upload's words in the reader's language: why a photo is left out, and how far a batch has got. */
+export function useUploadText() {
+  const t = useTranslations("forms.upload");
+  return useMemo(
+    () => ({
+      problem: (file: File) => problemOf(file, t),
+      tooLarge: (name: string) => t("stillTooLarge", { name }),
+      progress: (progress: UploadProgress) => progressLabel(progress, t),
+    }),
+    [t],
+  );
 }
 
 /** Shrinks and uploads any number of photos, batch by batch, reporting as it goes. */
 export function useImageUpload() {
   const uploadBatch = useUploadMediaBatch();
+  const text = useUploadText();
+  const errorMessage = useApiErrorMessage();
 
   return async function upload(
     files: readonly File[],
@@ -53,14 +75,14 @@ export function useImageUpload() {
 
     for (const [index, file] of files.entries()) {
       onProgress({ phase: "preparing", done: index, total: files.length });
-      const problem = imageProblem(file);
+      const problem = text.problem(file);
       if (problem) {
         skipped.push(problem);
         continue;
       }
       const prepared = await prepareImage(file);
       if (prepared.size > MAX_IMAGE_BYTES) {
-        skipped.push(`${file.name} is still larger than 8 MB after resizing.`);
+        skipped.push(text.tooLarge(file.name));
         continue;
       }
       ready.push(prepared);
@@ -75,7 +97,7 @@ export function useImageUpload() {
       try {
         uploaded.push(...(await uploadBatch(body)));
       } catch (error) {
-        return { uploaded, skipped, error: apiErrorMessage(error) };
+        return { uploaded, skipped, error: errorMessage(error) };
       }
       onProgress({ phase: "uploading", done: uploaded.length, total: ready.length });
     }
@@ -90,6 +112,7 @@ export function useImageUpload() {
  */
 export function useGalleryRows(definition: ResourceDefinition, gallery: Gallery) {
   const [saveRecord] = useSaveRecordMutation();
+  const errorMessage = useApiErrorMessage();
 
   return async function addRows(
     ownerId: string,
@@ -111,7 +134,7 @@ export function useGalleryRows(definition: ResourceDefinition, gallery: Gallery)
         const result = await saveRecord({ resource: definition.key, values }).unwrap();
         if (!result.ok) return { added, error: result.message };
       } catch (error) {
-        return { added, error: apiErrorMessage(error) };
+        return { added, error: errorMessage(error) };
       }
       added += 1;
     }

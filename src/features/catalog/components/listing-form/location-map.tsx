@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { CircleAlert, CircleCheck, ClipboardPaste, ExternalLink, LoaderCircle, LocateFixed, MapPin, Maximize2, Minimize2, Search, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,14 +24,19 @@ import { cn } from "@/lib/utils";
 import { toApiError } from "@/store/api/api-error";
 import type { MapFocus, MapLayer } from "./pin-map";
 
-const PinMap = dynamic(() => import("./pin-map"), {
-  ssr: false,
-  loading: () => (
+function MapLoading() {
+  const t = useTranslations("forms.map");
+  return (
     <div className="flex size-full items-center justify-center gap-2 text-sm text-muted">
       <LoaderCircle aria-hidden className="size-4 animate-spin" />
-      Loading the map…
+      {t("loading")}
     </div>
-  ),
+  );
+}
+
+const PinMap = dynamic(() => import("./pin-map"), {
+  ssr: false,
+  loading: () => <MapLoading />,
 });
 
 /** A phone outdoors settles within a few metres; stop listening once it is this close. */
@@ -71,10 +77,11 @@ function metres(value: number): string {
   return value >= 1000 ? `${(value / 1000).toFixed(1)} km` : `${Math.round(value)} m`;
 }
 
-const LOCATION_ERRORS: Readonly<Record<number, string>> = {
-  1: "Location is blocked for this site. Allow it from the icon beside the address bar, then try again — or drop the pin by hand.",
-  2: "This device could not work out where it is. Turn on location services, or drop the pin by hand.",
-  3: "Finding your position took too long. Try again with a clear view of the sky, or drop the pin by hand.",
+/** Why the device's position could not be had, by the browser's error code. */
+const LOCATION_ERRORS: Readonly<Record<number, "blocked" | "unavailable" | "timeout">> = {
+  1: "blocked",
+  2: "unavailable",
+  3: "timeout",
 };
 
 interface LocationMapProps {
@@ -111,6 +118,8 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
     getValues,
     formState: { errors },
   } = useFormContext<FormValues>();
+  const t = useTranslations("forms.map");
+  const actions = useTranslations("forms.actions");
   const findId = useId();
   /* The two coordinate boxes, open only when asked for. */
   const [editing, setEditing] = useState(false);
@@ -254,7 +263,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
     const next = { latitude: lat, longitude: lng };
     setAccuracy(null);
     setFocus({ point: next, zoom: 17 });
-    setNotice({ tone: "success", text: "Pinned at the coordinates you gave." });
+    setNotice({ tone: "success", text: t("notices.pinnedCoordinates") });
     void describe(next);
   }
 
@@ -269,14 +278,11 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
 
   function locate() {
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
-      setNotice({ tone: "error", text: "This browser cannot share its location. Drop the pin on the map instead." });
+      setNotice({ tone: "error", text: t("errors.noGeolocation") });
       return;
     }
     if (!window.isSecureContext) {
-      setNotice({
-        tone: "error",
-        text: "Browsers share your location only with a secure (https) address. Open the dashboard over https, or drop the pin by hand.",
-      });
+      setNotice({ tone: "error", text: t("errors.insecure") });
       return;
     }
 
@@ -295,17 +301,11 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
       setLocating(null);
       if (last) void describe(last);
       if (best === Number.POSITIVE_INFINITY) {
-        setNotice({ tone: "error", text: LOCATION_ERRORS[failure?.code ?? 3] ?? LOCATION_ERRORS[2] });
+        setNotice({ tone: "error", text: t(`errors.${LOCATION_ERRORS[failure?.code ?? 3] ?? "unavailable"}`) });
       } else if (best > ROUGH_METRES) {
-        setNotice({
-          tone: "warning",
-          text: `This is only roughly where you are — within ${metres(best)}. A computer guesses from Wi-Fi; drag the pin onto the exact spot, or try again on a phone at the place.`,
-        });
+        setNotice({ tone: "warning", text: t("notices.rough", { distance: metres(best) }) });
       } else {
-        setNotice({
-          tone: "success",
-          text: `Pinned where you are standing, to within ${metres(best)}. Drag the pin if the entrance is somewhere else.`,
-        });
+        setNotice({ tone: "success", text: t("notices.precise", { distance: metres(best) }) });
       }
     };
 
@@ -330,7 +330,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
     place(result, { zoom: 17 });
     setResults(null);
     setQuery(result.name);
-    setNotice({ tone: "success", text: `Pinned at ${result.name}.` });
+    setNotice({ tone: "success", text: t("notices.pinnedAt", { name: result.name }) });
     void describe(result, result);
   }
 
@@ -347,7 +347,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
         const problem = toApiError(error);
         setNotice({
           tone: "error",
-          text: (problem && problem.status > 0 ? problem.message : null) ?? "That link could not be read. Copy the coordinates instead.",
+          text: (problem && problem.status > 0 ? problem.message : null) ?? t("errors.linkUnreadable"),
         });
         return;
       } finally {
@@ -356,19 +356,16 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
       }
     }
     if (!at) {
-      setNotice({
-        tone: "error",
-        text: "That link does not say where the place is. In Google Maps, right-click (or long-press) the spot and copy the numbers instead.",
-      });
+      setNotice({ tone: "error", text: t("errors.linkNoPlace") });
       return;
     }
     place(at, { zoom: 17 });
     setQuery("");
     setNotice(
       at.exact
-        ? { tone: "success", text: "Pinned from your Google Maps link." }
+        ? { tone: "success", text: t("notices.pinnedFromGoogle") }
         : /* The link names where the map was looking, not a pin: still a success, with a gentle word to check. */
-          { tone: "success", text: "Pinned from your link. Links can be slightly off, so check the pin is on the place and drag it if not." },
+          { tone: "success", text: t("notices.pinnedFromLink") },
     );
     void describe(at);
   }
@@ -388,7 +385,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
       setResults(null);
       place(pair, { zoom: 17 });
       setQuery("");
-      setNotice({ tone: "success", text: "Pinned at the coordinates you gave." });
+      setNotice({ tone: "success", text: t("notices.pinnedCoordinates") });
       void describe(pair);
       return;
     }
@@ -407,9 +404,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
       setResults(null);
       setNotice({
         tone: "error",
-        text: problem && problem.status > 0
-          ? (problem.message ?? "Place search failed. Drop the pin on the map instead.")
-          : "Place search could not be reached. Drop the pin on the map instead.",
+        text: problem && problem.status > 0 ? (problem.message ?? t("errors.searchFailed")) : t("errors.searchUnreachable"),
       });
     } finally {
       setFinding(false);
@@ -428,12 +423,12 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
       text = (await navigator.clipboard.readText()).trim();
     } catch {
       box?.focus();
-      setNotice({ tone: "info", text: "Press Ctrl+V (⌘V on a Mac) to paste the link here." });
+      setNotice({ tone: "info", text: t("notices.pasteKeys") });
       return;
     }
     if (!text || (!parseCoordinatePair(text) && !findLink(text))) {
       box?.focus();
-      setNotice({ tone: "info", text: "Nothing copied looks like a map link yet. In Google Maps: Share, then Copy link." });
+      setNotice({ tone: "info", text: t("notices.nothingCopied") });
       return;
     }
     setQuery(text);
@@ -462,17 +457,18 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
   const latitudeBox = register("latitude");
   const longitudeBox = register("longitude");
   /* One line under the map: how the pin got there, what is being looked up, and what was filled in. */
-  const filledWhat = [filledProvince ? "Province" : null, filledAddress ? (filledProvince ? "address" : "Address") : null].filter(Boolean).join(" and ");
-  const lookingFor = [fills.province ? "province" : null, fills.address ? "address" : null].filter(Boolean).join(" and ");
+  const which = (province: boolean, address: boolean) => (province && address ? "both" : province ? "province" : address ? "address" : null);
+  const filledWhat = which(filledProvince, filledAddress);
+  const lookingFor = which(fills.province, fills.address) ?? "address";
   /* Not on a red line: what went wrong is the whole message. */
-  const filledText = !describing && point && filledWhat && notice?.tone !== "error" ? `${filledWhat} filled in from the pin.` : null;
+  const filledText = !describing && point && filledWhat && notice?.tone !== "error" ? t("notices.filled", { what: filledWhat }) : null;
   /* Something filled in is a success in its own right, so a pin clicked onto the map gets a green line too. */
   const statusTone: Tone = notice?.tone ?? (filledText ? "success" : "info");
   const showStatus = Boolean(notice || describing || filledText);
 
   return (
     <div
-      aria-label={expanded ? "Map, over the whole window" : undefined}
+      aria-label={expanded ? t("fullWindow") : undefined}
       aria-modal={expanded || undefined}
       className={cn("flex flex-col gap-3 md:col-span-2", expanded && "fixed inset-0 z-[100] overflow-y-auto bg-paper p-3 sm:p-4")}
       role={expanded ? "dialog" : undefined}
@@ -482,7 +478,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
           <div className="relative min-w-0 flex-1 basis-64">
             <Search aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" />
             <Input
-              aria-label="Find the place"
+              aria-label={t("find")}
               className={cn("pl-8", finding && "text-muted")}
               disabled={disabled}
               id={findId}
@@ -497,39 +493,39 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
                 setQuery(text);
                 void find(text);
               }}
-              placeholder="Paste a Google Maps link, or search a place by name"
+              placeholder={t("findPlaceholder")}
               spellCheck={false}
               value={query}
             />
           </div>
           <Button disabled={disabled || finding} onClick={() => void pasteLink()} type="button" variant="secondary">
             <ClipboardPaste aria-hidden className="size-4" />
-            Paste link
+            {t("pasteLink")}
           </Button>
           <Button disabled={disabled || finding || query.trim().length < 2} onClick={() => void find(query)} type="button">
             {finding ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : null}
-            Find
+            {t("findButton")}
           </Button>
           {expanded ? (
             <Button className="ml-auto" onClick={() => setExpanded(false)} type="button" variant="secondary">
-              Done
+              {actions("done")}
             </Button>
           ) : null}
         </div>
         {finding ? (
           <p className="mt-1.5 flex items-center gap-1.5 text-xs text-teal" data-map-finding role="status">
             <LoaderCircle aria-hidden className="size-3.5 shrink-0 animate-spin" />
-            Finding the place…
+            {t("finding")}
           </p>
         ) : (
-          <p className="mt-1.5 text-xs text-muted">In Google Maps: Share, then Copy link.</p>
+          <p className="mt-1.5 text-xs text-muted">{t("howToCopy")}</p>
         )}
 
         {results ? (
           <div className="glass absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-lg border border-line shadow-pop">
             <div className="flex items-center justify-between border-b border-line px-3 py-1.5 text-xs text-muted">
-              <span>{results.length ? `${results.length} ${results.length === 1 ? "place" : "places"} in Cambodia` : "No places found"}</span>
-              <button aria-label="Close the results" className="rounded-sm p-0.5 hover:bg-sand-deep hover:text-ink" onClick={() => setResults(null)} type="button">
+              <span>{results.length ? t("results", { count: results.length }) : t("noResults")}</span>
+              <button aria-label={t("closeResults")} className="rounded-sm p-0.5 hover:bg-sand-deep hover:text-ink" onClick={() => setResults(null)} type="button">
                 <X aria-hidden className="size-3.5" />
               </button>
             </div>
@@ -552,7 +548,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
                 ))}
               </ul>
             ) : (
-              <p className="px-3 py-3 text-sm text-muted">Nothing in Cambodia matches “{query.trim()}”. Try another spelling, or click the map.</p>
+              <p className="px-3 py-3 text-sm text-muted">{t("noMatch", { query: query.trim() })}</p>
             )}
           </div>
         ) : null}
@@ -568,13 +564,13 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
               aria-expanded={expanded}
               className="flex h-8 items-center gap-1.5 rounded-md border border-line-strong bg-paper px-2.5 text-xs font-medium text-ink-soft shadow-xs transition-colors hover:bg-sand hover:text-ink"
               onClick={() => setExpanded((open) => !open)}
-              title={expanded ? "Back to the form (Esc)" : "The map over the whole window"}
+              title={expanded ? t("backToForm") : t("overWindow")}
               type="button"
             >
               {expanded ? <Minimize2 aria-hidden className="size-3.5" /> : <Maximize2 aria-hidden className="size-3.5" />}
-              {expanded ? "Exit full screen" : "Full screen"}
+              {expanded ? t("exitFullScreen") : t("fullScreen")}
             </button>
-            <div className="flex rounded-md border border-line-strong bg-paper p-0.5 shadow-xs" role="group" aria-label="Map style">
+            <div className="flex rounded-md border border-line-strong bg-paper p-0.5 shadow-xs" role="group" aria-label={t("style")}>
               {(["map", "satellite"] as const).map((option) => (
                 <button
                   aria-pressed={layer === option}
@@ -586,7 +582,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
                   onClick={() => setLayer(option)}
                   type="button"
                 >
-                  {option === "map" ? "Map" : "Satellite"}
+                  {t(`layers.${option}`)}
                 </button>
               ))}
             </div>
@@ -595,18 +591,18 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
           {/* For someone standing at the place with a phone: the device's own position. Beside the map, not above it — it is the rare way. */}
           {disabled ? null : (
             <button
-              aria-label={busyLocating ? "Stop finding my location" : "Use my location"}
+              aria-label={busyLocating ? t("stopLocating") : t("useLocation")}
               className="absolute right-2.5 bottom-2.5 z-[1000] grid size-9 place-items-center rounded-md border border-line-strong bg-paper text-ink-soft shadow-xs transition-colors hover:bg-sand hover:text-ink"
               onClick={() => {
                 if (busyLocating) {
                   stopWatching();
                   setLocating(null);
-                  setNotice(point ? { tone: "info", text: "Stopped. The pin stays at the last position found." } : null);
+                  setNotice(point ? { tone: "info", text: t("notices.stopped") } : null);
                 } else {
                   locate();
                 }
               }}
-              title={busyLocating ? "Stop" : "Use my location — when you are at the place"}
+              title={busyLocating ? t("stop") : t("useLocationTitle")}
               type="button"
             >
               {busyLocating ? <LoaderCircle aria-hidden className="size-4 animate-spin text-teal" /> : <LocateFixed aria-hidden className="size-4" />}
@@ -616,9 +612,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
           {busyLocating ? (
             <div className="absolute inset-x-0 bottom-0 z-[999] flex items-center gap-2 border-t border-line bg-paper/95 px-3 py-2 pr-14 text-xs text-ink-soft">
               <LoaderCircle aria-hidden className="size-3.5 animate-spin text-teal" />
-              {locating.accuracy === null
-                ? "Finding your position… allow location if the browser asks."
-                : `Improving the position… within ${metres(locating.accuracy)} so far.`}
+              {locating.accuracy === null ? t("locating") : t("improving", { distance: metres(locating.accuracy) })}
             </div>
           ) : null}
         </div>
@@ -639,7 +633,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
                     onClick={() => setEditing((open) => !open)}
                     type="button"
                   >
-                    {editing ? "Done" : "Edit"}
+                    {editing ? actions("done") : actions("edit")}
                   </button>
                 )}
               </span>
@@ -650,19 +644,19 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
                   rel="noreferrer"
                   target="_blank"
                 >
-                  Check in Google Maps
+                  {t("checkGoogle")}
                   <ExternalLink aria-hidden className="size-3" />
                 </a>
                 {disabled ? null : (
                   <button className="font-medium text-ink-soft hover:text-heritage" onClick={clearPin} type="button">
-                    Remove pin
+                    {t("removePin")}
                   </button>
                 )}
               </span>
             </>
           ) : (
             <>
-              <span>No pin yet. Paste a link above, or click the map where the place is.</span>
+              <span>{t("noPin")}</span>
               {disabled ? null : (
                 <button
                   aria-expanded={editing}
@@ -670,7 +664,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
                   onClick={() => setEditing((open) => !open)}
                   type="button"
                 >
-                  {editing ? "Done" : "Enter coordinates"}
+                  {editing ? actions("done") : t("enterCoordinates")}
                 </button>
               )}
             </>
@@ -681,7 +675,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
         {(editing || coordinateError) && !disabled ? (
           <div className="grid gap-3 border-t border-line bg-paper px-3 py-3 sm:grid-cols-2">
             <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-ink-soft">Latitude</span>
+              <span className="text-xs font-medium text-ink-soft">{t("latitude")}</span>
               <Input
                 {...latitudeBox}
                 aria-invalid={errors.latitude ? true : undefined}
@@ -695,7 +689,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
               />
             </label>
             <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-ink-soft">Longitude</span>
+              <span className="text-xs font-medium text-ink-soft">{t("longitude")}</span>
               <Input
                 {...longitudeBox}
                 aria-invalid={errors.longitude ? true : undefined}
@@ -728,7 +722,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
           {describing ? (
             <span className="inline-flex items-center gap-1.5">
               <LoaderCircle aria-hidden className="size-3.5 shrink-0 animate-spin" />
-              Looking up the {lookingFor}…
+              {t("notices.lookingUp", { what: lookingFor })}
             </span>
           ) : filledText ? (
             <span className="inline-flex items-start gap-1.5">
@@ -743,9 +737,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
       {disagrees && mapProvince ? (
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-gold/30 bg-gold-soft px-3 py-2 text-xs text-gold-deep" role="status">
           <CircleAlert aria-hidden className="size-3.5 shrink-0" />
-          <span>
-            The pin is in {mapProvince.label}, but the province says {chosenProvince ?? "another"}.
-          </span>
+          <span>{t("disagrees", { map: mapProvince.label, chosen: chosenProvince ?? t("another") })}</span>
           {disabled ? null : (
             <button
               className="font-medium underline underline-offset-2 hover:text-ink"
@@ -755,7 +747,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
               }}
               type="button"
             >
-              Use {mapProvince.label}
+              {t("use", { name: mapProvince.label })}
             </button>
           )}
         </p>
@@ -764,7 +756,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
       {offered && !disabled ? (
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-line bg-sand px-3 py-2 text-xs text-ink-soft" role="status">
           <MapPin aria-hidden className="size-3.5 shrink-0 text-muted" />
-          <span>The map has this pin at “{offered}”.</span>
+          <span>{t("offered", { address: offered })}</span>
           <button
             className="font-medium text-teal-deep underline underline-offset-2 hover:text-ink"
             onClick={() => {
@@ -773,7 +765,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
             }}
             type="button"
           >
-            Use this address
+            {t("useAddress")}
           </button>
         </p>
       ) : null}

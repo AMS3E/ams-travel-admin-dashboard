@@ -36,7 +36,7 @@ export function listingTypeOf(resource: string): ListingType | null {
   return found ? found[0] : null;
 }
 
-/** How each kind reads in a sentence. */
+/** How each kind reads in a sentence, in English; screens use `publishing.listingNoun`. */
 export const LISTING_NOUNS: Readonly<Record<ListingType, string>> = {
   DESTINATION: "attraction",
   STAY: "stay",
@@ -50,21 +50,21 @@ export function listingHref(request: Pick<PublishRequestResponse, "targetType" |
 
 export const PUBLISH_DESKS: readonly PublishDesk[] = ["PARTNER", "CONTRIBUTOR", "STAFF"];
 
-/** How each desk's submissions read in a row. */
+/** How each desk's submissions read in a row, in English; screens use `publishing.desk`. */
 export const DESK_LABELS: Readonly<Record<PublishDesk, string>> = {
   PARTNER: "Partner listing",
   CONTRIBUTOR: "Contributor draft",
   STAFF: "Staff content",
 };
 
-/** The same, for a sentence about several. */
+/** The same, for a sentence about several; `publishing.deskPlural`. */
 export const DESK_PLURAL_LABELS: Readonly<Record<PublishDesk, string>> = {
   PARTNER: "Partner listings",
   CONTRIBUTOR: "Contributor drafts",
   STAFF: "Editor and BDO submissions",
 };
 
-/** Who decides each desk, as a submitter is told. */
+/** Who decides each desk, as a submitter is told; `publishing.reviewer`. */
 export const DESK_REVIEWERS: Readonly<Record<PublishDesk, string>> = {
   PARTNER: "a BDO",
   CONTRIBUTOR: "an editor",
@@ -103,7 +103,7 @@ export interface PublishRequestResponse {
   readonly unpublishedAt: string | null;
 }
 
-/** How each status reads in a row, where the bare enum name would not. */
+/** How each status reads in a row, in English; screens use `publishing.status`. */
 export const REQUEST_LABELS: Readonly<Record<PublishRequestStatus, string>> = {
   DRAFT: "Changes requested",
   PENDING_REVIEW: "Pending",

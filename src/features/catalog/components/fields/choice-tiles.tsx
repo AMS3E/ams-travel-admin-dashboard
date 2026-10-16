@@ -5,8 +5,13 @@ import {
   Mountain, Route, Shapes, Ship, Soup, Sparkles, Sprout, Star, Sun, Tent, TreePalm, Trees, UtensilsCrossed,
   Waves, type LucideIcon, type LucideProps,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { ReferenceOption } from "@/features/catalog/resource";
 import { cn } from "@/lib/utils";
+import type englishForms from "@locales/en/forms.json";
+
+/** A tile's line, by its key under `forms.tiles.hints`. */
+type TileHint = keyof typeof englishForms.tiles.hints;
 
 /**
  * What a tile shows beside a choice's name: an icon and one line, so a region,
@@ -15,39 +20,39 @@ import { cn } from "@/lib/utils";
  */
 interface Tile {
   readonly icon: LucideIcon;
-  readonly hint: string;
+  readonly hint: TileHint;
 }
 
 /** The tourism regions, which are also the attraction themes; one added since draws the default icon and its own description. */
 export const THEME_TILES: Readonly<Record<string, Tile>> = {
-  "ANCIENT-CAPITALS": { icon: Landmark, hint: "Temples, ancient cities and museums" },
-  NORTHEASTERN: { icon: Trees, hint: "Forests, crater lakes and hill peoples" },
-  "MEKONG-TONLE-SAP": { icon: Ship, hint: "Floating villages, islands and river life" },
-  "MOUNTAIN-WATERFALL": { icon: Mountain, hint: "Peaks, parks, waterfalls and caves" },
-  "COASTAL-ISLAND": { icon: TreePalm, hint: "Beaches, islands and reefs" },
-  "URBAN-LIFESTYLE": { icon: Building2, hint: "Landmarks, markets and nights out" },
-  "KHMER-CULINARY": { icon: Soup, hint: "Farms, cooking classes and food streets" },
-  "ECO-COMMUNITY": { icon: Sprout, hint: "Villages, homestays and crafts" },
-  "LUXURY-TOURISM": { icon: Gem, hint: "Private islands, yachts and spas" },
+  "ANCIENT-CAPITALS": { icon: Landmark, hint: "ANCIENT-CAPITALS" },
+  NORTHEASTERN: { icon: Trees, hint: "NORTHEASTERN" },
+  "MEKONG-TONLE-SAP": { icon: Ship, hint: "MEKONG-TONLE-SAP" },
+  "MOUNTAIN-WATERFALL": { icon: Mountain, hint: "MOUNTAIN-WATERFALL" },
+  "COASTAL-ISLAND": { icon: TreePalm, hint: "COASTAL-ISLAND" },
+  "URBAN-LIFESTYLE": { icon: Building2, hint: "URBAN-LIFESTYLE" },
+  "KHMER-CULINARY": { icon: Soup, hint: "KHMER-CULINARY" },
+  "ECO-COMMUNITY": { icon: Sprout, hint: "ECO-COMMUNITY" },
+  "LUXURY-TOURISM": { icon: Gem, hint: "LUXURY-TOURISM" },
 };
 
 /** The five zones the provinces sit in. */
 const ZONE_TILES: Readonly<Record<string, Tile>> = {
-  CAPITAL: { icon: Building2, hint: "The capital, rice plains and silk islands" },
-  ANGKOR: { icon: Landmark, hint: "Siem Reap, Battambang and the great lake" },
-  NORTHEAST: { icon: Trees, hint: "Crater lakes, forests and hill peoples" },
-  MEKONG: { icon: Ship, hint: "River towns and paddy fields east of the Mekong" },
-  COAST: { icon: Waves, hint: "Pepper farms, crab markets and islands" },
+  CAPITAL: { icon: Building2, hint: "CAPITAL" },
+  ANGKOR: { icon: Landmark, hint: "ANGKOR" },
+  NORTHEAST: { icon: Trees, hint: "NORTHEAST" },
+  MEKONG: { icon: Ship, hint: "MEKONG" },
+  COAST: { icon: Waves, hint: "COAST" },
 };
 
 /** The six groups the Interests tab lists interests under; each province's page, the five of places. */
 const INTEREST_GROUP_TILES: Readonly<Record<string, Tile>> = {
-  "Attraction Sites": { icon: Landmark, hint: "Historical sites, culture, parks and caves" },
-  Stays: { icon: BedDouble, hint: "Hotels, homestays, resorts and eco lodges" },
-  Food: { icon: UtensilsCrossed, hint: "Restaurants, markets, drinks and street food" },
-  Water: { icon: Waves, hint: "Beaches, waterfalls and floating villages" },
-  "Activities & Experiences": { icon: Tent, hint: "Diving, trekking, cruises, camping and more" },
-  "Tourism Corridors": { icon: Route, hint: "Temple trails, river journeys and road trips" },
+  "Attraction Sites": { icon: Landmark, hint: "attractionSites" },
+  Stays: { icon: BedDouble, hint: "stays" },
+  Food: { icon: UtensilsCrossed, hint: "food" },
+  Water: { icon: Waves, hint: "water" },
+  "Activities & Experiences": { icon: Tent, hint: "activities" },
+  "Tourism Corridors": { icon: Route, hint: "corridors" },
 };
 
 const TILES: Readonly<Record<string, Tile>> = { ...THEME_TILES, ...ZONE_TILES, ...INTEREST_GROUP_TILES };
@@ -71,6 +76,7 @@ interface ChoiceTilesProps {
 
 /** A choice as cards: a region, a zone or a group, each with its icon and what it holds. */
 export function ChoiceTiles({ options, value, multiple = false, onChange, labelledBy, describedBy, invalid, icon, compact = false }: ChoiceTilesProps) {
+  const t = useTranslations("forms.tiles");
   const chosen = new Set(Array.isArray(value) ? value : value ? [value] : []);
   function toggle(option: string) {
     if (!multiple) return onChange(option);
@@ -87,7 +93,7 @@ export function ChoiceTiles({ options, value, multiple = false, onChange, labell
       {options.map((option) => {
         const tile = tileOf(option);
         const Icon = tile?.icon ?? icon ?? Shapes;
-        const hint = tile?.hint ?? option.detail;
+        const hint = tile ? t(`hints.${tile.hint}`) : option.detail;
         const selected = chosen.has(option.value);
         return (
           <button
@@ -108,7 +114,7 @@ export function ChoiceTiles({ options, value, multiple = false, onChange, labell
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-medium text-ink">
                 {option.label}
-                {option.inactive ? <span className="text-muted"> (retired)</span> : null}
+                {option.inactive ? <span className="text-muted"> {t("retired")}</span> : null}
               </span>
               {hint && !compact ? <span className="block text-xs leading-snug text-muted">{hint}</span> : null}
             </span>
@@ -132,26 +138,27 @@ export function ChoiceTiles({ options, value, multiple = false, onChange, labell
 /**
  * The icons the website draws for an interest, by the names it knows
  * (`ICON_NAMES` in the website's travel types); a test keeps the two in step.
+ * Each is named under `forms.tiles.icons`.
  */
-export const ICON_CHOICES: readonly { readonly value: string; readonly label: string; readonly icon: LucideIcon }[] = [
-  { value: "briefcase", label: "Business", icon: Briefcase },
-  { value: "building", label: "City", icon: Building2 },
-  { value: "camera", label: "Sights", icon: Camera },
-  { value: "compass", label: "Explore", icon: Compass },
-  { value: "globe", label: "World", icon: Globe },
-  { value: "home", label: "Home", icon: House },
-  { value: "leaf", label: "Nature", icon: Leaf },
-  { value: "map", label: "Map", icon: Map },
-  { value: "mountain", label: "Mountain", icon: Mountain },
-  { value: "pin", label: "Place", icon: MapPin },
-  { value: "route", label: "Route", icon: Route },
-  { value: "sparkles", label: "Special", icon: Sparkles },
-  { value: "star", label: "Star", icon: Star },
-  { value: "sun", label: "Sun", icon: Sun },
-  { value: "temple", label: "Temple", icon: Landmark },
-  { value: "tree", label: "Forest", icon: Trees },
-  { value: "utensils", label: "Food", icon: UtensilsCrossed },
-  { value: "waves", label: "Water", icon: Waves },
+export const ICON_CHOICES: readonly { readonly value: keyof typeof englishForms.tiles.icons; readonly icon: LucideIcon }[] = [
+  { value: "briefcase", icon: Briefcase },
+  { value: "building", icon: Building2 },
+  { value: "camera", icon: Camera },
+  { value: "compass", icon: Compass },
+  { value: "globe", icon: Globe },
+  { value: "home", icon: House },
+  { value: "leaf", icon: Leaf },
+  { value: "map", icon: Map },
+  { value: "mountain", icon: Mountain },
+  { value: "pin", icon: MapPin },
+  { value: "route", icon: Route },
+  { value: "sparkles", icon: Sparkles },
+  { value: "star", icon: Star },
+  { value: "sun", icon: Sun },
+  { value: "temple", icon: Landmark },
+  { value: "tree", icon: Trees },
+  { value: "utensils", icon: UtensilsCrossed },
+  { value: "waves", icon: Waves },
 ];
 
 const ICON_BY_KEY: Readonly<Record<string, LucideIcon>> = Object.fromEntries(ICON_CHOICES.map((choice) => [choice.value, choice.icon]));
@@ -174,6 +181,7 @@ export function IconPicker({
   readonly labelledBy?: string;
   readonly describedBy?: string;
 }) {
+  const t = useTranslations("forms.tiles");
   const chosen = ICON_CHOICES.find((choice) => choice.value === value);
   return (
     <div className="flex flex-col gap-1.5">
@@ -183,7 +191,7 @@ export function IconPicker({
           return (
             <button
               aria-checked={selected}
-              aria-label={choice.label}
+              aria-label={t(`icons.${choice.value}`)}
               className={cn(
                 "grid size-9 place-items-center rounded-md border transition-colors",
                 selected ? "border-teal bg-teal-soft/50 ring-1 ring-teal" : "border-line bg-paper hover:bg-sand",
@@ -191,7 +199,7 @@ export function IconPicker({
               key={choice.value}
               onClick={() => onChange(selected ? "" : choice.value)}
               role="radio"
-              title={choice.label}
+              title={t(`icons.${choice.value}`)}
               type="button"
             >
               <choice.icon aria-hidden className={cn("size-4.5", selected ? "text-teal" : "text-ink-soft")} strokeWidth={1.75} />
@@ -200,7 +208,7 @@ export function IconPicker({
         })}
       </div>
       <p className="text-xs text-muted">
-        {chosen ? chosen.label : value ? `“${value}”, kept as saved` : "None chosen: the website shows a compass."}
+        {chosen ? t(`icons.${chosen.value}`) : value ? t("keptAsSaved", { value }) : t("noIcon")}
       </p>
     </div>
   );
@@ -220,6 +228,7 @@ export function ChipToggles({
   readonly labelledBy?: string;
   readonly describedBy?: string;
 }) {
+  const t = useTranslations("forms.tiles");
   const chosen = new Set(value);
   const live = options.filter((option) => !option.inactive || chosen.has(option.value));
   function toggle(option: string) {
@@ -228,9 +237,7 @@ export function ChipToggles({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3 text-xs">
-        <span className="text-muted">
-          {chosen.size} of {live.length} chosen
-        </span>
+        <span className="text-muted">{t("chosenCount", { count: chosen.size, total: live.length })}</span>
         <span className="flex items-center gap-1.5">
           <button
             className="font-medium text-teal hover:underline disabled:text-muted disabled:no-underline"
@@ -238,7 +245,7 @@ export function ChipToggles({
             onClick={() => onChange(live.map((option) => option.value))}
             type="button"
           >
-            All
+            {t("all")}
           </button>
           <span aria-hidden className="text-line-strong">·</span>
           <button
@@ -247,7 +254,7 @@ export function ChipToggles({
             onClick={() => onChange([])}
             type="button"
           >
-            None
+            {t("none")}
           </button>
         </span>
       </div>
@@ -268,7 +275,7 @@ export function ChipToggles({
             >
               <Icon aria-hidden className={cn("size-3.5 shrink-0", selected ? "text-teal" : "text-muted")} strokeWidth={1.75} />
               {option.label}
-              {option.inactive ? <span className="text-muted">(retired)</span> : null}
+              {option.inactive ? <span className="text-muted">{t("retired")}</span> : null}
               {selected ? <Check aria-hidden className="size-3 shrink-0 text-teal" strokeWidth={2.5} /> : null}
             </button>
           );

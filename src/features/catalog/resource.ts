@@ -363,6 +363,8 @@ export interface ResourceDefinition {
   readonly rowsWhere?: RowsWhere;
   /** What its rows are called in a form's "already has" list, when its plural reads oddly there. */
   readonly siblingNoun?: string;
+  /** Its form's error messages in the reader's language; English when absent. Filled by `localizeResource`. */
+  readonly validation?: ValidationWords;
   /** A preview of the row as the website shows it: under the form, or beside it for an interest. */
   readonly preview?: "coverage" | "interest";
 }
@@ -710,37 +712,77 @@ export function toFormValues(
 /* Validation                                                                 */
 /* -------------------------------------------------------------------------- */
 
-function numberSchema(field: ResourceField, integer: boolean) {
+/** A form's error messages: `{label}`, `{min}`, `{max}`, `{other}` and `{values}` are filled in. In common.json, under validation. */
+export interface ValidationWords {
+  readonly required: string;
+  readonly number: string;
+  readonly whole: string;
+  readonly below: string;
+  readonly above: string;
+  readonly chooseOne: string;
+  readonly chooseMany: string;
+  readonly hours: string;
+  readonly date: string;
+  readonly time: string;
+  readonly photo: string;
+  readonly maxLength: string;
+  readonly paired: string;
+  readonly status: string;
+}
+
+export const ENGLISH_VALIDATION: ValidationWords = {
+  required: "{label} is required",
+  number: "{label} must be a number",
+  whole: "{label} must be a whole number",
+  below: "{label} cannot be below {min}",
+  above: "{label} cannot be above {max}",
+  chooseOne: "Choose a {label}",
+  chooseMany: "Choose at least one {label}",
+  hours: "Hours look like 07:00-22:00",
+  date: "{label} must be a date",
+  time: "{label} must be a time, e.g. 14:00",
+  photo: "Upload the photo here. A pasted key looks like general/…/photo.jpg; a web link cannot be used.",
+  maxLength: "{label} takes at most {max} characters",
+  paired: "{label} goes with {other}: fill in both, or neither",
+  status: "Status must be one of {values}",
+};
+
+/** A message with its values filled in. */
+function say(template: string, values: Readonly<Record<string, string | number>>): string {
+  return template.replace(/\{(\w+)\}/g, (whole, name: string) => (name in values ? String(values[name]) : whole));
+}
+
+function numberSchema(field: ResourceField, integer: boolean, words: ValidationWords) {
   return z
     .string()
     .trim()
     .superRefine((value, context) => {
       if (!value) {
         if (field.required) {
-          context.addIssue({ code: "custom", message: `${field.label} is required` });
+          context.addIssue({ code: "custom", message: say(words.required, { label: field.label }) });
         }
         return;
       }
 
       const parsed = Number(value);
       if (!Number.isFinite(parsed)) {
-        context.addIssue({ code: "custom", message: `${field.label} must be a number` });
+        context.addIssue({ code: "custom", message: say(words.number, { label: field.label }) });
         return;
       }
       if (integer && !Number.isInteger(parsed)) {
-        context.addIssue({ code: "custom", message: `${field.label} must be a whole number` });
+        context.addIssue({ code: "custom", message: say(words.whole, { label: field.label }) });
         return;
       }
       if (field.min != null && parsed < field.min) {
-        context.addIssue({ code: "custom", message: `${field.label} cannot be below ${field.min}` });
+        context.addIssue({ code: "custom", message: say(words.below, { label: field.label, min: field.min }) });
       }
       if (field.max != null && parsed > field.max) {
-        context.addIssue({ code: "custom", message: `${field.label} cannot be above ${field.max}` });
+        context.addIssue({ code: "custom", message: say(words.above, { label: field.label, max: field.max }) });
       }
     });
 }
 
-function fieldSchema(field: ResourceField): z.ZodType {
+function fieldSchema(field: ResourceField, words: ValidationWords): z.ZodType {
   switch (field.kind) {
     case "boolean":
       return z.boolean();
@@ -748,7 +790,7 @@ function fieldSchema(field: ResourceField): z.ZodType {
     case "refs":
     case "enums":
       return field.required
-        ? z.array(z.string()).min(1, field.single ? `Choose a ${field.label.toLowerCase()}` : `Choose at least one ${field.label.toLowerCase()}`)
+        ? z.array(z.string()).min(1, say(field.single ? words.chooseOne : words.chooseMany, { label: field.label.toLowerCase() }))
         : z.array(z.string());
 
     case "hours":
@@ -756,14 +798,14 @@ function fieldSchema(field: ResourceField): z.ZodType {
         .array(z.string())
         .refine(
           (days) => days.every((day) => !day.trim() || OPENING_HOURS.test(day.trim())),
-          "Hours look like 07:00-22:00",
+          words.hours,
         );
 
     case "number":
-      return numberSchema(field, true);
+      return numberSchema(field, true, words);
 
     case "decimal":
-      return numberSchema(field, false);
+      return numberSchema(field, false, words);
 
     case "date":
       return z
@@ -771,7 +813,7 @@ function fieldSchema(field: ResourceField): z.ZodType {
         .trim()
         .refine(
           (value) => (!field.required && !value) || /^\d{4}-\d{2}-\d{2}$/.test(value),
-          field.required ? `${field.label} is required` : `${field.label} must be a date`,
+          say(field.required ? words.required : words.date, { label: field.label }),
         );
 
     case "time":
@@ -780,7 +822,7 @@ function fieldSchema(field: ResourceField): z.ZodType {
         .trim()
         .refine(
           (value) => (!field.required && !value) || /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(value),
-          field.required ? `${field.label} is required` : `${field.label} must be a time, e.g. 14:00`,
+          say(field.required ? words.required : words.time, { label: field.label }),
         );
 
     case "image":
@@ -789,16 +831,16 @@ function fieldSchema(field: ResourceField): z.ZodType {
         .trim()
         .refine(
           (value) => !field.required || value.length > 0,
-          `${field.label} is required`,
+          say(words.required, { label: field.label }),
         )
         .refine(
           (value) => !value || MEDIA_KEY.test(value),
-          "Upload the photo here. A pasted key looks like general/…/photo.jpg; a web link cannot be used.",
+          words.photo,
         );
 
     default: {
       const required = field.required
-        ? z.string().trim().min(1, `${field.label} is required`)
+        ? z.string().trim().min(1, say(words.required, { label: field.label }))
         : z.string();
       const shape = field.pattern ? new RegExp(field.pattern.source) : null;
       const text = shape
@@ -807,7 +849,7 @@ function fieldSchema(field: ResourceField): z.ZodType {
       return field.maxLength
         ? text.refine(
             (value) => value.trim().length <= field.maxLength!,
-            `${field.label} takes at most ${field.maxLength} characters`,
+            say(words.maxLength, { label: field.label, max: field.maxLength! }),
           )
         : text;
     }
@@ -823,16 +865,17 @@ export const OPENING_HOURS = /^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-4]):[0-5]\d$|
 
 /** The Zod schema React Hook Form resolves this resource's form against. */
 export function resourceSchema(definition: ResourceDefinition) {
+  const words = definition.validation ?? ENGLISH_VALIDATION;
   const shape: Record<string, z.ZodType> = {};
   if (definition.status) {
     const values = definition.status.options.map((option) => option.value);
     shape.status = z.string().refine(
       (value) => values.includes(value),
-      `Status must be one of ${values.join(", ")}`,
+      say(words.status, { values: values.join(", ") }),
     );
   }
   for (const field of definition.fields) {
-    shape[field.name] = fieldSchema(field);
+    shape[field.name] = fieldSchema(field, words);
   }
   /* A pair is filled together or left empty together: the API refuses half a centre. */
   const paired = definition.fields.filter((field) => field.pairedWith);
@@ -845,7 +888,7 @@ export function resourceSchema(definition: ResourceDefinition) {
       context.addIssue({
         code: "custom",
         path: [field.name],
-        message: `${field.label} goes with ${other.label.toLowerCase()}: fill in both, or neither`,
+        message: say(words.paired, { label: field.label, other: other.label.toLowerCase() }),
       });
     }
   });

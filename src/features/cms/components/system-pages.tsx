@@ -1,15 +1,18 @@
 "use client";
+import { useMemo } from "react";
 import Link from "next/link";
+import { useLocale, useMessages, useTranslations } from "next-intl";
 import { ChevronRight, UserPlus } from "lucide-react";
 import { useGetUsersQuery } from "@/features/people/api/people-api";
 import {
+  BUSINESS_ROLES,
   hasPermission,
   type BusinessRole,
 } from "@/features/auth/permissions";
 import { CustomerDirectory } from "@/features/people/components/customer-directory";
-import { WORKSPACE_ACCESS } from "@/features/people/workspace-roles";
 import { byName, getResource } from "@/features/catalog/resources";
 import type { ResourceKey } from "@/features/catalog/resource";
+import { localizeWith } from "@/features/catalog/localize";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
@@ -34,13 +37,7 @@ const ROLE_ORDER: readonly BusinessRole[] = [
   "CONTRIBUTOR",
   "PARTNER",
 ];
-const ROLE_LABELS: Readonly<Record<BusinessRole, string>> = {
-  ADMIN: "Administrator",
-  EDITOR: "Editor",
-  BDO: "BDO",
-  CONTRIBUTOR: "Contributor",
-  PARTNER: "Partner",
-};
+const isBusinessRole = (value: string): value is BusinessRole => (BUSINESS_ROLES as readonly string[]).includes(value);
 
 /**
  * The back office, grouped by the role each person holds.
@@ -51,6 +48,10 @@ const ROLE_LABELS: Readonly<Record<BusinessRole, string>> = {
  * appear twice, which is the truth about them rather than a duplicate.
  */
 export function RolesPage({ grants }: { readonly grants: readonly string[] }) {
+  const t = useTranslations("cms.roles");
+  const locale = useLocale();
+  /* English keeps the role codes it always showed; other languages name the role. */
+  const roleWord = (held: string) => (locale !== "en" && isBusinessRole(held) ? t(`labels.${held}`) : held);
   const query = useGetUsersQuery("");
   const people = query.data ?? [];
 
@@ -58,12 +59,12 @@ export function RolesPage({ grants }: { readonly grants: readonly string[] }) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">
-          {query.isLoading ? "Loading team members…" : `${people.length} team ${people.length === 1 ? "member" : "members"} across ${ROLE_ORDER.length} roles`}
+          {query.isLoading ? t("loading") : t("summary", { count: people.length, roles: ROLE_ORDER.length })}
         </p>
         {hasPermission(grants, "PERM_ROLE_ASSIGN") ? (
           <Link className={buttonVariants({ size: "sm" })} href="/people/new">
             <UserPlus aria-hidden className="size-3.5" />
-            New account
+            {t("newAccount")}
           </Link>
         ) : null}
       </div>
@@ -73,10 +74,10 @@ export function RolesPage({ grants }: { readonly grants: readonly string[] }) {
         return (
           <Surface className="scroll-mt-20" id={`role-${role.toLowerCase()}`} key={role}>
             <SurfaceHeader
-              description={WORKSPACE_ACCESS[role]}
+              description={t(`access.${role}`)}
               title={
                 <span className="flex items-center gap-2">
-                  {ROLE_LABELS[role]}
+                  {t(`labels.${role}`)}
                   <Badge>{members.length}</Badge>
                 </span>
               }
@@ -99,10 +100,10 @@ export function RolesPage({ grants }: { readonly grants: readonly string[] }) {
                         </span>
                         {person.roles.length > 1 ? (
                           <span className="hidden text-xs text-muted sm:inline">
-                            Also {person.roles.filter((held) => held !== role).join(", ")}
+                            {t("also", { roles: person.roles.filter((held) => held !== role).map(roleWord).join(", ") })}
                           </span>
                         ) : null}
-                        {!person.enabled ? <Badge dot tone="danger">Disabled</Badge> : null}
+                        {!person.enabled ? <Badge dot tone="danger">{t("disabled")}</Badge> : null}
                         <ChevronRight aria-hidden className="size-4 shrink-0 text-muted" />
                       </Link>
                     </li>
@@ -110,7 +111,7 @@ export function RolesPage({ grants }: { readonly grants: readonly string[] }) {
                 })}
               </ul>
             ) : (
-              <p className="px-4 py-3 text-sm text-muted">Nobody holds this role yet.</p>
+              <p className="px-4 py-3 text-sm text-muted">{t("nobody")}</p>
             )}
           </Surface>
         );
@@ -135,20 +136,30 @@ const advanced: ResourceKey[] = [
   "seasons",
 ];
 export function SettingsPage() {
+  const t = useTranslations("cms.settings");
+  const messages = useMessages();
+  /* Each table's name and line in the reader's language, A to Z in it. */
+  const tables = useMemo(
+    () =>
+      advanced
+        .map((key) => ({ key, definition: localizeWith(getResource(key), messages) }))
+        .sort((a, b) => byName(a.definition.labelPlural, b.definition.labelPlural)),
+    [messages],
+  );
   return (
     <div className="flex max-w-3xl flex-col gap-4">
       <Surface>
         <SurfaceHeader
-          description="Stay and food photography, badges, the periods they are earned in, and the seasons that set those periods."
-          title="Catalogue configuration"
+          description={t("catalogue.description")}
+          title={t("catalogue.title")}
         />
         <ul className="divide-y divide-line">
-          {[...advanced].sort((a, b) => byName(getResource(a).labelPlural, getResource(b).labelPlural)).map((key) => (
+          {tables.map(({ key, definition }) => (
             <li key={key}>
               <Link className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-sand" href={"/" + key}>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium text-ink">{getResource(key).labelPlural}</span>
-                  <span className="block truncate text-xs text-muted">{getResource(key).description}</span>
+                  <span className="block text-sm font-medium text-ink">{definition.labelPlural}</span>
+                  <span className="block truncate text-xs text-muted">{definition.description}</span>
                 </span>
                 <ChevronRight aria-hidden className="size-4 shrink-0 text-muted" />
               </Link>
@@ -161,12 +172,12 @@ export function SettingsPage() {
         <SurfaceHeader
           actions={
             <Link className={buttonVariants({ size: "sm", variant: "secondary" })} href="/profile">
-              Edit profile
+              {t("account.edit")}
             </Link>
           }
           className="border-b-0"
-          description="Update your name, contact details, and profile image."
-          title="Account"
+          description={t("account.description")}
+          title={t("account.title")}
         />
       </Surface>
     </div>

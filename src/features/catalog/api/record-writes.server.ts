@@ -1,6 +1,7 @@
 import "server-only";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { getBackendUserId, requireAdminSession } from "@/features/auth/session";
 import {
   canCreateResource,
@@ -11,11 +12,8 @@ import {
 } from "@/features/auth/permissions";
 import { findRecord } from "@/features/catalog/api/catalog.server";
 import type { CatalogRecord } from "@/features/catalog/api/contracts";
-import {
-  GENERIC_SAVE_ERROR,
-  type SaveRecordInput,
-  type SaveResult,
-} from "@/features/catalog/form-state";
+import type { SaveRecordInput, SaveResult } from "@/features/catalog/form-state";
+import { localizeDefinition } from "@/features/catalog/localize.server";
 import {
   resourcePath,
   resourceSchema,
@@ -43,11 +41,12 @@ import { problemFieldErrors, problemMessage } from "@/lib/problem";
 export async function saveRecord(
   input: SaveRecordInput,
 ): Promise<SaveResult> {
+  const t = await getTranslations("catalog.save");
   if (!isResourceKey(input.resource)) {
-    return { ok: false, message: "Unknown catalogue resource." };
+    return { ok: false, message: t("unknownResource") };
   }
   if (input.id != null && !isUuid(input.id)) {
-    return { ok: false, message: "Unknown catalogue row." };
+    return { ok: false, message: t("unknownRow") };
   }
 
   const { admin, token } = await requireAdminSession();
@@ -55,26 +54,31 @@ export async function saveRecord(
   let existing: CatalogRecord | null = null;
   if (input.id == null) {
     if (!canCreateResource(admin.roles, input.resource)) {
-      return { ok: false, message: "This account cannot create this resource." };
+      return { ok: false, message: t("cannotCreate") };
     }
   } else {
     try {
       existing = await findRecord(input.resource, input.id);
     } catch {
-      return { ok: false, message: "This record is unavailable in your workspace." };
+      return { ok: false, message: t("unavailable") };
     }
     if (!canEditRecord(admin.roles, input.resource, existing, userId)) {
-      return { ok: false, message: "This record is read-only for your account." };
+      return { ok: false, message: t("readOnly") };
     }
   }
   /*
    * The same questions the form asked, so a save is checked against them and
    * no other: who runs a stay or a food listing is asked only of the desks that
    * name an owner, and the API puts the writer's own name to the rest.
+   * In the reader's language, so the messages below name things as the form does.
    */
-  const definition = namesListingOwner(admin.roles, input.resource)
-    ? getResource(input.resource)
-    : withoutField(getResource(input.resource), "ownerUserId");
+  const definition = await localizeDefinition(
+    namesListingOwner(admin.roles, input.resource)
+      ? getResource(input.resource)
+      : withoutField(getResource(input.resource), "ownerUserId"),
+  );
+  const item = definition.label.toLowerCase();
+  const generic = t("generic");
   const parsed = resourceSchema(definition).safeParse(input.values);
 
   if (!parsed.success) {
@@ -85,7 +89,7 @@ export async function saveRecord(
         fieldErrors[name] = issue.message;
       }
     }
-    return { ok: false, message: "Some fields need attention.", fieldErrors };
+    return { ok: false, message: t("fieldsNeedAttention"), fieldErrors };
   }
 
   const mode = input.id == null ? "create" : "update";
@@ -156,7 +160,7 @@ export async function saveRecord(
         const detail = error instanceof BackendApiError ? problemMessage(error.detail) : "";
         return {
           ok: false,
-          message: `The ${definition.label.toLowerCase()} was saved as a draft but could not be published${detail ? `: ${detail}` : "."} Open it from the list to publish it — do not create it again.`,
+          message: detail ? t("notPublishedDetail", { item, detail }) : t("notPublished", { item }),
         };
       }
     }
@@ -166,7 +170,11 @@ export async function saveRecord(
       (await saveTies(definition, values, existing, saved.id, token));
     if (unlinked) {
       revalidatePath("/", "layout");
-      return { ok: false, message: `The ${definition.label.toLowerCase()} was saved, but ${unlinked} Open it from the list to try again — do not create it again.` };
+      const { field, detail } = unlinked;
+      const message = unlinked.kind === "ties"
+        ? (detail ? t("tiesFailedDetail", { item, field, detail }) : t("tiesFailed", { item, field }))
+        : (detail ? t("inverseFailedDetail", { item, field, detail }) : t("inverseFailed", { item, field }));
+      return { ok: false, message };
     }
 
     revalidatePath("/", "layout");
@@ -182,23 +190,32 @@ export async function saveRecord(
       if (error.status === 409) {
         return {
           ok: false,
-          message: detail || `That ${definition.label.toLowerCase()} already exists.`,
-          fieldErrors: { name: detail || "This name is already taken." },
+          message: detail || t("exists", { item }),
+          fieldErrors: { name: detail || t("nameTaken") },
         };
       }
       if (error.status === 400) {
         /* The API names each refused field; the form marks them and opens the step they are on. */
         const fieldErrors = problemFieldErrors(error.detail);
         return Object.keys(fieldErrors).length
-          ? { ok: false, message: detail || GENERIC_SAVE_ERROR, fieldErrors }
-          : { ok: false, message: detail || GENERIC_SAVE_ERROR };
+          ? { ok: false, message: detail || generic, fieldErrors }
+          : { ok: false, message: detail || generic };
       }
       if (error.status === 403 || error.status === 404) {
-        return { ok: false, message: detail || GENERIC_SAVE_ERROR };
+        return { ok: false, message: detail || generic };
       }
     }
-    return { ok: false, message: GENERIC_SAVE_ERROR };
+    return { ok: false, message: generic };
   }
+}
+
+/** A link the row's save could not carry onto other rows: which field, and what the API said. */
+interface Unlinked {
+  /** `ties` could not be saved; `inverse` could not all be updated. */
+  readonly kind: "ties" | "inverse";
+  /** The field's label, lower case, in the reader's language. */
+  readonly field: string;
+  readonly detail: string;
 }
 
 /**
@@ -212,7 +229,7 @@ async function saveTies(
   existing: CatalogRecord | null,
   id: string,
   token: string,
-): Promise<string | null> {
+): Promise<Unlinked | null> {
   for (const field of definition.fields) {
     if (!field.ties) continue;
     const { path, by, list, key, keep = [] } = field.ties;
@@ -229,7 +246,7 @@ async function saveTies(
       await backendRequest(`${path}/${id}`, { method: "PUT", body: JSON.stringify({ [list]: ties }) }, token);
     } catch (error) {
       const detail = error instanceof BackendApiError ? problemMessage(error.detail) : "";
-      return `its ${field.label.toLowerCase()} could not be saved${detail ? `: ${detail}` : "."}`;
+      return { kind: "ties", field: field.label.toLowerCase(), detail };
     }
   }
   return null;
@@ -246,7 +263,7 @@ async function saveInverse(
   existing: CatalogRecord | null,
   id: string,
   token: string,
-): Promise<string | null> {
+): Promise<Unlinked | null> {
   for (const field of definition.fields) {
     if (!field.inverse) continue;
     const other = getResource(field.inverse.resource);
@@ -266,7 +283,7 @@ async function saveInverse(
         );
       } catch (error) {
         const detail = error instanceof BackendApiError ? problemMessage(error.detail) : "";
-        return `its ${field.label.toLowerCase()} could not all be updated${detail ? `: ${detail}` : "."}`;
+        return { kind: "inverse", field: field.label.toLowerCase(), detail };
       }
     }
   }

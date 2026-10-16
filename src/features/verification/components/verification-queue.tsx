@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { BadgeCheck, History, MapPin, RefreshCw, Search, ShieldOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { EmptyState, QueryState } from "@/features/cms/components/query-state";
-import { formatDateTime } from "@/features/dashboard/format";
+import { useDates } from "@/i18n/use-dates";
 import {
   PUBLISH_DESKS,
   type PublishDesk,
@@ -17,55 +18,22 @@ import {
 import { cn } from "@/lib/utils";
 import { byName } from "@/features/catalog/resources";
 import { useGetVerificationQueueQuery } from "../api/verification-api";
-import { BASIS_LABELS, decidedVerified, type VerificationQueueItem } from "../api/contracts";
+import { decidedVerified, type VerificationQueueItem } from "../api/contracts";
 import { VerifyDrawer, type DrawerFocus } from "./verify-drawer";
 
 type Filter = "awaiting" | "verified" | "all";
 
-const FILTERS: readonly { readonly value: Filter; readonly label: string }[] = [
-  { value: "awaiting", label: "Awaiting verification" },
-  { value: "verified", label: "Verified" },
-  { value: "all", label: "All" },
-];
+/** The filters, in order; their words are `verification.queue.filters`. */
+const FILTERS: readonly Filter[] = ["awaiting", "verified", "all"];
 
-/**
- * Whose place it is, in the words this screen needs: not which desk approves
- * it — that is the publishing side — but who wrote the thing whose invoice a
- * verifier is about to read. "Staff content" said nothing to anybody.
- */
-const WRITTEN_BY: Readonly<Record<PublishDesk, string>> = {
-  PARTNER: "Written by a partner",
-  CONTRIBUTOR: "Written by a contributor",
-  STAFF: "Written by our team",
+const STATUS_TONES: Readonly<Record<VerificationQueueItem["destinationStatus"], "active" | "neutral" | "inactive">> = {
+  PUBLISHED: "active",
+  DRAFT: "neutral",
+  ARCHIVED: "inactive",
 };
 
-/** The same, as a line in the filter beside it. */
-const WRITTEN_BY_FILTER: Readonly<Record<PublishDesk, string>> = {
-  PARTNER: "By a partner",
-  CONTRIBUTOR: "By a contributor",
-  STAFF: "By our team",
-};
-
-const EMPTY: Readonly<Record<Filter, string>> = {
-  awaiting: "Nothing is waiting: every destination here has been verified.",
-  verified: "No destination is verified yet. Verify one on what it rests on: an official site, a partnership, or an invoice.",
-  all: "There is no destination to verify yet.",
-};
-
-const STATUS: Readonly<
-  Record<VerificationQueueItem["destinationStatus"], { label: string; tone: "active" | "neutral" | "inactive" }>
-> = {
-  PUBLISHED: { label: "Published", tone: "active" },
-  DRAFT: { label: "Draft", tone: "neutral" },
-  ARCHIVED: { label: "Archived", tone: "inactive" },
-};
-
-/** Who this account verifies, in the words the rule is stated in. */
-function scopeOf(grants: readonly string[]): string {
-  return grants.includes("PERM_FULL_CONTROL")
-    ? "As an administrator you verify every destination, staff content included."
-    : "You verify every destination, whoever wrote it — a partner's, a contributor's and the team's own.";
-}
+/** A translator for `verification`, from `useTranslations`. */
+type Words = ReturnType<typeof useTranslations<"verification">>;
 
 /**
  * Content Management → Verification: where a desk verifies.
@@ -76,6 +44,7 @@ function scopeOf(grants: readonly string[]): string {
  * it, with the destination's history underneath.
  */
 export function VerificationQueue({ grants }: { readonly grants: readonly string[] }) {
+  const t = useTranslations("verification");
   const query = useGetVerificationQueueQuery();
   const [filter, setFilter] = useState<Filter>("awaiting");
   const [desk, setDesk] = useState<PublishDesk | "all">("all");
@@ -105,35 +74,32 @@ export function VerificationQueue({ grants }: { readonly grants: readonly string
   const current = open ? all.find((item) => item.destinationId === open.id) : undefined;
 
   return (
-    <section aria-label="Verification queue" className="panel min-w-0 overflow-hidden">
+    <section aria-label={t("queue.label")} className="panel min-w-0 overflow-hidden">
       <p className="border-b border-line bg-sand px-4 py-2 text-xs text-muted">
-        {scopeOf(grants)} A verified place shows as Recommended by AMS Travel
-        in the app. Verify on what it rests on: an official site needs no
-        paperwork, a partner&apos;s listing its agreement, a paid one its invoice
-        or receipt; renew when new paperwork comes in, and say why when you
-        revoke. Recommended by Traveler is earned from reviews and is nobody&apos;s
-        to file or revoke.
+        {t("queue.intro", {
+          scope: grants.includes("PERM_FULL_CONTROL") ? t("queue.scopeAdmin") : t("queue.scopeDesk"),
+        })}
       </p>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2.5">
         <div
-          aria-label="Filter by verification"
+          aria-label={t("queue.filterLabel")}
           className="inline-flex h-8 flex-wrap items-center rounded-md border border-line-strong bg-sand p-0.5"
           role="group"
         >
           {FILTERS.map((option) => (
             <button
-              aria-pressed={filter === option.value}
+              aria-pressed={filter === option}
               className={cn(
                 "inline-flex h-full items-center gap-1.5 rounded-[5px] px-2.5 text-xs font-medium transition-colors",
-                filter === option.value ? "bg-paper text-ink shadow-xs ring-1 ring-line" : "text-muted hover:text-ink",
+                filter === option ? "bg-paper text-ink shadow-xs ring-1 ring-line" : "text-muted hover:text-ink",
               )}
-              key={option.value}
-              onClick={() => setFilter(option.value)}
+              key={option}
+              onClick={() => setFilter(option)}
               type="button"
             >
-              {option.label}
-              <span className="text-muted tabular-nums">{counts[option.value]}</span>
+              {t(`queue.filters.${option}`)}
+              <span className="text-muted tabular-nums">{counts[option]}</span>
             </button>
           ))}
         </div>
@@ -142,15 +108,15 @@ export function VerificationQueue({ grants }: { readonly grants: readonly string
           {/* Only worth a control when the queue spans more than one desk. */}
           {desks.length > 1 ? (
             <Select
-              aria-label="Filter by who wrote it"
+              aria-label={t("queue.deskFilterLabel")}
               className="h-8 w-52 text-sm"
               onChange={(event) => setDesk(event.target.value as PublishDesk | "all")}
               value={desk}
             >
-              <option value="all">Written by anyone</option>
+              <option value="all">{t("queue.writtenByAnyone")}</option>
               {desks.map((each) => (
                 <option key={each} value={each}>
-                  {WRITTEN_BY_FILTER[each]}
+                  {t(`queue.writtenByFilter.${each}`)}
                 </option>
               ))}
             </Select>
@@ -161,10 +127,10 @@ export function VerificationQueue({ grants }: { readonly grants: readonly string
               className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted"
             />
             <Input
-              aria-label="Search destinations"
+              aria-label={t("queue.searchLabel")}
               className="h-8 pl-8 text-sm"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search destinations…"
+              placeholder={t("queue.searchPlaceholder")}
               type="search"
               value={search}
             />
@@ -189,7 +155,7 @@ export function VerificationQueue({ grants }: { readonly grants: readonly string
           ))}
         </ul>
       ) : !query.isLoading && !query.error ? (
-        <EmptyState>{needle ? "No destination matches that search." : EMPTY[filter]}</EmptyState>
+        <EmptyState>{needle ? t("queue.empty.noMatch") : t(`queue.empty.${filter}`)}</EmptyState>
       ) : null}
 
       {open && current ? (
@@ -210,26 +176,29 @@ export function VerificationQueue({ grants }: { readonly grants: readonly string
  * verifier's name too, because "verified" without a name is a state rather
  * than somebody's decision.
  */
-function decisionLine(item: VerificationQueueItem): string {
+function decisionLine(item: VerificationQueueItem, t: Words, dateTime: (value: string) => string): string {
+  const name = item.decidedByName ?? t("line.deletedAccount");
   const decision =
     item.id != null && item.createdAt
       ? [
-          `${decidedVerified(item) ? "Verified" : "Revoked"} by ${item.decidedByName ?? "a deleted account"}`,
-          formatDateTime(item.createdAt),
+          decidedVerified(item) ? t("line.verifiedBy", { name }) : t("line.revokedBy", { name }),
+          dateTime(item.createdAt),
           item.reference,
         ]
           .filter(Boolean)
           .join(" · ")
       : null;
   /* The travellers' seal verifies it whatever the last decision was, so it comes first. */
-  if (item.basis === "TRAVELER_SCORE") return ["Verified by the travellers' reviews", decision].filter(Boolean).join(" · ");
-  return decision ?? "Never verified";
+  if (item.basis === "TRAVELER_SCORE") return [t("line.byTravellers"), decision].filter(Boolean).join(" · ");
+  return decision ?? t("line.never");
 }
 
 /** The star ratings behind the travellers' seal, or on the way to it. */
-function ratingsLine(item: VerificationQueueItem): string | null {
+function ratingsLine(item: VerificationQueueItem, t: Words): string | null {
   if (!item.ratingCount) return null;
-  return `${item.ratingCount.toLocaleString()} ${item.ratingCount === 1 ? "rating" : "ratings"}${item.averageRating != null ? ` at ${item.averageRating}` : ""}`;
+  return item.averageRating != null
+    ? t("line.ratingsAt", { count: item.ratingCount, average: String(item.averageRating) })
+    : t("line.ratings", { count: item.ratingCount });
 }
 
 function QueueRow({
@@ -239,7 +208,10 @@ function QueueRow({
   readonly item: VerificationQueueItem;
   readonly onOpen: (focus: DrawerFocus) => void;
 }) {
-  const status = STATUS[item.destinationStatus];
+  const t = useTranslations("verification");
+  const { dateTime } = useDates();
+  const tone = STATUS_TONES[item.destinationStatus];
+  const ratings = ratingsLine(item, t);
   return (
     <li className="flex flex-wrap items-center gap-3 px-4 py-2.5">
       {item.destinationCoverUrl ? (
@@ -265,34 +237,35 @@ function QueueRow({
           {item.destinationName}
         </Link>
         <p className="truncate font-mono text-2xs text-muted">{item.destinationSlug}</p>
-        <p className="mt-0.5 text-xs text-ink-soft">{decisionLine(item)}</p>
+        <p className="mt-0.5 text-xs text-ink-soft">{decisionLine(item, t, dateTime)}</p>
         {item.note ? (
           <p className="mt-0.5 line-clamp-1 text-xs text-muted">{item.note}</p>
         ) : null}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Badge>{WRITTEN_BY[item.desk]}</Badge>
-        <Badge dot tone={status?.tone ?? "neutral"}>{status?.label ?? item.destinationStatus}</Badge>
-        {item.travelerRecommended ? <Badge tone="success">Recommended by Traveler</Badge> : null}
+        {/* Who wrote it, not which desk approves it: "Staff content" said nothing to anybody. */}
+        <Badge>{t(`queue.writtenBy.${item.desk}`)}</Badge>
+        <Badge dot tone={tone ?? "neutral"}>{tone ? t(`destinationStatus.${item.destinationStatus}`) : item.destinationStatus}</Badge>
+        {item.travelerRecommended ? <Badge tone="success">{t("badge.travelerRecommended")}</Badge> : null}
         <span className="flex flex-col items-start gap-0.5">
           <Badge tone={item.verified ? "info" : "neutral"}>
-            {item.verified && item.basis ? `Verified · ${BASIS_LABELS[item.basis]}` : item.verified ? "Verified" : "Not verified"}
+            {item.verified && item.basis ? t("badge.verifiedBasis", { basis: t(`basis.${item.basis}`) }) : item.verified ? t("badge.verified") : t("badge.notVerified")}
           </Badge>
           {decidedVerified(item) && item.decidedByName ? (
-            <span className="text-2xs text-muted" title={item.createdAt ? formatDateTime(item.createdAt) : undefined}>
-              by {item.decidedByName}
+            <span className="text-2xs text-muted" title={item.createdAt ? dateTime(item.createdAt) : undefined}>
+              {t("queue.by", { name: item.decidedByName })}
             </span>
-          ) : ratingsLine(item) ? (
-            <span className="text-2xs text-muted">{ratingsLine(item)}</span>
+          ) : ratings ? (
+            <span className="text-2xs text-muted">{ratings}</span>
           ) : null}
         </span>
 
         <Button
-          aria-label={`History of ${item.destinationName}`}
+          aria-label={t("queue.historyOf", { name: item.destinationName })}
           onClick={() => onOpen("history")}
           size="icon-sm"
-          title="History"
+          title={t("actions.history")}
           type="button"
           variant="ghost"
         >
@@ -302,17 +275,17 @@ function QueueRow({
           <>
             <Button onClick={() => onOpen("verify")} size="sm" type="button" variant="secondary">
               <RefreshCw aria-hidden className="size-3.5" />
-              Renew
+              {t("actions.renew")}
             </Button>
             <Button onClick={() => onOpen("revoke")} size="sm" type="button" variant="ghost">
               <ShieldOff aria-hidden className="size-3.5 text-heritage" />
-              Revoke
+              {t("actions.revoke")}
             </Button>
           </>
         ) : (
           <Button onClick={() => onOpen("verify")} size="sm" type="button">
             <BadgeCheck aria-hidden className="size-3.5" />
-            Verify
+            {t("actions.verify")}
           </Button>
         )}
       </div>

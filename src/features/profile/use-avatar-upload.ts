@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { mediaPath } from "@/features/catalog/resource";
 import { useUploadMedia } from "@/features/media/api/media-api";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
 
 /** What the `/api/medias` route accepts; it checks again, and so does the API. */
 export const AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"] as const;
@@ -28,6 +29,8 @@ export interface UploadedPhoto {
  * `inputProps` belong on a hidden `<input>` the form renders; `choose` opens it.
  */
 export function useAvatarUpload(onUploaded: (photo: UploadedPhoto) => void) {
+  const t = useTranslations("profile.photo");
+  const apiErrorMessage = useApiErrorMessage();
   const input = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -35,11 +38,11 @@ export function useAvatarUpload(onUploaded: (photo: UploadedPhoto) => void) {
 
   async function upload(file: File) {
     if (!(AVATAR_TYPES as readonly string[]).includes(file.type)) {
-      setFailure("Choose a JPEG, PNG, WebP or AVIF image.");
+      setFailure(t("wrongType"));
       return;
     }
     if (file.size > MAX_BYTES) {
-      setFailure("That photo is larger than 8 MB. Choose a smaller one.");
+      setFailure(t("tooLarge"));
       return;
     }
     setUploading(true);

@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 export interface RatingBucket {
   readonly rating: number;
   readonly count: number;
@@ -12,13 +14,14 @@ export interface RatingBucket {
  * value is already on the screen.
  */
 export function RatingBars({ buckets }: { readonly buckets: readonly RatingBucket[] }) {
+  const t = useTranslations("stats.activity");
   const highest = Math.max(1, ...buckets.map((bucket) => bucket.count));
   const total = buckets.reduce((sum, bucket) => sum + bucket.count, 0);
 
   if (!total) {
     return (
       <p className="inset-row px-3 py-6 text-center text-sm text-muted">
-        No visible reviews yet.
+        {t("noVisibleReviews")}
       </p>
     );
   }

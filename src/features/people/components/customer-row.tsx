@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   Loader2,
   Mail,
@@ -28,20 +29,20 @@ import {
   type AvatarPickerLabels,
 } from "@/features/profile/components/avatar-picker";
 import { useAvatarUpload } from "@/features/profile/use-avatar-upload";
+import { datePartsOf, fillDate } from "@/i18n/dates";
+import { useDates } from "@/i18n/use-dates";
 import { cn } from "@/lib/utils";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
 
-/** The drop zone's words when the photo is a customer's rather than your own. */
-export const CUSTOMER_PHOTO: AvatarPickerLabels = {
-  empty: "Add their photo",
-  filled: "Their profile photo",
-  uploading: "Uploading the photo…",
-  instructions: "Drag an image here, or choose one from this computer.",
-};
-
-export const PHOTO_HINT = "JPEG, PNG, WebP or AVIF, up to 8 MB. A square photo looks best.";
-
-const joined = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" });
+/** The photo field's words when the photo is someone else's — a customer's or a team member's — rather than your own. */
+export function useTheirPhoto(): { readonly label: string; readonly hint: string; readonly labels: AvatarPickerLabels } {
+  const t = useTranslations("people.photo");
+  return {
+    label: t("label"),
+    hint: t("hint"),
+    labels: { empty: t("empty"), filled: t("filled"), uploading: t("uploading"), instructions: t("instructions") },
+  };
+}
 
 /**
  * The columns a customer is read across — who, phone, joined, status, actions —
@@ -67,10 +68,16 @@ export function CustomerRow({
   readonly customer: CustomerAccount;
   readonly canManage: boolean;
 }) {
+  const t = useTranslations("people");
+  const apiErrorMessage = useApiErrorMessage();
+  const { dates } = useDates();
   const [mode, setMode] = useState<"view" | "edit" | "delete">("view");
   const [deleteCustomer, removal] = useDeleteCustomerMutation();
   const active = customer.status === "ACTIVE";
   const name = customerName(customer);
+  const status = t(`status.${customer.status}`);
+  const joinedAt = new Date(customer.createdAt);
+  const joined = Number.isNaN(joinedAt.valueOf()) ? "—" : fillDate(dates.date, datePartsOf(joinedAt), dates);
 
   async function confirmDelete() {
     try {
@@ -94,7 +101,7 @@ export function CustomerRow({
             <p className="truncate text-sm font-medium text-ink">
               {name}
               {/* The badge is hidden on a phone to give the address room; say the status instead. */}
-              <span className="sr-only sm:hidden">, {active ? "Active" : "Inactive"}</span>
+              <span className="sr-only sm:hidden">, {status}</span>
             </p>
             <p className="flex min-w-0 items-center gap-1.5 text-xs text-muted">
               <Mail aria-hidden className="size-3 shrink-0" />
@@ -114,29 +121,29 @@ export function CustomerRow({
           )}
         </span>
         <span className="hidden text-sm text-muted tabular-nums lg:block">
-          {joined.format(new Date(customer.createdAt))}
+          {joined}
         </span>
         <span className="hidden sm:block">
-          <Badge dot tone={active ? "success" : "neutral"}>{active ? "Active" : "Inactive"}</Badge>
+          <Badge dot tone={active ? "success" : "neutral"}>{status}</Badge>
         </span>
 
         {canManage ? (
           <span className="flex items-center justify-end gap-0.5">
             <Button
               aria-expanded={mode === "edit"}
-              aria-label={`Edit ${name}`}
+              aria-label={t("editing.editName", { name })}
               className={cn("text-muted hover:text-ink", mode === "edit" && "bg-teal-soft text-teal-deep")}
               disabled={removal.isLoading}
               onClick={() => setMode(mode === "edit" ? "view" : "edit")}
               size="icon-sm"
-              title="Edit"
+              title={t("customer.edit")}
               type="button"
               variant="ghost"
             >
               <Pencil aria-hidden className="size-4" />
             </Button>
             <Button
-              aria-label={`Delete ${name}`}
+              aria-label={t("customer.deleteName", { name })}
               disabled={removal.isLoading}
               onClick={() => {
                 removal.reset();
@@ -144,7 +151,7 @@ export function CustomerRow({
               }}
               size="icon-sm"
               className="text-muted hover:bg-heritage-soft hover:text-heritage"
-              title="Delete permanently"
+              title={t("customer.delete")}
               type="button"
               variant="ghost"
             >
@@ -165,9 +172,7 @@ export function CustomerRow({
           {removal.error ? <ErrorBanner message={apiErrorMessage(removal.error)} /> : null}
           <div className="flex flex-wrap items-center gap-3">
             <p className="min-w-0 flex-1 text-sm text-ink">
-              Delete <strong>{name}</strong> for good? Their sign-in, reviews,
-              favourites and badges go too. To stop them signing in but keep
-              their history, edit them and set them to Inactive instead.
+              {t.rich("customer.confirmDelete", { name, b: (chunks) => <strong>{chunks}</strong> })}
             </p>
             <Button
               disabled={removal.isLoading}
@@ -177,7 +182,7 @@ export function CustomerRow({
               variant="destructive"
             >
               {removal.isLoading ? <Loader2 aria-hidden className="size-4 animate-spin" /> : null}
-              Delete customer
+              {t("customer.deleteCustomer")}
             </Button>
             <Button
               disabled={removal.isLoading}
@@ -186,7 +191,7 @@ export function CustomerRow({
               type="button"
               variant="secondary"
             >
-              Cancel
+              {t("editing.cancel")}
             </Button>
           </div>
         </div>
@@ -209,6 +214,9 @@ function EditCustomerForm({
   const [avatar, setAvatar] = useState({ key: customer.avatarKey ?? "", url: customer.avatarUrl ?? "" });
   const [updateCustomer, { isLoading, error }] = useUpdateCustomerMutation();
   const photo = useAvatarUpload(setAvatar);
+  const t = useTranslations("people");
+  const apiErrorMessage = useApiErrorMessage();
+  const theirPhoto = useTheirPhoto();
 
   const dirty =
     name.trim() !== (customer.fullName ?? "") ||
@@ -251,7 +259,7 @@ function EditCustomerForm({
 
   return (
     <form
-      aria-label={`Edit ${customerName(customer)}`}
+      aria-label={t("editing.editName", { name: customerName(customer) })}
       className="border-t border-line"
       noValidate
       onSubmit={submit}
@@ -259,13 +267,13 @@ function EditCustomerForm({
       <div className="flex flex-col gap-4 px-4 py-4">
         {error ? <ErrorBanner message={apiErrorMessage(error)} /> : null}
 
-        <FormField hint={PHOTO_HINT} label="Profile photo">
+        <FormField hint={theirPhoto.hint} label={theirPhoto.label}>
           {(field) => (
             <AvatarPicker
               describedBy={field["aria-describedby"]}
               failure={photo.failure}
               id={field.id}
-              labels={CUSTOMER_PHOTO}
+              labels={theirPhoto.labels}
               name={name.trim() || customerName(customer)}
               onChoose={photo.choose}
               onFile={(file) => void photo.upload(file)}
@@ -282,7 +290,7 @@ function EditCustomerForm({
         <input {...photo.inputProps} />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Name" required>
+          <FormField label={t("fields.name")} required>
             {(field) => (
               <Input
                 {...field}
@@ -295,7 +303,7 @@ function EditCustomerForm({
             )}
           </FormField>
 
-          <FormField hint="Also what they sign in with." label="E-mail" required>
+          <FormField hint={t("customer.emailHint")} label={t("fields.email")} required>
             {(field) => (
               <Input
                 {...field}
@@ -308,7 +316,7 @@ function EditCustomerForm({
             )}
           </FormField>
 
-          <FormField hint="Optional. Leave empty to remove it." label="Phone number">
+          <FormField hint={t("fields.phoneRemovable")} label={t("fields.phone")}>
             {(field) => (
               <Input
                 {...field}
@@ -320,15 +328,15 @@ function EditCustomerForm({
             )}
           </FormField>
 
-          <FormField hint="Inactive customers cannot sign in." label="Status">
+          <FormField hint={t("customer.statusHint")} label={t("fields.status")}>
             {(field) => (
               <Select
                 {...field}
                 onChange={(event) => setStatus(event.target.value as CustomerAccount["status"])}
                 value={status}
               >
-                <option value="ACTIVE">Active — can sign in</option>
-                <option value="INACTIVE">Inactive — sign-in blocked</option>
+                <option value="ACTIVE">{t("status.activeOption")}</option>
+                <option value="INACTIVE">{t("status.inactiveOption")}</option>
               </Select>
             )}
           </FormField>
@@ -345,15 +353,15 @@ function EditCustomerForm({
           {photo.uploading ? (
             <>
               <Loader2 aria-hidden className="size-3.5 animate-spin" />
-              Uploading the photo…
+              {t("editing.uploadingPhoto")}
             </>
           ) : dirty ? (
             <>
               <span aria-hidden className="size-1.5 rounded-full bg-gold" />
-              Unsaved changes.
+              {t("editing.unsaved")}
             </>
           ) : (
-            <span className="text-muted">No changes yet.</span>
+            <span className="text-muted">{t("editing.noChanges")}</span>
           )}
         </p>
         <div className="flex gap-2">
@@ -365,7 +373,7 @@ function EditCustomerForm({
             variant="ghost"
           >
             {dirty ? <RotateCcw aria-hidden className="size-3.5" /> : null}
-            {dirty ? "Discard" : "Close"}
+            {dirty ? t("editing.discard") : t("editing.close")}
           </Button>
           <Button disabled={busy || !dirty || !name.trim() || !email.trim()} size="sm" type="submit">
             {isLoading ? (
@@ -373,7 +381,7 @@ function EditCustomerForm({
             ) : (
               <Save aria-hidden className="size-3.5" />
             )}
-            {isLoading ? "Saving…" : "Save changes"}
+            {isLoading ? t("editing.saving") : t("editing.save")}
           </Button>
         </div>
       </div>

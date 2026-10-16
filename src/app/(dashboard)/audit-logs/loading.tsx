@@ -1,9 +1,12 @@
+import { getTranslations } from "next-intl/server";
+
 /** The audit page's shape while the first read is on its way. */
-export default function AuditLogsLoading() {
+export default async function AuditLogsLoading() {
+  const t = await getTranslations("audit");
   const bar = "rounded-sm bg-sand-deep";
   return (
     <div aria-busy className="mx-auto flex max-w-7xl animate-pulse flex-col gap-5" role="status">
-      <span className="sr-only">Loading the audit log…</span>
+      <span className="sr-only">{t("loading")}</span>
       <div className="flex flex-col gap-2">
         <div className={`${bar} h-3 w-24`} />
         <div className="h-7 w-48 rounded-md bg-sand-deep" />

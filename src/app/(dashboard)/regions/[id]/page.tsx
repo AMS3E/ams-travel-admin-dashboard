@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Pencil, Shapes } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { canManageResource } from "@/features/auth/permissions";
@@ -25,7 +26,9 @@ async function tourismRegion(id: string): Promise<CatalogRecord | null> {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
   const region = await tourismRegion(id);
-  return { title: region && typeof region.name === "string" ? region.name : "Not found" };
+  if (region && typeof region.name === "string") return { title: region.name };
+  const t = await getTranslations("catalog.region");
+  return { title: t("notFound") };
 }
 
 /**
@@ -38,6 +41,7 @@ export default async function RegionPage({ params }: Params) {
   if (!canManageResource(admin.roles, "regions")) notFound();
   const region = await tourismRegion(id);
   if (!region || typeof region.name !== "string") notFound();
+  const t = await getTranslations("catalog.region");
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-5">
@@ -46,16 +50,16 @@ export default async function RegionPage({ params }: Params) {
           <>
             <Link className={buttonVariants({ variant: "ghost" })} href="/categories-and-tags">
               <Shapes aria-hidden className="size-4" />
-              Manage categories & tags
+              {t("manageTerms")}
             </Link>
             <Link className={buttonVariants({ variant: "secondary" })} href={`/regions/${id}/edit`}>
               <Pencil aria-hidden className="size-4" />
-              Edit region
+              {t("edit")}
             </Link>
           </>
         }
         backHref="/regions"
-        backLabel="Back to Tourism Regions"
+        backLabel={t("back")}
         description={typeof region.code === "string" ? region.code : undefined}
         title={region.name}
       />

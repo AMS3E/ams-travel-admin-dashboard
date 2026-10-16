@@ -1,14 +1,16 @@
 "use client";
 import { useMemo, useState } from "react";
 import Image from "next/image";
+import { useMessages, useTranslations } from "next-intl";
 import { Eye, EyeOff, MessageSquare, Star } from "lucide-react";
 import {
   useGetReviewsQuery,
   useModerateReviewMutation,
 } from "@/features/editorial/api/editorial-api";
 import { useGetCatalogQuery } from "@/features/catalog/api/catalog-api";
-import { REVIEW_TARGET_LABELS, REVIEW_TARGET_RESOURCES } from "@/features/dashboard/reviews";
+import { REVIEW_TARGET_RESOURCES } from "@/features/dashboard/reviews";
 import type { ReviewTarget } from "@/features/dashboard/api/contracts";
+import { datePartsOf, fillDate, type DateWords } from "@/i18n/dates";
 import { QueryState } from "./query-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +38,9 @@ function useTargetNames(): (type: ReviewTarget, id: string) => string | undefine
 }
 
 export function ReviewsPage() {
+  const t = useTranslations("cms.reviews");
+  const review = useTranslations("stats.review");
+  const dates = useMessages().common.dates as DateWords;
   const query = useGetReviewsQuery();
   const [moderate, mutation] = useModerateReviewMutation();
   const nameOf = useTargetNames();
@@ -49,22 +54,27 @@ export function ReviewsPage() {
         .toLowerCase()
         .includes(search.toLowerCase()),
   );
+  /* The day it was written, as the dashboard writes dates in the reader's language. */
+  const dayOf = (value: string) => {
+    const at = new Date(value);
+    return Number.isNaN(at.valueOf()) ? "—" : fillDate(dates.date, datePartsOf(at), dates);
+  };
   return (
-    <section aria-label="Reviews" className="panel min-w-0 overflow-hidden">
+    <section aria-label={t("label")} className="panel min-w-0 overflow-hidden">
       <Toolbar>
-        <SearchField className="max-w-sm" label="Search reviews" onChange={setSearch} placeholder="Search reviews…" value={search} />
+        <SearchField className="max-w-sm" label={t("search")} onChange={setSearch} placeholder={t("searchPlaceholder")} value={search} />
         <Select
-          aria-label="Review visibility"
+          aria-label={t("visibility")}
           className="h-8 w-40 text-sm"
           value={status}
           onChange={(event) => setStatus(event.target.value)}
         >
-          <option value="all">All reviews</option>
-          <option value="VISIBLE">Visible</option>
-          <option value="HIDDEN">Hidden</option>
+          <option value="all">{t("all")}</option>
+          <option value="VISIBLE">{review("visible")}</option>
+          <option value="HIDDEN">{review("hidden")}</option>
         </Select>
         <span className="ml-auto text-xs text-muted tabular-nums">
-          {rows.length} {rows.length === 1 ? "review" : "reviews"}
+          {t("count", { count: rows.length })}
         </span>
       </Toolbar>
       {query.isLoading || query.error || mutation.error ? (
@@ -82,15 +92,16 @@ export function ReviewsPage() {
           const photos = [...(item.photos ?? [])].sort(
             (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
           );
+          const target = review(`target.${item.targetType}`);
+          const name = nameOf(item.targetType, item.targetId);
           return (
             <article className="px-4 py-3" key={item.id}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-medium text-ink">{item.authorName || "Traveler"}</h2>
+                  <h2 className="text-sm font-medium text-ink">{item.authorName || review("traveler")}</h2>
                   <p className="mt-0.5 text-xs text-muted">
-                    {REVIEW_TARGET_LABELS[item.targetType]}
-                    {nameOf(item.targetType, item.targetId) ? `: ${nameOf(item.targetType, item.targetId)}` : ""} ·{" "}
-                    {new Date(item.createdAt).toLocaleDateString()}
+                    {name ? t("targetNamed", { target, name }) : target} ·{" "}
+                    {dayOf(item.createdAt)}
                   </p>
                 </div>
                 <span className="flex items-center gap-1 text-xs font-medium text-ink-soft tabular-nums">
@@ -102,10 +113,10 @@ export function ReviewsPage() {
                 <h3 className="mt-2 text-sm font-medium text-ink">{item.title}</h3>
               )}
               <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink-soft">
-                {item.content || "No written review."}
+                {item.content || review("noText")}
               </p>
               {photos.length ? (
-                <ul className="mt-3 flex flex-wrap gap-2" aria-label="Photos">
+                <ul className="mt-3 flex flex-wrap gap-2" aria-label={review("photos")}>
                   {photos.map((photo) =>
                     photo.mediaUrl ? (
                       <li key={photo.id}>
@@ -124,7 +135,7 @@ export function ReviewsPage() {
               ) : null}
               <div className="mt-2 flex items-center justify-between">
                 <Badge dot tone={visible ? "success" : "neutral"}>
-                  {visible ? "Visible" : "Hidden"}
+                  {visible ? review("visible") : review("hidden")}
                 </Badge>
                 <Button
                   disabled={mutation.isLoading}
@@ -142,7 +153,7 @@ export function ReviewsPage() {
                   ) : (
                     <Eye className="size-3.5" />
                   )}
-                  {visible ? "Hide review" : "Show review"}
+                  {visible ? t("hide") : t("show")}
                 </Button>
               </div>
             </article>
@@ -151,9 +162,9 @@ export function ReviewsPage() {
       </div>
       {!query.isFetching && !query.isError && !rows.length && (
         <NothingHere
-          description={search || status !== "all" ? "Try another search or visibility." : "Reviews appear here once travellers write them."}
+          description={search || status !== "all" ? t("empty.filtered") : t("empty.none")}
           icon={MessageSquare}
-          title="No reviews match this view"
+          title={t("empty.title")}
         />
       )}
     </section>

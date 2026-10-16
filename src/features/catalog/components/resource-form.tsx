@@ -6,6 +6,7 @@ import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm, useWatch, type Resolver } from "react-hook-form";
 import { Loader2, Trash2, TriangleAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   useSaveRecordMutation,
@@ -13,7 +14,7 @@ import {
   useGetReferenceOptionsQuery,
   useGetCatalogQuery,
 } from "@/features/catalog/api/catalog-api";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
 import { InterestPreview } from "@/features/catalog/components/interest-preview";
 import { spotIndex, type SpotContext } from "@/features/catalog/components/fields/spot-list";
 import { listPageOf } from "@/features/catalog/all-destinations";
@@ -97,6 +98,9 @@ export function ResourceForm({
   presets,
   cancelHref,
 }: ResourceFormProps) {
+  const t = useTranslations("forms.resourceForm");
+  const actions = useTranslations("forms.actions");
+  const errorMessage = useApiErrorMessage();
   const router = useRouter();
   const [saveRecord] = useSaveRecordMutation();
   const [deleteRecord] = useDeleteRecordMutation();
@@ -234,7 +238,7 @@ export function ResourceForm({
       const names = definition.orderField ? titles.map((title, index) => `${index + 1}. ${title}`) : titles;
       const clash = typed ? titles.findIndex((title) => title.toLowerCase() === typed) : -1;
       return {
-        label: choices.find((option) => option.value === each)?.label ?? "This one",
+        label: choices.find((option) => option.value === each)?.label ?? t("thisOne"),
         names,
         noun: definition.siblingNoun ?? definition.labelPlural.toLowerCase(), one: definition.label.toLowerCase(),
         clash: clash >= 0 ? names[clash] : undefined,
@@ -254,7 +258,7 @@ export function ResourceForm({
         values,
       }).unwrap();
     } catch (error) {
-      setBanner(apiErrorMessage(error));
+      setBanner(errorMessage(error));
       return;
     }
 
@@ -282,7 +286,7 @@ export function ResourceForm({
         }).unwrap();
         returnToList();
       } catch (error) {
-        setBanner(apiErrorMessage(error));
+        setBanner(errorMessage(error));
       }
     });
   }
@@ -297,8 +301,7 @@ export function ResourceForm({
             className="rounded-lg border border-line bg-sand px-3 py-2.5 text-sm text-ink-soft"
             role="status"
           >
-            This record is read-only for your account. Contributors can edit
-            their own unpublished drafts.
+            {t("readOnly")}
           </p>
         ) : null}
         {banner ? (
@@ -342,17 +345,14 @@ export function ResourceForm({
 
             {status ? (
               <section className="px-4 py-4">
-                <h2 className="mb-3 text-sm font-semibold text-ink">Publication</h2>
+                <h2 className="mb-3 text-sm font-semibold text-ink">{t("publication")}</h2>
                 {!canEdit ? (
-                  <p className="text-sm text-muted">
-                    An editor manages publication and changes to this{" "}
-                    {definition.label.toLowerCase()}.
-                  </p>
+                  <p className="text-sm text-muted">{t("editorManages", { noun: definition.label.toLowerCase() })}</p>
                 ) : !canSetStatus ? (
                   <p className="text-sm text-muted">
-                    {editing ? `Currently ${currentStatus?.label.toLowerCase() ?? "unknown"}. ` : ""}
-                    Whether this is on the public site is decided by a reviewer, not
-                    here.{definition.key === "destinations" ? " Submit it from the publishing screen when it is ready." : ""}
+                    {editing ? `${t("currently", { status: currentStatus?.label.toLowerCase() ?? t("unknown") })} ` : ""}
+                    {t("reviewerDecides")}
+                    {definition.key === "destinations" ? ` ${t("submitFromPublishing")}` : ""}
                   </p>
                 ) : editing ? (
                   <div className="md:max-w-sm">
@@ -366,16 +366,14 @@ export function ResourceForm({
                         (option) => option.value === status.live || option.value === status.initial,
                       )}
                     />
-                    <p className="text-xs text-muted">
-                      Published goes on the public site as soon as it is created, with no
-                      approval step. Choose Draft to finish it first.
-                    </p>
+                    <p className="text-xs text-muted">{t("publishedNote")}</p>
                   </div>
                 ) : (
                   <p className="text-sm text-muted">
-                    New {definition.labelPlural.toLowerCase()} are created as{" "}
-                    {initialStatus?.label.toLowerCase() ?? "drafts"}. You can change
-                    that once it exists.
+                    {t("createdAs", {
+                      nouns: definition.labelPlural.toLowerCase(),
+                      status: initialStatus?.label.toLowerCase() ?? t("drafts"),
+                    })}
                   </p>
                 )}
               </section>
@@ -389,10 +387,10 @@ export function ResourceForm({
                       <Loader2 aria-hidden className="size-3.5 animate-spin" />
                     ) : null}
                     {saving
-                      ? "Saving…"
+                      ? actions("saving")
                       : editing
-                        ? "Save changes"
-                        : `Create ${definition.label.toLowerCase()}`}
+                        ? actions("saveChanges")
+                        : actions("create", { noun: definition.label.toLowerCase() })}
                   </Button>
                 ) : null}
 
@@ -400,14 +398,14 @@ export function ResourceForm({
                   className={buttonVariants({ variant: "ghost", size: "sm" })}
                   href={cancelHref ?? listHref}
                 >
-                  Cancel
+                  {actions("cancel")}
                 </Link>
               </div>
 
               {editing && canDelete ? (
                 confirmingDelete ? (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted">Delete permanently?</span>
+                    <span className="text-xs text-muted">{actions("deleteConfirm")}</span>
                     <Button
                       disabled={deleting}
                       onClick={destroy}
@@ -415,7 +413,7 @@ export function ResourceForm({
                       type="button"
                       variant="destructive"
                     >
-                      Yes, delete
+                      {actions("yesDelete")}
                     </Button>
                     <Button
                       onClick={() => setConfirmingDelete(false)}
@@ -423,7 +421,7 @@ export function ResourceForm({
                       type="button"
                       variant="ghost"
                     >
-                      Keep it
+                      {actions("keepIt")}
                     </Button>
                   </div>
                 ) : (
@@ -436,7 +434,7 @@ export function ResourceForm({
                     variant="ghost"
                   >
                     <Trash2 aria-hidden className="size-3.5" />
-                    Delete
+                    {actions("delete")}
                   </Button>
                 )
               ) : null}

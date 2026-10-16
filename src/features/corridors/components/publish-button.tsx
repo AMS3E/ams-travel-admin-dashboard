@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { settled } from "@/store/api/api-error";
 /** Publish or unpublish from the corridor's page; a refusal — a stop at a draft destination — is said beside it. */
 export function PublishButton({ corridorId, published }: { readonly corridorId: string; readonly published: boolean }) {
   const router = useRouter();
+  const t = useTranslations("corridors.words");
   const [pending, startTransition] = useTransition();
   const [problem, setProblem] = useState<string | null>(null);
   const [setCorridorPublished] = useSetCorridorPublishedMutation();
@@ -34,7 +36,7 @@ export function PublishButton({ corridorId, published }: { readonly corridorId: 
         variant="secondary"
       >
         {pending ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : null}
-        {published ? "Unpublish" : "Publish"}
+        {published ? t("unpublish") : t("publish")}
       </Button>
       {problem ? (
         <span className="max-w-xs text-right text-xs text-heritage" role="alert">

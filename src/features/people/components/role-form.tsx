@@ -3,10 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, TriangleAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BUSINESS_ROLES, type BusinessRole } from "@/features/auth/permissions";
-import { ROLE_PROFILES } from "@/features/dashboard/roles";
 import { useSetRolesMutation } from "@/features/people/api/people-api";
 import { settled } from "@/store/api/api-error";
 
@@ -18,6 +18,8 @@ interface RoleFormProps {
 }
 
 export function RoleForm({ personId, roles, self }: RoleFormProps) {
+  const t = useTranslations("people");
+  const profiles = useTranslations("common.roleProfiles");
   const [setRoles] = useSetRolesMutation();
   const router = useRouter();
   const [saving, startSaving] = useTransition();
@@ -43,7 +45,7 @@ export function RoleForm({ personId, roles, self }: RoleFormProps) {
     startSaving(async () => {
       const result = await settled(setRoles({ id: personId, roles: selected }).unwrap());
       if (result.ok) {
-        setBanner({ tone: "ok", text: "Roles saved." });
+        setBanner({ tone: "ok", text: t("roleForm.saved") });
         // The account page around this form is rendered on the server.
         router.refresh();
       } else {
@@ -90,11 +92,11 @@ export function RoleForm({ personId, roles, self }: RoleFormProps) {
                 />
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold text-ink">
-                    {role}
+                    {t(`roleCodes.${role}`)}
                   </span>
                   <span className="block text-xs text-muted">
-                    {ROLE_PROFILES[role].blurb}
-                    {locked ? " · Your own administrator role cannot be removed here." : ""}
+                    {profiles(`${role}.blurb`)}
+                    {locked ? ` · ${t("roleForm.ownAdmin")}` : ""}
                   </span>
                 </span>
               </label>
@@ -113,11 +115,11 @@ export function RoleForm({ personId, roles, self }: RoleFormProps) {
           type="button"
           variant="ghost"
         >
-          Reset
+          {t("roleForm.reset")}
         </Button>
         <Button disabled={!changed || saving} onClick={save} type="button">
           {saving ? <Loader2 aria-hidden className="size-4 animate-spin" /> : null}
-          Save roles
+          {t("roleForm.save")}
         </Button>
       </div>
     </div>

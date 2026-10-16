@@ -25,10 +25,13 @@ const EDGE = 2560;
 const KEEP_AS_IS_BYTES = 2 * 1024 * 1024;
 const QUALITY = 0.88;
 
-/** Why a picked file cannot be used, or null when it can. */
-export function imageProblem(file: File): string | null {
-  if (!IMAGE_TYPES.includes(file.type)) return `${file.name} is not a JPEG, PNG, WebP or AVIF image.`;
-  if (file.size > MAX_PICKED_BYTES) return `${file.name} is larger than 40 MB.`;
+/** Why a picked file cannot be used: not a photo type, or too large to decode. */
+export type ImageProblem = "type" | "size";
+
+/** Why a picked file cannot be used, or null when it can; `forms.upload.problems` says it in words. */
+export function imageProblem(file: File): ImageProblem | null {
+  if (!IMAGE_TYPES.includes(file.type)) return "type";
+  if (file.size > MAX_PICKED_BYTES) return "size";
   return null;
 }
 

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { ChevronRight, Store } from "lucide-react";
 import { useGetCurrentUserQuery } from "@/features/auth/api/auth-api";
 import {
@@ -10,7 +11,7 @@ import {
 import { useGetDashboardQuery } from "@/features/dashboard/api/dashboard-api";
 import { LISTING_RESOURCES } from "@/features/publishing/api/contracts";
 import { useGetPublishRequestsQuery } from "@/features/publishing/api/publishing-api";
-import { listingLabel, listingPath, listingRows } from "@/features/publishing/listings";
+import { listingPath, listingRows } from "@/features/publishing/listings";
 import { QueryState } from "./query-state";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -21,6 +22,7 @@ import { SearchField, Toolbar } from "@/components/ui/toolbar";
  * publication, as far as this workspace can see them.
  */
 export function PartnerListingsPage() {
+  const t = useTranslations("cms");
   const { data: user } = useGetCurrentUserQuery();
   const grants = user?.roles ?? [];
   const requests = useGetPublishRequestsQuery(
@@ -47,15 +49,15 @@ export function PartnerListingsPage() {
     );
   const error = requests.error ?? catalog.error;
   return (
-    <section aria-label="Partner listings" className="panel min-w-0 overflow-hidden">
+    <section aria-label={t("partners.label")} className="panel min-w-0 overflow-hidden">
       <Toolbar>
-        <SearchField className="max-w-sm" label="Search listings" onChange={setSearch} placeholder="Search listings…" value={search} />
+        <SearchField className="max-w-sm" label={t("partners.search")} onChange={setSearch} placeholder={t("partners.searchPlaceholder")} value={search} />
         <span className="ml-auto text-xs text-muted tabular-nums">
-          {listings.length} {listings.length === 1 ? "listing" : "listings"}
+          {t("listings", { count: listings.length })}
         </span>
       </Toolbar>
       <p className="border-b border-line bg-sand px-4 py-2 text-xs text-muted">
-        Attractions, stays and food listings partners have submitted for publication, as your workspace sees them.
+        {t("partners.intro")}
       </p>
       {requests.isLoading || catalog.isLoading || error ? (
         <div className="p-3">
@@ -76,12 +78,12 @@ export function PartnerListingsPage() {
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium text-ink">{item.name}</span>
                 <span className="block truncate text-xs text-muted">
-                  {item.detail || item.summary || "Partner listing"}
+                  {item.detail || item.summary || t("partners.fallback")}
                 </span>
               </span>
-              <Badge tone="neutral">{listingLabel(item.type)}</Badge>
+              <Badge tone="neutral">{t(`listing.${item.type}`)}</Badge>
               <Badge dot tone={item.status === "PUBLISHED" ? "success" : "neutral"}>
-                {item.status === "PUBLISHED" ? "Published" : item.status === "ARCHIVED" ? "Archived" : "Draft"}
+                {item.status === "PUBLISHED" ? t("status.PUBLISHED") : item.status === "ARCHIVED" ? t("status.ARCHIVED") : t("status.DRAFT")}
               </Badge>
             </>
           );
@@ -102,9 +104,9 @@ export function PartnerListingsPage() {
       </ul>
       {!requests.isFetching && !catalog.isFetching && !error && !listings.length && (
         <EmptyState
-          description="Listings partners submit for publication appear here."
+          description={t("partners.empty.description")}
           icon={Store}
-          title="No matches in your workspace yet"
+          title={t("partners.empty.title")}
         />
       )}
     </section>

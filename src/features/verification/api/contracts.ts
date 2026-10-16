@@ -17,7 +17,7 @@ import type { PublishDesk } from "@/features/publishing/api/contracts";
 
 export type VerificationBasis = "OFFICIAL_SITE" | "PARTNER" | "PAID" | "TRAVELER_SCORE";
 
-/** How each basis reads in a chip or a line. */
+/** How each basis reads in a chip or a line, in English; screens use `verification.basis`. */
 export const BASIS_LABELS: Readonly<Record<VerificationBasis, string>> = {
   OFFICIAL_SITE: "Official site",
   PARTNER: "Partner",

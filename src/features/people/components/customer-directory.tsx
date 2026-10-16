@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Search, UserPlus, Users } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Metric, MetricStrip } from "@/components/ui/metric-strip";
@@ -29,11 +30,7 @@ import { NewCustomerForm } from "./new-customer-form";
 /* One empty list for every render before the first answer, so the memos below hold. */
 const NONE: readonly CustomerAccount[] = [];
 
-const FILTERS: readonly { value: StatusFilter; label: string }[] = [
-  { value: "ALL", label: "All" },
-  { value: "ACTIVE", label: "Active" },
-  { value: "INACTIVE", label: "Inactive" },
-];
+const FILTERS: readonly StatusFilter[] = ["ALL", "ACTIVE", "INACTIVE"];
 
 /**
  * Customers of the public site — the people who registered an account — and
@@ -46,6 +43,7 @@ const FILTERS: readonly { value: StatusFilter; label: string }[] = [
  * is what separates the two lists here; the staff themselves are on Roles.
  */
 export function CustomerDirectory({ canManage }: { readonly canManage: boolean }) {
+  const t = useTranslations("people.customers");
   const [term, setTerm] = useState("");
   const [status, setStatus] = useState<StatusFilter>("ALL");
   const [sort, setSort] = useState<CustomerSort>("newest");
@@ -69,49 +67,50 @@ export function CustomerDirectory({ canManage }: { readonly canManage: boolean }
   return (
     <div className="flex flex-col gap-4">
       <MetricStrip>
-        <Metric hint="Registered on the public site" label="Customers" value={loading ? null : figures.total} />
-        <Metric hint="Can sign in" label="Active" tone={figures.active ? "success" : "neutral"} value={loading ? null : figures.active} />
-        <Metric hint="Sign-in blocked" label="Inactive" value={loading ? null : figures.inactive} />
-        <Metric hint={`Joined in the last ${NEW_WITHIN_DAYS} days`} label="New" value={loading ? null : figures.recent} />
+        <Metric hint={t("metrics.customersHint")} label={t("metrics.customers")} value={loading ? null : figures.total} />
+        <Metric hint={t("metrics.activeHint")} label={t("metrics.active")} tone={figures.active ? "success" : "neutral"} value={loading ? null : figures.active} />
+        <Metric hint={t("metrics.inactiveHint")} label={t("metrics.inactive")} value={loading ? null : figures.inactive} />
+        <Metric hint={t("metrics.newHint", { days: NEW_WITHIN_DAYS })} label={t("metrics.new")} value={loading ? null : figures.recent} />
       </MetricStrip>
 
       {creating && canManage ? <NewCustomerForm onClose={() => setCreating(false)} /> : null}
 
-      <section aria-label="Customers" className="panel min-w-0 overflow-hidden">
+      <section aria-label={t("label")} className="panel min-w-0 overflow-hidden">
         <Toolbar>
           <SearchField
             className="max-w-sm"
-            label="Search customers"
+            label={t("search")}
             onChange={setTerm}
-            placeholder="Search name, e-mail or phone…"
+            placeholder={t("searchPlaceholder")}
             value={term}
           />
 
           <SegmentedControl
-            label="Status"
+            label={t("statusLabel")}
             onChange={setStatus}
             options={FILTERS.map((filter) => ({
-              ...filter,
-              count: loading ? null : counts[filter.value],
+              value: filter,
+              label: t(`filters.${filter}`),
+              count: loading ? null : counts[filter],
             }))}
             value={status}
           />
 
           <Select
-            aria-label="Sort customers"
+            aria-label={t("sortLabel")}
             className="h-8 w-36 text-sm"
             onChange={(event) => setSort(event.target.value as CustomerSort)}
             value={sort}
           >
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
-            <option value="name">Name A–Z</option>
+            <option value="newest">{t("sort.newest")}</option>
+            <option value="oldest">{t("sort.oldest")}</option>
+            <option value="name">{t("sort.name")}</option>
           </Select>
 
           {canManage ? (
             <Button className="ml-auto" disabled={creating} onClick={() => setCreating(true)} size="sm" type="button">
               <UserPlus aria-hidden className="size-3.5" />
-              New customer
+              {t("newCustomer")}
             </Button>
           ) : null}
         </Toolbar>
@@ -127,7 +126,7 @@ export function CustomerDirectory({ canManage }: { readonly canManage: boolean }
             />
           </div>
         ) : loading ? (
-          <div aria-busy="true" aria-label="Loading customers" className="divide-y divide-line" role="status">
+          <div aria-busy="true" aria-label={t("loading")} className="divide-y divide-line" role="status">
             {[0, 1, 2, 3].map((placeholder) => (
               <div className="flex items-center gap-3 px-4 py-3" key={placeholder}>
                 <span className="size-8 animate-pulse rounded-full bg-sand-deep" />
@@ -141,10 +140,10 @@ export function CustomerDirectory({ canManage }: { readonly canManage: boolean }
         ) : rows.length ? (
           <>
             <div aria-hidden className={cn(CUSTOMER_COLUMNS, "h-9 border-b border-line bg-sand text-xs font-medium text-muted")}>
-              <span>Customer</span>
-              <span className="hidden md:block">Phone</span>
-              <span className="hidden lg:block">Joined</span>
-              <span className="hidden sm:block">Status</span>
+              <span>{t("columns.customer")}</span>
+              <span className="hidden md:block">{t("columns.phone")}</span>
+              <span className="hidden lg:block">{t("columns.joined")}</span>
+              <span className="hidden sm:block">{t("columns.status")}</span>
               <span />
             </div>
             <div className="divide-y divide-line">
@@ -153,7 +152,7 @@ export function CustomerDirectory({ canManage }: { readonly canManage: boolean }
               ))}
             </div>
             <p className="border-t border-line px-4 py-2 text-xs text-muted tabular-nums">
-              Showing {rows.length} of {figures.total} {figures.total === 1 ? "customer" : "customers"}
+              {t("showing", { shown: rows.length, count: figures.total })}
             </p>
           </>
         ) : (
@@ -169,34 +168,32 @@ export function CustomerDirectory({ canManage }: { readonly canManage: boolean }
                   type="button"
                   variant="secondary"
                 >
-                  Clear filters
+                  {t("empty.clearFilters")}
                 </Button>
               ) : canManage ? (
                 <Button onClick={() => setCreating(true)} size="sm" type="button">
                   <UserPlus aria-hidden className="size-3.5" />
-                  Create customer
+                  {t("empty.create")}
                 </Button>
               ) : null
             }
-            description={
-              filtered
-                ? "Try another name, e-mail or phone, or show every status."
-                : "Customers will appear here after registering."
-            }
+            description={filtered ? t("empty.filteredDescription") : t("empty.description")}
             icon={filtered ? Search : Users}
-            title={filtered ? "No customer matches" : "No customers yet"}
+            title={filtered ? t("empty.filteredTitle") : t("empty.title")}
           />
         )}
       </section>
 
       {excluded > 0 ? (
         <p className="text-xs text-muted">
-          {excluded} staff {excluded === 1 ? "account is" : "accounts are"} held back from
-          this list. Find {excluded === 1 ? "it" : "them"} under{" "}
-          <Link className="text-teal-deep underline-offset-2 hover:underline" href="/roles">
-            Roles &amp; Permissions
-          </Link>
-          .
+          {t.rich("staffHeldBack", {
+            count: excluded,
+            link: (chunks) => (
+              <Link className="text-teal-deep underline-offset-2 hover:underline" href="/roles">
+                {chunks}
+              </Link>
+            ),
+          })}
         </p>
       ) : null}
     </div>

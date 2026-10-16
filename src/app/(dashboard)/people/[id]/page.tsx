@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Badge } from "@/components/ui/badge";
 import { hasPermission } from "@/features/auth/permissions";
 import { requireAdmin } from "@/features/auth/session";
@@ -8,7 +9,10 @@ import { RoleForm } from "@/features/people/components/role-form";
 import { findPerson } from "@/features/people/people.server";
 import { PageHeader } from "@/features/shell/components/page-header";
 
-export const metadata: Metadata = { title: "Account" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("people.account");
+  return { title: t("title") };
+}
 
 export default async function AccountPage(props: PageProps<"/people/[id]">) {
   const admin = await requireAdmin();
@@ -17,29 +21,30 @@ export default async function AccountPage(props: PageProps<"/people/[id]">) {
   const { id } = await props.params;
   const person = await findPerson(id);
   if (!person) notFound();
+  const t = await getTranslations("people");
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <PageHeader
         actions={
-          person.enabled ? null : <Badge tone="inactive">Disabled</Badge>
+          person.enabled ? null : <Badge tone="inactive">{t("status.disabled")}</Badge>
         }
         backHref="/people"
-        backLabel="People"
+        backLabel={t("list.title")}
         description={[person.username, person.email].filter(Boolean).join(" · ")}
         title={person.name}
       />
 
       <section aria-labelledby="profile">
         <h2 className="mb-2 text-md font-semibold text-ink" id="profile">
-          Profile
+          {t("account.profile")}
         </h2>
         <AccountProfileForm person={person} self={person.id === admin.id} />
       </section>
 
       <section aria-labelledby="roles">
         <h2 className="mb-2 text-md font-semibold text-ink" id="roles">
-          Roles
+          {t("account.roles")}
         </h2>
 
         {hasPermission(admin.roles, "PERM_ROLE_ASSIGN") ? (
@@ -57,11 +62,11 @@ export default async function AccountPage(props: PageProps<"/people/[id]">) {
             {person.roles.length ? (
               person.roles.map((role) => (
                 <Badge key={role} tone={role === "ADMIN" ? "gold" : "active"}>
-                  {role}
+                  {t(`roleCodes.${role}`)}
                 </Badge>
               ))
             ) : (
-              <p className="text-sm text-muted">This account holds no back-office role.</p>
+              <p className="text-sm text-muted">{t("account.noRole")}</p>
             )}
           </div>
         )}

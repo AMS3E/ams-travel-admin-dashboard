@@ -2,14 +2,13 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { ChevronDown, ChevronRight, ChevronUp, ExternalLink, History, Lock, UserRound, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import {
-  AUDIT_ACTION_LABELS,
   AUDIT_ACTION_TONES,
-  plural,
   shortId,
   type AuditFieldChange,
   type AuditRow,
@@ -62,7 +61,8 @@ export function AuditEventDrawer({
     };
   }, []);
 
-  const title = row.action === "PURGE" ? "The audit log" : (row.name ?? row.typeLabel);
+  const t = useTranslations("audit");
+  const title = row.action === "PURGE" ? t("drawer.theAuditLog") : (row.name ?? row.typeLabel);
 
   return (
     <dialog
@@ -75,7 +75,7 @@ export function AuditEventDrawer({
       ref={dialog}
     >
       <button
-        aria-label="Close"
+        aria-label={t("drawer.close")}
         className="absolute inset-0 cursor-default"
         onClick={onClose}
         tabIndex={-1}
@@ -89,28 +89,28 @@ export function AuditEventDrawer({
             </h2>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
               <Badge dot tone={AUDIT_ACTION_TONES[row.action]}>
-                {AUDIT_ACTION_LABELS[row.action]}
+                {t(`actions.${row.action}`)}
               </Badge>
               <span className="whitespace-nowrap">
                 {row.typeLabel}
                 <span aria-hidden> · </span>
                 <time className="tabular-nums" dateTime={row.iso} title={row.at}>
-                  {row.day} at {row.time}
+                  {t("drawer.dayAt", { day: row.day, time: row.time })}
                 </time>
               </span>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-0.5">
             <span className="mr-1.5 hidden text-xs text-muted tabular-nums sm:inline">
-              {position} of {total}
+              {t("drawer.position", { position, total })}
             </span>
-            <Button aria-label="Newer change" disabled={!onNewer} onClick={onNewer} size="icon-sm" title="Newer change" type="button" variant="ghost">
+            <Button aria-label={t("drawer.newer")} disabled={!onNewer} onClick={onNewer} size="icon-sm" title={t("drawer.newer")} type="button" variant="ghost">
               <ChevronUp aria-hidden className="size-4" />
             </Button>
-            <Button aria-label="Older change" disabled={!onOlder} onClick={onOlder} size="icon-sm" title="Older change" type="button" variant="ghost">
+            <Button aria-label={t("drawer.older")} disabled={!onOlder} onClick={onOlder} size="icon-sm" title={t("drawer.older")} type="button" variant="ghost">
               <ChevronDown aria-hidden className="size-4" />
             </Button>
-            <Button aria-label="Close" autoFocus onClick={onClose} size="icon-sm" title="Close (Esc)" type="button" variant="ghost">
+            <Button aria-label={t("drawer.close")} autoFocus onClick={onClose} size="icon-sm" title={t("drawer.closeEsc")} type="button" variant="ghost">
               <X aria-hidden className="size-4" />
             </Button>
           </div>
@@ -171,36 +171,38 @@ function Details({
   readonly onRecordHistory?: () => void;
   readonly onActorHistory?: () => void;
 }) {
+  const t = useTranslations("audit.drawer.details");
+  const drawer = useTranslations("audit.drawer");
   const named = Boolean(row.raw.userName?.trim() || row.raw.userEmail?.trim());
 
   return (
-    <Section title="Details">
+    <Section title={t("title")}>
       <dl className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-4 gap-y-2.5 sm:grid-cols-[7rem_minmax(0,1fr)]">
-        <Fact label="When">
+        <Fact label={t("when")}>
           <time className="tabular-nums" dateTime={row.iso}>
             {row.at}
           </time>
-          <span className="block text-xs text-muted">Cambodia time</span>
+          <span className="block text-xs text-muted">{t("cambodiaTime")}</span>
         </Fact>
 
-        <Fact label="By">
+        <Fact label={t("by")}>
           <span className={cn(!row.userId && "text-muted")}>{row.actor}</span>
           {row.actorEmail ? <span className="block truncate text-xs text-muted">{row.actorEmail}</span> : null}
           {!row.userId ? (
-            <span className="block text-xs text-muted">Made automatically: seed data, a route calculation or a scheduled job.</span>
+            <span className="block text-xs text-muted">{t("automatic")}</span>
           ) : null}
         </Fact>
 
-        <Fact label="Record">
+        <Fact label={t("record")}>
           {row.action === "PURGE" ? (
-            "The audit log"
+            drawer("theAuditLog")
           ) : (
             <span className="flex flex-wrap items-center gap-x-2">
-              <span className={cn(!row.name && "text-muted")}>{row.name ?? "Unnamed"}</span>
+              <span className={cn(!row.name && "text-muted")}>{row.name ?? t("unnamed")}</span>
               <span className="text-xs text-muted">{row.typeLabel}</span>
               {row.href ? (
                 <Link className="inline-flex items-center gap-1 text-xs font-medium text-teal-deep hover:underline" href={row.href}>
-                  Open record
+                  {t("openRecord")}
                   <ExternalLink aria-hidden className="size-3" />
                 </Link>
               ) : null}
@@ -214,13 +216,13 @@ function Details({
           {onRecordHistory ? (
             <Button onClick={onRecordHistory} size="sm" type="button" variant="secondary">
               <History aria-hidden className="size-3.5" />
-              All changes to this record
+              {t("recordHistory")}
             </Button>
           ) : null}
           {onActorHistory ? (
             <Button className="max-w-full" onClick={onActorHistory} size="sm" type="button" variant="secondary">
               <UserRound aria-hidden className="size-3.5" />
-              <span className="truncate">All changes by {named ? row.actor : "this account"}</span>
+              <span className="truncate">{t("personHistory", { name: named ? row.actor : t("thisAccount") })}</span>
             </Button>
           ) : null}
         </div>
@@ -229,23 +231,18 @@ function Details({
   );
 }
 
-const CHANGE_TITLES = {
-  CREATE: "What it was created with",
-  UPDATE: "What changed",
-  DELETE: "What it held when deleted",
-} as const;
-
 function Changes({ row }: { readonly row: AuditRow }) {
+  const t = useTranslations("audit.drawer");
   const [showBlank, setShowBlank] = useState(false);
 
   if (row.action === "PURGE") {
     return (
-      <Section title="Log cleared">
+      <Section title={t("sections.PURGE")}>
         <Notice
           text={
             row.removed == null
-              ? "Every entry before this one was removed. This entry is the record that it happened."
-              : `${plural(row.removed, "entry was", "entries were")} removed. This entry is the record that it happened.`
+              ? t("purgedAll")
+              : t("purgedCount", { count: row.removed })
           }
         />
       </Section>
@@ -267,20 +264,20 @@ function Changes({ row }: { readonly row: AuditRow }) {
             onClick={() => setShowBlank((current) => !current)}
             type="button"
           >
-            {showBlank ? "Hide empty fields" : `Show ${plural(blank, "empty field", "empty fields")}`}
+            {showBlank ? t("hideEmpty") : t("showEmpty", { count: blank })}
           </button>
         ) : null
       }
-      title={`${CHANGE_TITLES[row.action]}${shown.length ? ` (${shown.length})` : ""}`}
+      title={shown.length ? t("sections.count", { title: t(`sections.${row.action}`), count: shown.length }) : t(`sections.${row.action}`)}
     >
       {row.action === "UPDATE" && !withBefore && row.changes.length ? (
-        <p className="mb-3 text-xs text-muted">The values before this change were not recorded.</p>
+        <p className="mb-3 text-xs text-muted">{t("noBefore")}</p>
       ) : null}
 
       {shown.length ? (
         <ChangeTable
-          afterLabel={compare ? "After" : "Value"}
-          beforeLabel={compare ? "Before" : "Value"}
+          afterLabel={compare ? t("table.after") : t("table.value")}
+          beforeLabel={compare ? t("table.before") : t("table.value")}
           changes={shown}
           compare={compare}
           withAfter={withAfter}
@@ -290,10 +287,10 @@ function Changes({ row }: { readonly row: AuditRow }) {
         <Notice
           text={
             row.action === "UPDATE"
-              ? "This save changed no fields."
+              ? t("noFieldChanges")
               : blank
-                ? "Every field of this record was empty when it was logged."
-                : "No values were recorded."
+                ? t("allEmpty")
+                : t("noValues")
           }
         />
       )}
@@ -324,13 +321,14 @@ function ChangeTable({
   readonly beforeLabel: string;
   readonly afterLabel: string;
 }) {
+  const t = useTranslations("audit.drawer.table");
   const template = withBefore && withAfter ? TWO_SIDES : ONE_SIDE;
   return (
-    <div aria-label="Field changes" className="overflow-hidden rounded-lg border border-line" role="table">
+    <div aria-label={t("label")} className="overflow-hidden rounded-lg border border-line" role="table">
       <div className="hidden border-b border-line bg-sand sm:block" role="rowgroup">
         <div className={cn("grid", template)} role="row">
           <span className="px-3 py-2 text-xs font-medium text-muted" role="columnheader">
-            Field
+            {t("field")}
           </span>
           {withBefore ? (
             <span className="px-3 py-2 text-xs font-medium text-muted" role="columnheader">
@@ -419,26 +417,27 @@ function ValueCell({
 }
 
 function ValueView({ value }: { readonly value: AuditValue }) {
+  const t = useTranslations("audit.values");
   switch (value.kind) {
     case "absent":
       return (
-        <span className="text-muted" title="Not in this snapshot">
+        <span className="text-muted" title={t("absentTitle")}>
           —
         </span>
       );
     case "null":
-      return <span className="text-muted italic">Not set</span>;
+      return <span className="text-muted italic">{t("notSet")}</span>;
     case "empty":
-      return <span className="text-muted italic">Empty</span>;
+      return <span className="text-muted italic">{t("empty")}</span>;
     case "hidden":
       return (
-        <span className="inline-flex items-center gap-1 text-muted" title="Masked: this field looks like a secret">
+        <span className="inline-flex items-center gap-1 text-muted" title={t("hiddenTitle")}>
           <Lock aria-hidden className="size-3" />
-          Hidden
+          {t("hidden")}
         </span>
       );
     case "boolean":
-      return <span title={value.raw}>{value.text}</span>;
+      return <span title={value.raw}>{value.value ? t("yes") : t("no")}</span>;
     case "number":
       return <span className="tabular-nums">{value.text}</span>;
     case "date":
@@ -461,13 +460,19 @@ function ValueView({ value }: { readonly value: AuditValue }) {
         </span>
       );
     case "text":
-      return <LongText text={value.text} />;
+      /* A status or kind as the API names it, said in words; the value itself is unchanged. */
+      return t.has(`enums.${value.text}` as "enums.DRAFT") ? (
+        <span title={value.text}>{t(`enums.${value.text}` as "enums.DRAFT")}</span>
+      ) : (
+        <LongText text={value.text} />
+      );
     case "json":
-      return <JsonValue summary={value.summary} text={value.text} />;
+      return <JsonValue summary={t(value.shape, { count: value.count })} text={value.text} />;
   }
 }
 
 function LongText({ text }: { readonly text: string }) {
+  const t = useTranslations("audit.values");
   const [full, setFull] = useState(false);
   const long = text.length > CLAMP;
   return (
@@ -479,7 +484,7 @@ function LongText({ text }: { readonly text: string }) {
           onClick={() => setFull((current) => !current)}
           type="button"
         >
-          {full ? "Show less" : "Show more"}
+          {full ? t("showLess") : t("showMore")}
         </button>
       ) : null}
     </span>
@@ -487,6 +492,7 @@ function LongText({ text }: { readonly text: string }) {
 }
 
 function JsonValue({ text, summary }: { readonly text: string; readonly summary: string }) {
+  const t = useTranslations("audit.values");
   const long = text.split("\n").length > JSON_LINES;
   const [open, setOpen] = useState(false);
   return (
@@ -506,7 +512,7 @@ function JsonValue({ text, summary }: { readonly text: string; readonly summary:
           onClick={() => setOpen((current) => !current)}
           type="button"
         >
-          {open ? "Show less" : `Show all · ${summary}`}
+          {open ? t("showLess") : t("showAll", { summary })}
         </button>
       ) : null}
     </span>
@@ -515,35 +521,36 @@ function JsonValue({ text, summary }: { readonly text: string; readonly summary:
 
 /** Codes and raw data, folded away: for tracing a problem, not for reading the log. */
 function MoreDetails({ row }: { readonly row: AuditRow }) {
+  const t = useTranslations("audit.drawer.more");
   const json = JSON.stringify(row.raw, null, 2);
   return (
     <details className="group/raw">
       <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium text-ink-soft select-none hover:text-ink sm:px-5 [&::-webkit-details-marker]:hidden">
         <ChevronRight aria-hidden className="size-4 text-muted transition-transform group-open/raw:rotate-90" />
-        More details
+        {t("title")}
       </summary>
       <div className="flex flex-col gap-4 px-4 pb-5 sm:px-5">
         <dl className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-4 gap-y-2.5 sm:grid-cols-[7rem_minmax(0,1fr)]">
           {row.entityId ? (
-            <Fact label="Record ID">
-              <Identifier label="record ID" value={row.entityId} />
+            <Fact label={t("recordId")}>
+              <Identifier label={t("copyRecordId")} value={row.entityId} />
             </Fact>
           ) : null}
           {row.userId ? (
-            <Fact label="Person ID">
-              <Identifier label="person ID" value={row.userId} />
+            <Fact label={t("personId")}>
+              <Identifier label={t("copyPersonId")} value={row.userId} />
             </Fact>
           ) : null}
-          <Fact label="Change no.">
-            <Identifier label="change number" value={String(row.id)} />
+          <Fact label={t("changeNo")}>
+            <Identifier label={t("copyChangeNo")} value={String(row.id)} />
           </Fact>
           {row.ipAddress ? (
-            <Fact label="IP address">
-              <Identifier label="IP address" value={row.ipAddress} />
+            <Fact label={t("ipAddress")}>
+              <Identifier label={t("copyIpAddress")} value={row.ipAddress} />
             </Fact>
           ) : null}
           {row.userAgent ? (
-            <Fact label="Device">
+            <Fact label={t("device")}>
               <span className="line-clamp-2 text-xs wrap-break-word text-muted" title={row.userAgent}>
                 {row.userAgent}
               </span>
@@ -551,12 +558,12 @@ function MoreDetails({ row }: { readonly row: AuditRow }) {
           ) : null}
         </dl>
         <div>
-          <p className="mb-2 text-xs text-muted">Raw data, as the API sent it. Fields that look like secrets are hidden.</p>
+          <p className="mb-2 text-xs text-muted">{t("raw")}</p>
           <div className="relative">
             <pre className="max-h-96 overflow-auto rounded-lg border border-line bg-sand p-3 pr-10 font-mono text-xs leading-relaxed whitespace-pre text-ink-soft">
               {json}
             </pre>
-            <CopyButton className="absolute top-2 right-2 bg-paper" label="raw data" value={json} />
+            <CopyButton className="absolute top-2 right-2 bg-paper" label={t("copyRaw")} value={json} />
           </div>
         </div>
       </div>

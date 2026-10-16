@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { Check, Copy, Loader2, RefreshCw, TriangleAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormField } from "@/components/ui/form-field";
@@ -12,12 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { BUSINESS_ROLES, type BusinessRole } from "@/features/auth/permissions";
-import { WORKSPACE_ACCESS } from "@/features/people/workspace-roles";
-import { ROLE_PROFILES } from "@/features/dashboard/roles";
 import { useCreateAccountMutation } from "@/features/people/api/people-api";
 import { settled } from "@/store/api/api-error";
 import {
-  accountSchema,
+  accountSchemaWith,
   type AccountFormValues,
 } from "@/features/people/form-state";
 
@@ -51,6 +50,10 @@ interface Handover {
 }
 
 export function AccountForm({ initialRole = "PARTNER" }: { readonly initialRole?: BusinessRole }) {
+  const t = useTranslations("people");
+  const profiles = useTranslations("common.roleProfiles");
+  const say = useTranslations("people.validation");
+  const schema = useMemo(() => accountSchemaWith((key) => say(key)), [say]);
   const [createAccount] = useCreateAccountMutation();
   const router = useRouter();
   const [saving, startSaving] = useTransition();
@@ -59,7 +62,7 @@ export function AccountForm({ initialRole = "PARTNER" }: { readonly initialRole?
   const [copied, setCopied] = useState(false);
 
   const form = useForm<AccountFormValues>({
-    resolver: zodResolver(accountSchema),
+    resolver: zodResolver(schema),
     defaultValues: { ...BLANK, role: initialRole, password: generatePassword() },
   });
   const selectedRole = useWatch({ control: form.control, name: "role" });
@@ -100,37 +103,29 @@ export function AccountForm({ initialRole = "PARTNER" }: { readonly initialRole?
       <div className="panel flex flex-col gap-4 p-4">
         <div className="flex items-center gap-2 text-teal-deep">
           <Check aria-hidden className="size-4" />
-          <h2 className="text-sm font-semibold">Account created</h2>
+          <h2 className="text-sm font-semibold">{t("accountForm.created")}</h2>
         </div>
 
         <p className="text-sm text-muted">
-          Hand these over now. The password is not stored and this dashboard
-          cannot show it again.
-          {handover.temporary
-            ? " Keycloak asks for a new one at the first sign-in."
-            : null}
-          {" They can change it any time from Profile → Change password."}
+          {t("accountForm.handover", { temporary: handover.temporary ? "yes" : "no" })}
         </p>
 
         <dl className="grid gap-3 rounded-md border border-line bg-sand px-3 py-2.5 font-mono text-sm sm:grid-cols-[auto_1fr]">
-          <dt className="text-muted">Username</dt>
+          <dt className="text-muted">{t("fields.username")}</dt>
           <dd className="text-ink">{handover.username}</dd>
-          <dt className="text-muted">Password</dt>
+          <dt className="text-muted">{t("fields.password")}</dt>
           <dd className="text-ink">{handover.password}</dd>
-          <dt className="text-muted">Dashboard</dt>
-          <dd className="text-ink">{ROLE_PROFILES[handover.role].title}</dd>
+          <dt className="text-muted">{t("accountForm.dashboard")}</dt>
+          <dd className="text-ink">{profiles(`${handover.role}.title`)}</dd>
         </dl>
 
-        <p className="text-sm text-muted">
-          The new user signs in through the same dashboard login page. Use a
-          separate browser session to try their account while keeping yours open.
-        </p>
+        <p className="text-sm text-muted">{t("accountForm.signInNote")}</p>
 
         <div className="rounded-md border border-teal/15 bg-teal-soft px-3 py-2.5 text-sm text-teal-deep">
-          <p className="font-semibold">What they will see</p>
-          <p className="mt-1">{WORKSPACE_ACCESS[handover.role]}</p>
+          <p className="font-semibold">{t("accountForm.whatTheySee")}</p>
+          <p className="mt-1">{t(`workspaceAccess.${handover.role}`)}</p>
           {handover.role === "PARTNER" || handover.role === "CONTRIBUTOR" ? (
-            <p className="mt-2">Their workspace starts empty. Records they create belong to their account.</p>
+            <p className="mt-2">{t("accountForm.startsEmpty")}</p>
           ) : null}
         </div>
 
@@ -138,7 +133,7 @@ export function AccountForm({ initialRole = "PARTNER" }: { readonly initialRole?
           <Button
             onClick={() => {
               void navigator.clipboard.writeText(
-                `Username: ${handover.username}\nPassword: ${handover.password}`,
+                t("handover.staffClipboard", { username: handover.username, password: handover.password }),
               );
               setCopied(true);
             }}
@@ -151,7 +146,7 @@ export function AccountForm({ initialRole = "PARTNER" }: { readonly initialRole?
             ) : (
               <Copy aria-hidden className="size-4" />
             )}
-            {copied ? "Copied" : "Copy credentials"}
+            {copied ? t("handover.copied") : t("handover.copy")}
           </Button>
 
           <Button
@@ -164,11 +159,11 @@ export function AccountForm({ initialRole = "PARTNER" }: { readonly initialRole?
             type="button"
             variant="ghost"
           >
-            Create another
+            {t("handover.createAnother")}
           </Button>
 
           <Button onClick={() => router.push("/people")} size="sm" type="button">
-            Done
+            {t("handover.done")}
           </Button>
         </div>
       </div>
@@ -191,15 +186,15 @@ export function AccountForm({ initialRole = "PARTNER" }: { readonly initialRole?
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField error={errors.firstName?.message} label="First name" required>
+        <FormField error={errors.firstName?.message} label={t("fields.firstName")} required>
           {(field) => <Input {...field} {...form.register("firstName")} />}
         </FormField>
 
-        <FormField error={errors.lastName?.message} label="Last name" required>
+        <FormField error={errors.lastName?.message} label={t("fields.lastName")} required>
           {(field) => <Input {...field} {...form.register("lastName")} />}
         </FormField>
 
-        <FormField error={errors.email?.message} label="E-mail" required>
+        <FormField error={errors.email?.message} label={t("fields.email")} required>
           {(field) => (
             <Input {...field} type="email" {...form.register("email")} />
           )}
@@ -207,8 +202,8 @@ export function AccountForm({ initialRole = "PARTNER" }: { readonly initialRole?
 
         <FormField
           error={errors.username?.message}
-          hint="What they type at sign-in. Keycloak will not let it change later."
-          label="Username"
+          hint={t("accountForm.usernameHint")}
+          label={t("fields.username")}
           required
         >
           {(field) => <Input {...field} {...form.register("username")} />}
@@ -217,15 +212,15 @@ export function AccountForm({ initialRole = "PARTNER" }: { readonly initialRole?
         <FormField
           className="sm:col-span-2"
           error={errors.role?.message}
-          hint="One role now; the rest can be granted from the account afterwards."
-          label="Role"
+          hint={t("accountForm.roleHint")}
+          label={t("accountForm.role")}
           required
         >
           {(field) => (
             <Select {...field} {...form.register("role")}>
               {BUSINESS_ROLES.map((role) => (
                 <option key={role} value={role}>
-                  {role} — {ROLE_PROFILES[role].blurb}
+                  {t("accountForm.roleOption", { role: t(`roleCodes.${role}`), blurb: profiles(`${role}.blurb`) })}
                 </option>
               ))}
             </Select>
@@ -235,8 +230,8 @@ export function AccountForm({ initialRole = "PARTNER" }: { readonly initialRole?
         <FormField
           className="sm:col-span-2"
           error={errors.password?.message}
-          hint="Shown once, after the account is created."
-          label="Temporary password"
+          hint={t("fields.shownOnce")}
+          label={t("accountForm.temporaryPassword")}
           required
         >
           {(field) => (
@@ -247,7 +242,7 @@ export function AccountForm({ initialRole = "PARTNER" }: { readonly initialRole?
                 {...form.register("password")}
               />
               <Button
-                aria-label="Generate a new password"
+                aria-label={t("fields.generatePassword")}
                 onClick={() =>
                   form.setValue("password", generatePassword(), {
                     shouldValidate: true,
@@ -265,13 +260,13 @@ export function AccountForm({ initialRole = "PARTNER" }: { readonly initialRole?
       </div>
 
       <div className="rounded-md border border-teal/15 bg-teal-soft px-3 py-2.5 text-sm text-teal-deep" aria-live="polite">
-        <p className="font-semibold">{ROLE_PROFILES[selectedRole].title}</p>
-        <p className="mt-1">{WORKSPACE_ACCESS[selectedRole]}</p>
+        <p className="font-semibold">{profiles(`${selectedRole}.title`)}</p>
+        <p className="mt-1">{t(`workspaceAccess.${selectedRole}`)}</p>
       </div>
 
       <Label className="flex items-center gap-2.5 font-normal">
         <Checkbox {...form.register("temporaryPassword")} />
-        Ask for a new password at the first sign-in
+        {t("fields.askNewPassword")}
       </Label>
 
       <div className="flex justify-end gap-2">
@@ -281,11 +276,11 @@ export function AccountForm({ initialRole = "PARTNER" }: { readonly initialRole?
           type="button"
           variant="ghost"
         >
-          Cancel
+          {t("editing.cancel")}
         </Button>
         <Button disabled={saving} type="submit">
           {saving ? <Loader2 aria-hidden className="size-4 animate-spin" /> : null}
-          Create account
+          {t("accountForm.create")}
         </Button>
       </div>
     </form>

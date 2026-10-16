@@ -14,6 +14,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import dynamic from "next/dynamic";
@@ -22,15 +23,16 @@ import { mediaPath, resourceSchema, type FormValues, type ResourceDefinition } f
 import { ROOM_BEDS } from "@/features/catalog/resources";
 import type { AmenityOption } from "@/features/catalog/amenities";
 import {
-  ROOM_WORDS,
   capacityWarning,
   sleepsOf,
+  type BedName,
 } from "@/features/catalog/rooms";
 import { AmenityPicker } from "@/features/catalog/components/listing-form/amenity-picker";
 import { RoomCard } from "@/features/catalog/components/listing-form/room-card";
-import { IMAGE_ACCEPT, MAX_IMAGE_BYTES, imageProblem, prepareImage } from "@/features/catalog/media-upload";
+import { IMAGE_ACCEPT, MAX_IMAGE_BYTES, prepareImage } from "@/features/catalog/media-upload";
+import { useUploadText } from "@/features/catalog/use-image-upload";
 import { useUploadMedia } from "@/features/media/api/media-api";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
 import { cn } from "@/lib/utils";
 
 /* Written in the browser only, like a listing's About: the editor has no server rendering. */
@@ -88,17 +90,24 @@ export function RoomEditor({
   onSave,
   onCancel,
 }: RoomEditorProps) {
+  const rooms = useTranslations("forms.rooms");
+  const t = useTranslations("forms.rooms.editor");
+  const actions = useTranslations("forms.actions");
+  const text = useUploadText();
+  const errorMessage = useApiErrorMessage();
   const schema = useMemo(() => resourceSchema(definition), [definition]);
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as unknown as Resolver<FormValues>,
     defaultValues: initial,
   });
   const values = useWatch({ control: form.control }) as FormValues;
-  const { errors, isSubmitting } = form.formState;
+  const { errors: fieldErrors, isSubmitting } = form.formState;
   const [adultsOwned, setAdultsOwned] = useState(!isNew);
   const [banner, setBanner] = useState<string | null>(null);
 
-  const warning = capacityWarning(values);
+  const warning = capacityWarning(values, rooms);
+  /* A bed's name as the registry gives it, in the reader's language. */
+  const bedLabel = (name: string, fallback: string) => definition.fields.find((field) => field.name === name)?.label ?? fallback;
   const chosenPhotos = Array.isArray(values.photoKeys) ? values.photoKeys : [];
   /* Photos uploaded here, by key, so they can be shown before the room is saved. */
   const [uploaded, setUploaded] = useState<Record<string, string>>({});
@@ -110,7 +119,7 @@ export function RoomEditor({
   const firstPhoto = chosenPhotos[0] ? urlOf(chosenPhotos[0]) : undefined;
 
   function set(name: string, value: FormValues[string]) {
-    form.setValue(name, value, { shouldDirty: true, shouldValidate: Boolean(errors[name]) });
+    form.setValue(name, value, { shouldDirty: true, shouldValidate: Boolean(fieldErrors[name]) });
   }
 
   /** Values changed elsewhere in the room. */
@@ -142,7 +151,7 @@ export function RoomEditor({
     const keys: string[] = [];
     const problems: string[] = [];
     for (const picked of files) {
-      const problem = imageProblem(picked);
+      const problem = text.problem(picked);
       if (problem) {
         problems.push(problem);
         continue;
@@ -150,7 +159,7 @@ export function RoomEditor({
       try {
         const file = await prepareImage(picked);
         if (file.size > MAX_IMAGE_BYTES) {
-          problems.push(`${picked.name} is still larger than 8 MB after resizing.`);
+          problems.push(text.tooLarge(picked.name));
           continue;
         }
         const body = new FormData();
@@ -160,7 +169,7 @@ export function RoomEditor({
         keys.push(payload.key);
         setUploaded((map) => ({ ...map, [payload.key]: payload.uri || mediaPath(payload.key) }));
       } catch (error) {
-        problems.push(`${picked.name}: ${apiErrorMessage(error)}`);
+        problems.push(`${picked.name}: ${errorMessage(error)}`);
       }
     }
     setUploading((count) => Math.max(0, count - files.length));
@@ -177,8 +186,8 @@ export function RoomEditor({
     const shown = new Set(["name", "pricePerNight", "weekendPrice", "description"]);
     const hidden = Object.entries(invalid)
       .filter(([name]) => !shown.has(name))
-      .map(([name, error]) => `${definition.fields.find((field) => field.name === name)?.label ?? name}: ${String(error?.message ?? "invalid")}`);
-    setBanner(hidden.length ? `Check ${hidden.join("; ")}.` : "A few details need attention — they are marked in red.");
+      .map(([name, error]) => `${definition.fields.find((field) => field.name === name)?.label ?? name}: ${String(error?.message ?? t("invalid"))}`);
+    setBanner(hidden.length ? t("check", { problems: hidden.join("; ") }) : t("attention"));
   }
 
   async function submit(submitted: FormValues) {
@@ -201,8 +210,8 @@ export function RoomEditor({
             </p>
           ) : null}
 
-          <Field label="Photos">
-            <p className="-mt-0.5 mb-2 text-xs text-muted">Uploaded here, for this room. The first one is its cover; the rest make its gallery.</p>
+          <Field label={t("photos")}>
+            <p className="-mt-0.5 mb-2 text-xs text-muted">{t("photosHint")}</p>
             <input
               accept={IMAGE_ACCEPT}
               className="sr-only"
@@ -219,7 +228,7 @@ export function RoomEditor({
                     {at + 1}
                   </span>
                   <button
-                    aria-label={`Remove photo ${at + 1}`}
+                    aria-label={t("removePhoto", { number: at + 1 })}
                     className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-paper/90 text-ink-soft shadow-xs hover:text-heritage"
                     onClick={() => set("photoKeys", chosenPhotos.filter((each) => each !== key))}
                     type="button"
@@ -240,7 +249,7 @@ export function RoomEditor({
                 type="button"
               >
                 {uploading > 0 ? <Loader2 aria-hidden className="size-4 animate-spin" /> : <ImagePlus aria-hidden className="size-4" />}
-                {uploading > 0 ? "Uploading…" : "Add photo"}
+                {uploading > 0 ? t("uploading") : t("addPhoto")}
               </button>
             </div>
             {photoProblem ? (
@@ -251,42 +260,42 @@ export function RoomEditor({
             ) : null}
           </Field>
 
-          <Field error={errors.name?.message as string | undefined} label="Room name">
-            <Input {...form.register("name")} aria-invalid={Boolean(errors.name)} maxLength={150} placeholder="e.g. Deluxe Double Room" />
+          <Field error={fieldErrors.name?.message as string | undefined} label={t("name")}>
+            <Input {...form.register("name")} aria-invalid={Boolean(fieldErrors.name)} maxLength={150} placeholder={t("namePlaceholder")} />
           </Field>
 
           {/* The two prices side by side: the nightly one, and what a Friday or Saturday night costs when that differs. */}
           <div className="grid gap-x-4 gap-y-1 @md:grid-cols-2">
-            <Field error={errors.pricePerNight?.message as string | undefined} label="Price per night">
+            <Field error={fieldErrors.pricePerNight?.message as string | undefined} label={t("price")}>
               <div className="relative">
                 <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-xs text-muted">{currency}</span>
-                <Input {...form.register("pricePerNight")} className="pl-12" inputMode="decimal" placeholder="e.g. 45" />
+                <Input {...form.register("pricePerNight")} className="pl-12" inputMode="decimal" placeholder={t("pricePlaceholder")} />
               </div>
             </Field>
-            <Field error={errors.weekendPrice?.message as string | undefined} label="Weekend price (optional)">
+            <Field error={fieldErrors.weekendPrice?.message as string | undefined} label={t("weekend")}>
               <div className="relative">
                 <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-xs text-muted">{currency}</span>
-                <Input {...form.register("weekendPrice")} className="pl-12" inputMode="decimal" placeholder="Same as every night" />
+                <Input {...form.register("weekendPrice")} className="pl-12" inputMode="decimal" placeholder={t("weekendPlaceholder")} />
               </div>
             </Field>
-            <p className="text-xs text-muted @md:col-span-2">Friday and Saturday nights. Leave it empty when the price is the same all week.</p>
+            <p className="text-xs text-muted @md:col-span-2">{t("weekendHint")}</p>
             <label className="mt-1 flex items-center gap-2.5 text-sm text-ink-soft @md:col-span-2">
               <input {...form.register("breakfastIncluded")} className="size-4 accent-teal" type="checkbox" />
-              Breakfast included in the price
+              {t("breakfast")}
             </label>
           </div>
 
           <div className="flex flex-wrap gap-x-8 gap-y-4">
-            <Field label="Adults">
+            <Field label={t("adults")}>
               <Stepper max={40} min={1} name="maxAdults" onStep={step} value={values.maxAdults} />
             </Field>
-            <Field label="Children">
+            <Field label={t("children")}>
               <Stepper max={20} min={0} name="maxChildren" onStep={step} value={values.maxChildren} />
             </Field>
           </div>
 
-          <Field label="About this room">
-            <p className="-mt-0.5 mb-2 text-xs text-muted">The paragraph on the room&apos;s page: what it is like, and what makes it the one to choose.</p>
+          <Field label={t("about")}>
+            <p className="-mt-0.5 mb-2 text-xs text-muted">{t("aboutHint")}</p>
             <Controller
               control={form.control}
               name="description"
@@ -295,21 +304,21 @@ export function RoomEditor({
                   id="room-description"
                   onBlur={field.onBlur}
                   onChange={field.onChange}
-                  placeholder="The layout, the light, what makes it the one to choose…"
+                  placeholder={t("aboutPlaceholder")}
                   value={typeof field.value === "string" ? field.value : ""}
                 />
               )}
             />
           </Field>
 
-          <Section description="Every bed in the room." title="Bed type">
+          <Section description={t("bedsHint")} title={t("beds")}>
             <ul className="divide-y divide-line rounded-lg border border-line">
               {ROOM_BEDS.map((bed) => (
                 <li className="flex items-center gap-3 px-3 py-2" key={bed.name}>
                   <BedDouble aria-hidden className="size-4 shrink-0 text-muted" strokeWidth={1.75} />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm text-ink">{bed.label}</span>
-                    <span className="block text-xs text-muted">{bed.size}</span>
+                    <span className="block text-sm text-ink">{bedLabel(bed.name, bed.label)}</span>
+                    <span className="block text-xs text-muted">{rooms(`bedSizes.${bed.name as BedName}`)}</span>
                   </span>
                   <Stepper max={20} min={0} name={bed.name} onStep={step} value={values[bed.name]} />
                 </li>
@@ -318,7 +327,7 @@ export function RoomEditor({
             <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
               <p className="inline-flex h-9 items-center gap-1.5 rounded-md bg-teal-soft px-3 text-sm font-medium text-teal-deep">
                 <Users aria-hidden className="size-4" />
-                The beds sleep {sleepsOf(values)}
+                {t("sleeps", { count: sleepsOf(values) })}
               </p>
             </div>
             {warning ? (
@@ -329,7 +338,7 @@ export function RoomEditor({
             ) : null}
           </Section>
 
-          <Section description="Only what every room like this has. Guests filter rooms by these." title="Amenities">
+          <Section description={t("amenitiesHint")} title={t("amenities")}>
             <Controller
               control={form.control}
               name="amenities"
@@ -346,28 +355,28 @@ export function RoomEditor({
           </Section>
 
           <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
-            <div className="mr-auto flex flex-wrap gap-1.5" role="radiogroup" aria-label="Availability">
+            <div className="mr-auto flex flex-wrap gap-1.5" role="radiogroup" aria-label={t("availability")}>
               <Chip on={values.status !== "INACTIVE"} onClick={() => update({ status: "ACTIVE" })}>
-                Available
+                {t("available")}
               </Chip>
               <Chip on={values.status === "INACTIVE"} onClick={() => update({ status: "INACTIVE" })}>
-                Unavailable
+                {t("unavailable")}
               </Chip>
             </div>
             <Button onClick={onCancel} size="sm" type="button" variant="ghost">
-              Cancel
+              {actions("cancel")}
             </Button>
             <Button disabled={isSubmitting} onClick={() => void form.handleSubmit(submit, refuse)()} size="sm" type="button">
               {isSubmitting ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : null}
-              {isNew ? ROOM_WORDS.add : ROOM_WORDS.save}
+              {isNew ? rooms("words.add") : rooms("words.save")}
             </Button>
           </div>
         </div>
 
         <aside className="flex flex-col gap-3 @3xl:sticky @3xl:top-20 @3xl:self-start">
-          <p className="text-xs font-medium text-muted">How guests will see it</p>
+          <p className="text-xs font-medium text-muted">{t("guestView")}</p>
           <RoomCard currency={currency} layout="stacked" photoUrl={firstPhoto} values={values} />
-          {firstPhoto ? null : <p className="-mt-1 text-2xs text-gold-deep">Rooms with a photo are chosen far more often than ones without.</p>}
+          {firstPhoto ? null : <p className="-mt-1 text-2xs text-gold-deep">{t("photoNudge")}</p>}
         </aside>
       </div>
       </div>
@@ -427,11 +436,12 @@ function Stepper({
   readonly max: number;
   readonly onStep: (name: string, delta: number, min: number, max: number) => void;
 }) {
+  const t = useTranslations("forms.rooms.editor");
   const current = Number.parseInt(typeof value === "string" ? value : "0", 10) || 0;
   return (
     <div className="inline-flex h-9 items-center rounded-md border border-line-strong bg-paper">
       <button
-        aria-label={`One fewer`}
+        aria-label={t("fewer")}
         className="grid size-9 place-items-center text-muted hover:text-ink disabled:opacity-40"
         disabled={current <= min}
         onClick={() => onStep(name, -1, min, max)}
@@ -441,7 +451,7 @@ function Stepper({
       </button>
       <span className="w-8 text-center text-sm font-medium text-ink tabular-nums">{current}</span>
       <button
-        aria-label={`One more`}
+        aria-label={t("more")}
         className="grid size-9 place-items-center text-muted hover:text-ink disabled:opacity-40"
         disabled={current >= max}
         onClick={() => onStep(name, 1, min, max)}

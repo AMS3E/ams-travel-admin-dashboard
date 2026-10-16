@@ -68,18 +68,20 @@ export function fieldsOf(body: unknown): Readonly<Record<string, unknown>> {
 /**
  * Turns a backend failure into the same JSON shape every mutation hook reads.
  * The API answers errors as problem documents, so their `detail` sentence is
- * passed through as `message` rather than the raw JSON.
+ * passed through as `message` rather than the raw JSON. Our own sentences
+ * carry a `code` the screen words in the reader's language.
  */
 export function toErrorResponse(error: unknown): NextResponse {
   if (error instanceof BackendApiError) {
+    const detail = problemMessage(error.detail);
     return NextResponse.json(
-      { message: problemMessage(error.detail) || "The request was rejected." },
+      detail ? { message: detail } : { message: "The request was rejected.", code: "rejected" },
       { status: error.status },
     );
   }
 
   return NextResponse.json(
-    { message: "The catalogue API could not be reached." },
+    { message: "The catalogue API could not be reached.", code: "unreachable" },
     { status: 502 },
   );
 }

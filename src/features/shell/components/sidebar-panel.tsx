@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import Image from "next/image";
 import Link from "next/link";
 import { X } from "lucide-react";
@@ -15,9 +17,10 @@ export function SidebarBrand({
   readonly iconOnly?: boolean;
   readonly onNavigate?: () => void;
 }) {
+  const t = useTranslations("shell.brand");
   return (
     <Link
-      aria-label="AMS Travel CMS — dashboard"
+      aria-label={t("home")}
       className="flex min-w-0 items-center gap-2.5 rounded-md"
       href="/dashboard"
       onClick={onNavigate}
@@ -30,8 +33,8 @@ export function SidebarBrand({
         width={28}
       />
       <span className={cn("flex min-w-0 items-baseline gap-1.5", iconOnly && "sr-only")}>
-        <span className="truncate text-sm font-semibold text-ink">AMS Travel</span>
-        <span className="text-xs text-muted">CMS</span>
+        <span className="truncate text-sm font-semibold text-ink">{t("name")}</span>
+        <span className="text-xs text-muted">{t("product")}</span>
       </span>
     </Link>
   );
@@ -48,6 +51,7 @@ export function SidebarPanel({
   readonly onClose?: () => void;
   readonly collapsed?: boolean;
 }) {
+  const t = useTranslations("shell.sidebar");
   return (
     <div className="glass-sidebar relative flex h-full min-h-0 flex-col border-r border-line">
       <div
@@ -59,7 +63,7 @@ export function SidebarPanel({
         <SidebarBrand iconOnly={collapsed} onNavigate={onNavigate} />
         {onClose ? (
           <button
-            aria-label="Close navigation"
+            aria-label={t("close")}
             className="grid size-8 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-sand-deep hover:text-ink"
             onClick={onClose}
             type="button"

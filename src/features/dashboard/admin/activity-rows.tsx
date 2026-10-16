@@ -1,8 +1,9 @@
+import { useMessages, useTranslations } from "next-intl";
 import { FileClock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { AuditLogResponse } from "@/features/dashboard/api/contracts";
 import { actorOf, AUDIT_ACTION_TONES } from "@/features/dashboard/audit";
-import { formatDateTime } from "@/features/dashboard/format";
+import { dateTimeOf, type DateWords } from "@/i18n/dates";
 
 /** The audit feed in the board's row style: glyph, what and who, when, action. */
 export function ActivityRows({
@@ -10,10 +11,12 @@ export function ActivityRows({
 }: {
   readonly entries: readonly AuditLogResponse[];
 }) {
+  const t = useTranslations("stats.activity");
+  const messages = useMessages();
   if (!entries.length) {
     return (
       <p className="inset-row px-3 py-6 text-center text-sm text-muted">
-        Nothing has been written yet, or auditing is switched off.
+        {t("empty")}
       </p>
     );
   }
@@ -33,11 +36,11 @@ export function ActivityRows({
               {entry.entityType}
             </span>
             <span className="truncate text-2xs text-muted">
-              {actorOf(entry)}
+              {actorOf(entry, messages.audit.words)}
             </span>
           </span>
           <span className="hidden text-2xs text-muted tabular-nums sm:block">
-            {formatDateTime(entry.createdAt)}
+            {dateTimeOf(entry.createdAt, messages.common.dates as DateWords)}
           </span>
           <Badge tone={AUDIT_ACTION_TONES[entry.action]}>{entry.action}</Badge>
         </li>

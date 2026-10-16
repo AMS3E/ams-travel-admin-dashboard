@@ -1,3 +1,4 @@
+import { useMessages } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import type { AuditLogResponse } from "@/features/dashboard/api/contracts";
 import { actorOf, AUDIT_ACTION_TONES, changedFieldsOf } from "@/features/dashboard/audit";
@@ -6,7 +7,7 @@ import {
   EntityRow,
   RowList,
 } from "@/features/dashboard/components/entity-row";
-import { formatDateTime } from "@/features/dashboard/format";
+import { dateTimeOf, type DateWords } from "@/i18n/dates";
 
 interface AuditRowsProps {
   readonly entries: readonly AuditLogResponse[];
@@ -19,6 +20,8 @@ interface AuditRowsProps {
  * are in the audit log itself.
  */
 export function AuditRows({ entries, empty }: AuditRowsProps) {
+  const messages = useMessages();
+  const dates = messages.common.dates as DateWords;
   if (!entries.length) return <EmptyRow>{empty}</EmptyRow>;
 
   return (
@@ -29,11 +32,11 @@ export function AuditRows({ entries, empty }: AuditRowsProps) {
           <EntityRow
             badges={<Badge tone={AUDIT_ACTION_TONES[entry.action]}>{entry.action}</Badge>}
             key={entry.id}
-            subtitle={[actorOf(entry), fields.length ? fields.join(", ") : undefined]
+            subtitle={[actorOf(entry, messages.audit.words), fields.length ? fields.join(", ") : undefined]
               .filter(Boolean)
               .join(" · ")}
             title={entry.entityId ? `${entry.entityType} ${entry.entityId}` : entry.entityType}
-            trailing={formatDateTime(entry.createdAt)}
+            trailing={dateTimeOf(entry.createdAt, dates)}
           />
         );
       })}

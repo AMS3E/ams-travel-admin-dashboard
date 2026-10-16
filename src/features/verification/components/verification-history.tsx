@@ -1,8 +1,9 @@
 import Image from "next/image";
+import { useMessages, useTranslations } from "next-intl";
 import { FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { formatDateTime } from "@/features/dashboard/format";
-import { BASIS_LABELS, type DestinationVerificationResponse } from "../api/contracts";
+import { dateTimeOf } from "@/i18n/dates";
+import type { DestinationVerificationResponse } from "../api/contracts";
 import { evidenceHref, isPdfEvidence } from "../evidence";
 
 interface VerificationHistoryProps {
@@ -16,9 +17,11 @@ interface VerificationHistoryProps {
  * and why.
  */
 export function VerificationHistory({ history }: VerificationHistoryProps) {
+  const t = useTranslations("verification");
+  const dates = useMessages().common.dates;
   return (
     <section className="panel overflow-hidden">
-      <h2 className="border-b border-line p-4 font-semibold">History</h2>
+      <h2 className="border-b border-line p-4 font-semibold">{t("history.title")}</h2>
 
       {history.length ? (
         <ol className="divide-y divide-line">
@@ -32,11 +35,11 @@ export function VerificationHistory({ history }: VerificationHistoryProps) {
                     href={evidence}
                     rel="noreferrer"
                     target="_blank"
-                    title="Open the PDF"
+                    title={t("history.openPdf")}
                   >
                     <span className="flex flex-col items-center gap-1">
                       <FileText aria-hidden className="size-7" strokeWidth={1.5} />
-                      <span className="text-2xs font-semibold">PDF</span>
+                      <span className="text-2xs font-semibold">{t("evidence.kindPdf")}</span>
                     </span>
                   </a>
                 ) : evidence ? (
@@ -45,10 +48,10 @@ export function VerificationHistory({ history }: VerificationHistoryProps) {
                     href={evidence}
                     rel="noreferrer"
                     target="_blank"
-                    title="Open the evidence"
+                    title={t("history.openEvidence")}
                   >
                     <Image
-                      alt={`Evidence for the decision of ${formatDateTime(entry.createdAt)}`}
+                      alt={t("history.evidenceAlt", { date: dateTimeOf(entry.createdAt, dates) })}
                       className="size-20 rounded-md border border-line object-cover"
                       height={80}
                       src={evidence}
@@ -58,14 +61,14 @@ export function VerificationHistory({ history }: VerificationHistoryProps) {
                   </a>
                 ) : (
                   <span className="grid size-20 shrink-0 place-items-center rounded-md border border-dashed border-line px-1 text-center text-2xs text-muted">
-                    No file
+                    {t("history.noFile")}
                   </span>
                 )}
 
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge tone={entry.verified ? "gold" : "inactive"}>
-                      {entry.verified ? `Verified · ${BASIS_LABELS[entry.basis ?? "PAID"]}` : "Revoked"}
+                      {entry.verified ? t("badge.verifiedBasis", { basis: t(`basis.${entry.basis ?? "PAID"}`) }) : t("badge.revoked")}
                     </Badge>
                     {entry.reference ? (
                       <span className="font-mono text-xs text-ink-soft">{entry.reference}</span>
@@ -75,7 +78,7 @@ export function VerificationHistory({ history }: VerificationHistoryProps) {
                     <p className="text-sm whitespace-pre-line text-ink-soft">{entry.note}</p>
                   ) : null}
                   <p className="text-xs text-muted">
-                    {entry.decidedByName ?? "A deleted account"} · {formatDateTime(entry.createdAt)}
+                    {entry.decidedByName ?? t("history.deletedAccount")} · {dateTimeOf(entry.createdAt, dates)}
                   </p>
                 </div>
               </li>
@@ -83,7 +86,7 @@ export function VerificationHistory({ history }: VerificationHistoryProps) {
           })}
         </ol>
       ) : (
-        <p className="p-4 text-sm text-muted">No decision has been recorded yet.</p>
+        <p className="p-4 text-sm text-muted">{t("noDecision")}</p>
       )}
     </section>
   );

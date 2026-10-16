@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getMessages, getTranslations } from "next-intl/server";
 import { PencilLine } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { canEditRecord, canManageResource, namesListingOwner } from "@/features/auth/permissions";
@@ -15,13 +16,14 @@ import {
   type ResourceDefinition,
 } from "@/features/catalog/resource";
 import { getResource } from "@/features/catalog/resources";
+import { localizeDefinition } from "@/features/catalog/localize.server";
 import { PageHeader } from "@/features/shell/components/page-header";
 import { navigationForPath } from "@/features/shell/nav";
+import { navWords } from "@/features/shell/nav-words";
 import { BackendApiError } from "@/lib/backend-api.server";
 import { isUuid } from "@/lib/ids";
 import { LISTING_RESOURCES, listingHref } from "../api/contracts";
 import { getPublishRequest } from "../api/publishing.server";
-import { listingLabel } from "../listings";
 import { decidesRequest } from "../workflow";
 import { checkedLines, reviewValue } from "../review";
 import { ListingReview, type ReviewItem, type ReviewPhoto } from "./listing-review";
@@ -33,7 +35,8 @@ export const REQUEST_PAGE = /^(partner|contributor|editor|bdo|publish)-requests$
 /** The page's title: the listing under review. */
 export async function requestReviewTitle(id: string): Promise<string> {
   const request = isUuid(id) ? await getPublishRequest(id) : null;
-  return request ? `Review · ${request.targetName}` : "Not found";
+  const t = await getTranslations("publishing.reviewPage");
+  return request ? t("title", { name: request.targetName }) : t("notFound");
 }
 
 /** A gallery's rows for this listing, in the order its author arranged them. */
@@ -84,9 +87,14 @@ export async function RequestReviewPage({ page, id }: { readonly page: string; r
 
   const resource = LISTING_RESOURCES[request.targetType];
   /* Who runs it is read by the desks that name one; to its own author it says only themselves. */
-  const definition = namesListingOwner(admin.roles, resource)
+  const definition = await localizeDefinition(namesListingOwner(admin.roles, resource)
     ? getResource(resource)
-    : withoutField(getResource(resource), "ownerUserId");
+    : withoutField(getResource(resource), "ownerUserId"));
+  const [t, nav, messages] = await Promise.all([
+    getTranslations("publishing"),
+    getTranslations("shell.nav"),
+    getMessages(),
+  ]);
   const galleryDefinition = getResource(LISTING_GALLERIES[resource]);
   let record: CatalogRecord;
   try {
@@ -120,7 +128,7 @@ export async function RequestReviewPage({ page, id }: { readonly page: string; r
   const kindField = definition.fields.find((field) => field.name === (resource === "destinations" ? "theme" : "type"));
   const kind = kindField && typeof values[kindField.name] === "string" ? (values[kindField.name] as string) || undefined : undefined;
   /* The counts the form keeps for itself, so "At least one room" is answered too. */
-  const lines = checkedLines(readinessChecks(definition, kind), {
+  const lines = checkedLines(readinessChecks(definition, kind, await getTranslations("forms.steps")), {
     ...values,
     rooms: rooms.length ? String(rooms.length) : "",
   });
@@ -128,10 +136,11 @@ export async function RequestReviewPage({ page, id }: { readonly page: string; r
   const coverKey = typeof values.coverKey === "string" ? values.coverKey : "";
   const cover = (typeof record.coverUrl === "string" && record.coverUrl) || (coverKey ? mediaPath(coverKey) : null);
   const currency = typeof values.currency === "string" && values.currency.trim() ? values.currency.trim().toUpperCase() : "USD";
-  const kindLabel = kindField ? reviewValue(kindField, values, options) : null;
+  const kindLabel = kindField ? reviewValue(kindField, values, options, messages.publishing.answers) : null;
   const address = typeof values.address === "string" ? values.address.trim() : "";
   const backHref = `/${page}`;
-  const backLabel = navigationForPath(backHref, admin.roles)?.label ?? "Requests";
+  const backItem = navigationForPath(backHref, admin.roles);
+  const backLabel = backItem ? navWords(nav).label(backItem.text) : t("reviewPage.requests");
   const canEdit = canManageResource(admin.roles, resource) && canEditRecord(admin.roles, resource, record, userId);
   const canDecide = decidesRequest(admin.roles, request, userId);
   /* Their own submission: they publish it themselves rather than asking an administrator. */
@@ -147,10 +156,10 @@ export async function RequestReviewPage({ page, id }: { readonly page: string; r
         actions={editHref && canDecide ? (
           <Link className={buttonVariants({ variant: "secondary", size: "sm" })} href={editHref}>
             <PencilLine aria-hidden className="size-3.5" />
-            Edit before approving
+            {t("decision.editBeforeApproving")}
           </Link>
         ) : undefined}
-        description={[listingLabel(request.targetType), typeof kindLabel === "string" ? kindLabel : null, address || null].filter(Boolean).join(" · ")}
+        description={[t(`listing.${request.targetType}`), typeof kindLabel === "string" ? kindLabel : null, address || null].filter(Boolean).join(" · ")}
         title={request.targetName}
       />
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">

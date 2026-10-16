@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, Copy, KeyRound, Loader2, RefreshCw, UserPlus, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormField } from "@/components/ui/form-field";
@@ -10,8 +11,8 @@ import { Label } from "@/components/ui/label";
 import { useCreateCustomerMutation } from "@/features/people/api/people-api";
 import { AvatarPicker, ProfileAvatar } from "@/features/profile/components/avatar-picker";
 import { useAvatarUpload } from "@/features/profile/use-avatar-upload";
-import { apiErrorMessage } from "@/store/api/api-error";
-import { CUSTOMER_PHOTO, ErrorBanner, PHOTO_HINT } from "./customer-row";
+import { useApiErrorMessage } from "@/store/api/api-error";
+import { ErrorBanner, useTheirPhoto } from "./customer-row";
 
 /**
  * Readable rather than maximal: this password gets read out or pasted into a
@@ -60,6 +61,9 @@ export function NewCustomerForm({ onClose }: { readonly onClose: () => void }) {
   const [createCustomer, { isLoading, error, reset }] = useCreateCustomerMutation();
   const photo = useAvatarUpload(setAvatar);
   const busy = isLoading || photo.uploading;
+  const t = useTranslations("people");
+  const apiErrorMessage = useApiErrorMessage();
+  const theirPhoto = useTheirPhoto();
 
   function clear() {
     setName("");
@@ -108,29 +112,27 @@ export function NewCustomerForm({ onClose }: { readonly onClose: () => void }) {
           <div className="min-w-0 flex-1">
             <h2 className="flex items-center gap-2 text-md font-semibold text-teal-deep" id="customer-created">
               <Check aria-hidden className="size-4" />
-              {handover.name} can sign in now
+              {t("newCustomer.created", { name: handover.name })}
             </h2>
             <p className="mt-0.5 text-xs text-muted">
-              Hand these over now. The password is not stored and this dashboard
-              cannot show it again. They sign in on the public site
-              {handover.temporary
-                ? ", where they choose their own password the first time."
-                : ", and can change the password from their profile."}
+              {t("newCustomer.handover", { temporary: handover.temporary ? "yes" : "no" })}
             </p>
           </div>
         </div>
 
         <dl className="m-4 grid gap-2 rounded-md border border-line bg-sand px-3 py-2.5 font-mono text-sm sm:grid-cols-[auto_1fr]">
-          <dt className="text-muted">E-mail</dt>
+          <dt className="text-muted">{t("fields.email")}</dt>
           <dd className="break-all text-ink">{handover.email}</dd>
-          <dt className="text-muted">Password</dt>
+          <dt className="text-muted">{t("fields.password")}</dt>
           <dd className="text-ink">{handover.password}</dd>
         </dl>
 
         <div className="flex flex-wrap justify-end gap-2 border-t border-line bg-sand px-4 py-3">
           <Button
             onClick={() => {
-              void navigator.clipboard.writeText(`E-mail: ${handover.email}\nPassword: ${handover.password}`);
+              void navigator.clipboard.writeText(
+                t("handover.customerClipboard", { email: handover.email, password: handover.password }),
+              );
               setCopied(true);
             }}
             size="sm"
@@ -138,14 +140,14 @@ export function NewCustomerForm({ onClose }: { readonly onClose: () => void }) {
             variant="secondary"
           >
             {copied ? <Check aria-hidden className="size-3.5" /> : <Copy aria-hidden className="size-3.5" />}
-            {copied ? "Copied" : "Copy credentials"}
+            {copied ? t("handover.copied") : t("handover.copy")}
           </Button>
           <Button onClick={() => setHandover(null)} size="sm" type="button" variant="ghost">
             <UserPlus aria-hidden className="size-3.5" />
-            Create another
+            {t("handover.createAnother")}
           </Button>
           <Button onClick={onClose} size="sm" type="button">
-            Done
+            {t("handover.done")}
           </Button>
         </div>
       </section>
@@ -157,14 +159,11 @@ export function NewCustomerForm({ onClose }: { readonly onClose: () => void }) {
       <header className="flex items-start gap-3 border-b border-line px-4 py-4">
         <div className="min-w-0 flex-1">
           <h2 className="text-md font-semibold text-ink" id="new-customer">
-            New customer
+            {t("newCustomer.title")}
           </h2>
-          <p className="mt-0.5 text-xs text-muted">
-            Creates their sign-in in the customer realm and the profile that goes
-            with it. The password is shown once, after the account exists.
-          </p>
+          <p className="mt-0.5 text-xs text-muted">{t("newCustomer.description")}</p>
         </div>
-        <Button aria-label="Close" disabled={busy} onClick={onClose} size="icon-sm" type="button" variant="ghost">
+        <Button aria-label={t("editing.close")} disabled={busy} onClick={onClose} size="icon-sm" type="button" variant="ghost">
           <X aria-hidden className="size-4" />
         </Button>
       </header>
@@ -172,13 +171,13 @@ export function NewCustomerForm({ onClose }: { readonly onClose: () => void }) {
       <div className="flex flex-col gap-4 px-4 py-4">
         {error ? <ErrorBanner message={apiErrorMessage(error)} /> : null}
 
-        <FormField hint={PHOTO_HINT} label="Profile photo">
+        <FormField hint={theirPhoto.hint} label={theirPhoto.label}>
           {(field) => (
             <AvatarPicker
               describedBy={field["aria-describedby"]}
               failure={photo.failure}
               id={field.id}
-              labels={CUSTOMER_PHOTO}
+              labels={theirPhoto.labels}
               name={name}
               onChoose={photo.choose}
               onFile={(file) => void photo.upload(file)}
@@ -195,7 +194,7 @@ export function NewCustomerForm({ onClose }: { readonly onClose: () => void }) {
         <input {...photo.inputProps} />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Name" required>
+          <FormField label={t("fields.name")} required>
             {(field) => (
               <Input
                 {...field}
@@ -208,7 +207,7 @@ export function NewCustomerForm({ onClose }: { readonly onClose: () => void }) {
             )}
           </FormField>
 
-          <FormField hint="Also their username — customers sign in by e-mail." label="E-mail" required>
+          <FormField hint={t("newCustomer.emailHint")} label={t("fields.email")} required>
             {(field) => (
               <Input
                 {...field}
@@ -221,7 +220,7 @@ export function NewCustomerForm({ onClose }: { readonly onClose: () => void }) {
             )}
           </FormField>
 
-          <FormField hint="Optional. Must not already belong to another customer." label="Phone number">
+          <FormField hint={t("newCustomer.phoneHint")} label={t("fields.phone")}>
             {(field) => (
               <Input
                 {...field}
@@ -233,7 +232,7 @@ export function NewCustomerForm({ onClose }: { readonly onClose: () => void }) {
             )}
           </FormField>
 
-          <FormField hint="Shown once, after the account is created." label="Password">
+          <FormField hint={t("fields.shownOnce")} label={t("fields.password")}>
             {(field) => (
               <div className="flex gap-2">
                 <div className="relative min-w-0 flex-1">
@@ -248,10 +247,10 @@ export function NewCustomerForm({ onClose }: { readonly onClose: () => void }) {
                   />
                 </div>
                 <Button
-                  aria-label="Generate a new password"
+                  aria-label={t("fields.generatePassword")}
                   onClick={() => setPassword(generatePassword())}
                   size="icon"
-                  title="Generate a new password"
+                  title={t("fields.generatePassword")}
                   type="button"
                   variant="secondary"
                 >
@@ -264,13 +263,13 @@ export function NewCustomerForm({ onClose }: { readonly onClose: () => void }) {
 
         <Label className="flex items-center gap-2.5 font-normal">
           <Checkbox checked={temporary} onChange={(event) => setTemporary(event.target.checked)} />
-          Ask for a new password at the first sign-in
+          {t("fields.askNewPassword")}
         </Label>
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line bg-sand px-4 py-3">
         <Button disabled={busy} onClick={onClose} size="sm" type="button" variant="ghost">
-          Cancel
+          {t("editing.cancel")}
         </Button>
         <Button
           disabled={busy || !name.trim() || !email.trim() || password.length < 8}
@@ -278,7 +277,7 @@ export function NewCustomerForm({ onClose }: { readonly onClose: () => void }) {
           type="submit"
         >
           {isLoading ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <UserPlus aria-hidden className="size-3.5" />}
-          {isLoading ? "Creating…" : photo.uploading ? "Uploading photo…" : "Create customer"}
+          {isLoading ? t("newCustomer.creating") : photo.uploading ? t("newCustomer.uploadingPhoto") : t("newCustomer.create")}
         </Button>
       </div>
     </form>

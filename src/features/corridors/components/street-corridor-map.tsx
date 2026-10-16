@@ -3,9 +3,12 @@
 import "leaflet/dist/leaflet.css";
 
 import L from "leaflet";
+import { useTranslations } from "next-intl";
+import { useZoomTitles } from "@/lib/use-zoom-titles";
 import { useEffect, useEffectEvent, useRef } from "react";
 import { CAMBODIA_BOUNDS } from "@/features/catalog/geo";
 import type { MapStop } from "@/features/corridors/api/contracts";
+import type { CorridorsT } from "@/features/corridors/format";
 import { groupByPlace, infoContent, pinElement, pointOf } from "@/features/corridors/map-pins";
 import { decodePolyline, type LatLngPair } from "@/features/corridors/route-geometry";
 
@@ -36,7 +39,10 @@ export default function StreetCorridorMap({ stops, day, selectedKey, onSelect }:
   /* The stop the map last went to: it goes again only when another is chosen. */
   const visited = useRef<string | null>(null);
   const selectedKeyRef = useRef(selectedKey);
+  const t = useTranslations("corridors");
   const select = useEffectEvent((key: string) => onSelect?.(key));
+  /* A stop's card in the words of the moment, without redrawing the markers when they change. */
+  const showStop = useEffectEvent((stop: MapStop) => openStop(map.current, popup.current, stop, t));
 
   useEffect(() => {
     const element = container.current;
@@ -110,7 +116,7 @@ export default function StreetCorridorMap({ stops, day, selectedKey, onSelect }:
       }).addTo(group);
       marker.on("click", () => {
         const chosen = place.find((stop) => stop.key === selectedKeyRef.current) ?? place[0];
-        openStop(map.current, popup.current, chosen);
+        showStop(chosen);
         select(chosen.key);
       });
       for (const stop of place) byKey.current.set(stop.key, { marker, pin });
@@ -152,15 +158,17 @@ export default function StreetCorridorMap({ stops, day, selectedKey, onSelect }:
     if (visited.current === selectedKey) return;
     visited.current = selectedKey;
     current.setView(entry.marker.getLatLng(), Math.max(current.getZoom(), 11));
-    openStop(current, popup.current, stop);
+    showStop(stop);
     // Runs after the drawing effect, whose markers it reads.
   }, [selectedKey, stops, day]);
 
-  return <div aria-label="Corridor map" className="size-full" ref={container} role="region" />;
+  useZoomTitles(container);
+
+  return <div aria-label={t("map.label")} className="size-full" ref={container} role="region" />;
 }
 
-function openStop(map: L.Map | null, popup: L.Popup | null, stop: MapStop) {
+function openStop(map: L.Map | null, popup: L.Popup | null, stop: MapStop, t: CorridorsT) {
   const at = pointOf(stop);
   if (!map || !popup || !at) return;
-  popup.setLatLng(at).setContent(infoContent(stop)).openOn(map);
+  popup.setLatLng(at).setContent(infoContent(stop, t)).openOn(map);
 }

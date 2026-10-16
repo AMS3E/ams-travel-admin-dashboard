@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 interface DayTabsProps {
@@ -12,10 +13,11 @@ interface DayTabsProps {
 
 /** All days, or one: what the map and the itinerary beside it show. */
 export function DayTabs({ days, value, onChange, className }: DayTabsProps) {
+  const t = useTranslations("corridors.words");
   if (days < 2) return null;
   const choices: readonly (number | null)[] = [null, ...Array.from({ length: days }, (_, index) => index + 1)];
   return (
-    <div aria-label="Show days" className={cn("flex max-w-full flex-wrap gap-1 rounded-md border border-line bg-sand p-0.5", className)} role="group">
+    <div aria-label={t("showDays")}className={cn("flex max-w-full flex-wrap gap-1 rounded-md border border-line bg-sand p-0.5", className)} role="group">
       {choices.map((day) => (
         <button
           aria-pressed={value === day}
@@ -27,7 +29,7 @@ export function DayTabs({ days, value, onChange, className }: DayTabsProps) {
           onClick={() => onChange(day)}
           type="button"
         >
-          {day == null ? "All days" : `Day ${day}`}
+          {day == null ? t("allDays") : t("day", { day })}
         </button>
       ))}
     </div>

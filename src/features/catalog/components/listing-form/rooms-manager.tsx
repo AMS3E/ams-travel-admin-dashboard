@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { createPortal } from "react-dom";
 import { BedDouble, Copy, EyeOff, Eye, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   useDeleteRecordMutation,
@@ -11,13 +12,13 @@ import {
 } from "@/features/catalog/api/catalog-api";
 import type { SaveResult } from "@/features/catalog/form-state";
 import { galleryOf, mediaPath, toFormValues, type FormValues } from "@/features/catalog/resource";
-import { getResource } from "@/features/catalog/resources";
-import { ROOM_WORDS, roomSummary, withBedsFor, type RoomSummary } from "@/features/catalog/rooms";
+import { roomSummary, withBedsFor, type RoomSummary } from "@/features/catalog/rooms";
+import { useResource } from "@/features/catalog/use-resource";
 import { RoomBadge, RoomCard } from "@/features/catalog/components/listing-form/room-card";
 import { amenityLabels, offeredAmenities } from "@/features/catalog/amenities";
 import type { ReferenceOption } from "@/features/catalog/resource";
 import { RoomEditor, type GalleryPhoto } from "@/features/catalog/components/listing-form/room-editor";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
 
 /** A room made while the stay does not exist yet; written when the stay is saved. */
 export interface RoomDraft {
@@ -71,9 +72,14 @@ export function RoomsManager({
   canEdit,
   onSummaryChange,
 }: RoomsManagerProps) {
+  const t = useTranslations("forms.rooms.manager");
+  const words = useTranslations("forms.rooms.words");
+  const actions = useTranslations("forms.actions");
+  const errorMessage = useApiErrorMessage();
   const roomAmenities = useMemo(() => offeredAmenities(amenities, "ROOM"), [amenities]);
   const labels = useMemo(() => amenityLabels(amenities), [amenities]);
-  const registered = getResource("stay-rooms");
+  const registered = useResource("stay-rooms");
+  const stayMedia = useResource("stay-media");
   /* A new stay has no id for its rooms to name yet; it is filled in when the stay is saved. */
   const definition = useMemo(
     () =>
@@ -118,7 +124,6 @@ export function RoomsManager({
   const summary = useMemo(() => roomSummary(rooms.map((room) => room.values)), [rooms]);
   useEffect(() => onSummaryChange(summary), [onSummaryChange, summary]);
 
-  const words = ROOM_WORDS;
   const fresh = (): FormValues => ({ ...toFormValues(definition, null), stayId: stayId ?? "" });
 
   /* A new room starts as a double with nothing else filled in. */
@@ -129,7 +134,7 @@ export function RoomsManager({
 
   function copy(room: Room) {
     setNotice(null);
-    setEditing({ id: null, values: { ...room.values, name: `${String(room.values.name ?? "")} (copy)` } });
+    setEditing({ id: null, values: { ...room.values, name: t("copyName", { name: String(room.values.name ?? "") }) } });
   }
 
   /* Escape closes the dialog; the page behind stays put. */
@@ -151,7 +156,7 @@ export function RoomsManager({
     try {
       return await saveRecord({ resource: "stay-rooms", ...(id ? { id } : {}), values: { ...values, stayId: stayId ?? "" } }).unwrap();
     } catch (error) {
-      return { ok: false, message: apiErrorMessage(error) };
+      return { ok: false, message: errorMessage(error) };
     }
   }
 
@@ -164,13 +169,13 @@ export function RoomsManager({
           : [...list, { uid: crypto.randomUUID(), values: { ...values, sortOrder: String(list.length) } }],
       );
       setEditing(null);
-      setNotice(target ? "Room updated — it is saved with the stay." : "Room added — it is saved with the stay.");
+      setNotice(target ? t("notices.updatedDraft") : t("notices.addedDraft"));
       return { ok: true, id: target ?? "" };
     }
     const result = await write(target ? values : { ...values, sortOrder: String(rooms.length) }, target);
     if (result.ok) {
       setEditing(null);
-      setNotice(target ? "Room saved." : "Room added.");
+      setNotice(target ? t("notices.saved") : t("notices.added"));
     }
     return result;
   }
@@ -184,9 +189,9 @@ export function RoomsManager({
     setBusy(room.id);
     try {
       await deleteRecord({ resource: "stay-rooms", id: room.id }).unwrap();
-      setNotice("Room deleted.");
+      setNotice(t("notices.deleted"));
     } catch (error) {
-      setNotice(apiErrorMessage(error));
+      setNotice(errorMessage(error));
     } finally {
       setBusy(null);
     }
@@ -201,7 +206,8 @@ export function RoomsManager({
     setBusy(room.id);
     const result = await write(values, room.id);
     setBusy(null);
-    setNotice(result.ok ? (values.status === "INACTIVE" ? "Marked unavailable." : "Available again.") : result.message);
+    if (result.ok) setNotice(values.status === "INACTIVE" ? t("notices.unavailable") : t("notices.available"));
+    else setNotice(result.message);
   }
 
   /* The room is written in a dialog over the page, outside the listing's form: its own Enter and Escape, and room to work. */
@@ -217,9 +223,9 @@ export function RoomsManager({
           >
             <div className="mb-4 flex items-center justify-between gap-3">
               <h3 className="text-base font-semibold text-ink" id="room-dialog-title">
-                {editing.id ? words.edit : words.fresh}
+                {editing.id ? words("edit") : words("fresh")}
               </h3>
-              <IconButton label="Close without saving" onClick={() => setEditing(null)}>
+              <IconButton label={t("closeUnsaved")} onClick={() => setEditing(null)}>
                 <X aria-hidden className="size-4" />
               </IconButton>
             </div>
@@ -233,7 +239,7 @@ export function RoomsManager({
               onCancel={() => setEditing(null)}
               onSave={save}
               photos={photos}
-              category={galleryOf(getResource("stay-media"))?.category ?? "stay"}
+              category={galleryOf(stayMedia)?.category ?? "stay"}
             />
           </div>
         </div>,
@@ -245,15 +251,13 @@ export function RoomsManager({
     <div className="flex flex-col gap-4">
       {dialog}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-ink">Rooms</h3>
+        <h3 className="text-sm font-semibold text-ink">{t("title")}</h3>
         <div className="flex items-center gap-3">
-          <p className="text-xs text-muted tabular-nums">
-            {summary.types} {summary.types === 1 ? "room" : "rooms"}
-          </p>
+          <p className="text-xs text-muted tabular-nums">{t("count", { count: summary.types })}</p>
           {canEdit ? (
             <Button onClick={start} size="sm" type="button" variant="secondary">
               <Plus aria-hidden className="size-3.5" />
-              {words.add}
+              {words("add")}
             </Button>
           ) : null}
         </div>
@@ -268,7 +272,7 @@ export function RoomsManager({
       {stayId && savedRows.isLoading ? (
         <p className="flex items-center gap-2 text-sm text-muted">
           <Loader2 aria-hidden className="size-4 animate-spin" />
-          Loading rooms…
+          {t("loading")}
         </p>
       ) : rooms.length ? (
         <ul className="flex flex-col gap-2">
@@ -282,16 +286,16 @@ export function RoomsManager({
                   actions={
                     canEdit ? (
                       <>
-                        <IconButton label="Edit" onClick={() => setEditing({ id: room.id, values: room.values })}>
+                        <IconButton label={actions("edit")} onClick={() => setEditing({ id: room.id, values: room.values })}>
                           <Pencil aria-hidden className="size-3.5" />
                         </IconButton>
-                        <IconButton label={words.copy} onClick={() => copy(room)}>
+                        <IconButton label={words("copy")} onClick={() => copy(room)}>
                           <Copy aria-hidden className="size-3.5" />
                         </IconButton>
-                        <IconButton label={offSale ? "Make available" : "Make unavailable"} onClick={() => void toggleSale(room)}>
+                        <IconButton label={offSale ? t("makeAvailable") : t("makeUnavailable")} onClick={() => void toggleSale(room)}>
                           {offSale ? <Eye aria-hidden className="size-3.5" /> : <EyeOff aria-hidden className="size-3.5" />}
                         </IconButton>
-                        <IconButton danger label="Delete" onClick={() => void remove(room)}>
+                        <IconButton danger label={actions("delete")} onClick={() => void remove(room)}>
                           {busy === room.id ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <Trash2 aria-hidden className="size-3.5" />}
                         </IconButton>
                       </>
@@ -310,9 +314,9 @@ export function RoomsManager({
       ) : (
         <div className="flex flex-col items-center gap-1 rounded-lg border border-dashed border-line-strong bg-sand px-4 py-8 text-center">
           <BedDouble aria-hidden className="size-6 text-muted" strokeWidth={1.5} />
-          <p className="text-sm font-medium text-ink">{words.none}</p>
+          <p className="text-sm font-medium text-ink">{words("none")}</p>
           <p className="max-w-sm text-xs text-muted">
-            {words.noneHint}
+            {words("noneHint")}
           </p>
         </div>
       )}

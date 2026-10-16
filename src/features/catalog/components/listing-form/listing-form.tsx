@@ -58,8 +58,8 @@ import {
 } from "@/features/catalog/components/listing-form/steps";
 import { listPageOf } from "@/features/catalog/all-destinations";
 import { kindOf, mainRegion, themeOf } from "@/features/catalog/narrowing";
-import { getResource } from "@/features/catalog/resources";
-import { progressLabel, useGalleryRows, type UploadProgress } from "@/features/catalog/use-image-upload";
+import { useResource } from "@/features/catalog/use-resource";
+import { useGalleryRows, useUploadText, type UploadProgress } from "@/features/catalog/use-image-upload";
 import {
   galleryOf,
   isShown,
@@ -73,8 +73,17 @@ import {
   type ResourceField,
 } from "@/features/catalog/resource";
 import { useGetPublishRequestsQuery, useSubmitPublishRequestMutation } from "@/features/publishing/api/publishing-api";
-import { lastActivityOf, listingTypeOf, type PublishRequestResponse } from "@/features/publishing/api/contracts";
-import { apiErrorMessage } from "@/store/api/api-error";
+import {
+  DESK_REVIEWERS,
+  PUBLISH_DESKS,
+  lastActivityOf,
+  listingTypeOf,
+  type PublishRequestResponse,
+} from "@/features/publishing/api/contracts";
+import { useTranslations } from "next-intl";
+import { datePartsOf } from "@/i18n/dates";
+import { useDates } from "@/i18n/use-dates";
+import { useApiErrorMessage } from "@/store/api/api-error";
 import { cn } from "@/lib/utils";
 
 interface ListingFormProps {
@@ -129,6 +138,22 @@ interface BarAction {
 
 /** Where a section sits in the page, for the checklist to scroll to. */
 const sectionDomId = (id: string) => `listing-section-${id}`;
+
+/** How each sentence names the reviewer — "a BDO", "A BDO", "the BDO" — in the reader's language. */
+interface ReviewerWords {
+  readonly a: string;
+  readonly capital: string;
+  readonly the: string;
+}
+
+function useReviewerWords(reviewer: string | undefined): ReviewerWords {
+  const t = useTranslations("forms.listing.reviewers");
+  const desk = PUBLISH_DESKS.find((each) => DESK_REVIEWERS[each] === reviewer);
+  if (desk) return { a: t(`a.${desk}`), capital: t(`capital.${desk}`), the: t(`the.${desk}`) };
+  /* A reviewer named some other way is said as given. */
+  const said = reviewer ?? "";
+  return { a: said, capital: `${said.charAt(0).toUpperCase()}${said.slice(1)}`, the: said.replace(/^an? /, "the ") };
+}
 
 /*
  * Whether the phone preview is put away, remembered in this browser. Read as
@@ -214,6 +239,12 @@ export function ListingForm({
   reviewHref,
 }: ListingFormProps) {
   const router = useRouter();
+  const t = useTranslations("forms.listing");
+  const actions = useTranslations("forms.actions");
+  const stepWords = useTranslations("forms.steps");
+  const upload = useUploadText();
+  const errorMessage = useApiErrorMessage();
+  const reviewerWords = useReviewerWords(reviewer);
   const [saveRecord] = useSaveRecordMutation();
   const [submitForReview] = useSubmitPublishRequestMutation();
   const [deleteRecord] = useDeleteRecordMutation();
@@ -247,7 +278,7 @@ export function ListingForm({
   const [pendingRooms, setPendingRooms] = useState<RoomDraft[]>([]);
   const [saveRoom] = useSaveRecordMutation();
   const hasRooms = definition.key === "stays";
-  const galleryDefinition = getResource(LISTING_GALLERIES[definition.key as ListingKey]);
+  const galleryDefinition = useResource(LISTING_GALLERIES[definition.key as ListingKey]);
   const addGalleryRows = useGalleryRows(galleryDefinition, galleryOf(galleryDefinition)!);
   const canAddPhotos = Boolean(gallery?.canAdd && canEdit);
   /* The phone preview beside the form, and whether it is put away. */
@@ -330,21 +361,21 @@ export function ListingForm({
   /* Someone who cannot publish is not asked whether it goes live, but whether to send it. */
   /* An attraction, a stay or a food listing: each goes to its author's reviewer the same way. */
   const listingType = listingTypeOf(definition.key);
-  const steps = listingSteps(definition, kind).map((each) =>
+  const steps = listingSteps(definition, kind, stepWords).map((each) =>
     each.review && reviewer && listingType
       ? {
           ...each,
-          title: "Review & send",
-          question: "Ready to send for review?",
-          description: `Check what is still missing, then send it to ${reviewer}. It goes on the website once they approve it.`,
+          title: t("reviewStep.title"),
+          question: t("reviewStep.question"),
+          description: t("reviewStep.description", { reviewer: reviewerWords.a }),
           tip: {
-            title: "What happens next",
-            body: `${reviewer.charAt(0).toUpperCase()}${reviewer.slice(1)} approves it, asks for changes, or rejects it with a reason — you see the answer on your Requests page. You can keep editing it while it waits.`,
+            title: t("reviewStep.tipTitle"),
+            body: t("reviewStep.tipBody", { reviewer: reviewerWords.capital }),
           },
         }
       : each,
   );
-  const checks = readinessChecks(definition, kind);
+  const checks = readinessChecks(definition, kind, stepWords);
 
   /**
    * The rooms' count for the checklist, and their price for the preview: the
@@ -529,7 +560,7 @@ export function ListingForm({
         values: submitted,
       }).unwrap();
     } catch (error) {
-      setBanner(apiErrorMessage(error));
+      setBanner(errorMessage(error));
       return;
     }
 
@@ -547,7 +578,12 @@ export function ListingForm({
         if (written.error) {
           setSavedHref(`/${definition.key}/${result.id}`);
           setBanner(
-            `The ${noun} was saved, but ${pendingPhotos.length - written.added} of ${pendingPhotos.length} gallery photos could not be added: ${written.error}`,
+            t("problems.photos", {
+              noun,
+              failed: pendingPhotos.length - written.added,
+              total: pendingPhotos.length,
+              error: written.error,
+            }),
           );
           return;
         }
@@ -561,13 +597,13 @@ export function ListingForm({
             const written = await saveRoom({ resource: "stay-rooms", values: { ...draft.values, stayId: result.id } }).unwrap();
             if (!written.ok) failed.push(`${String(draft.values.name)}: ${written.message}`);
           } catch (error) {
-            failed.push(`${String(draft.values.name)}: ${apiErrorMessage(error)}`);
+            failed.push(`${String(draft.values.name)}: ${errorMessage(error)}`);
           }
         }
         setSaveProgress(null);
         if (failed.length) {
           setSavedHref(`/${definition.key}/${result.id}`);
-          setBanner(`The ${noun} was saved, but ${failed.length} of ${pendingRooms.length} rooms could not be: ${failed.join("; ")}`);
+          setBanner(t("problems.rooms", { noun, failed: failed.length, total: pendingRooms.length, errors: failed.join("; ") }));
           return;
         }
       }
@@ -577,7 +613,7 @@ export function ListingForm({
           await submitForReview({ targetType: listingType, targetId: result.id }).unwrap();
         } catch (error) {
           setSavedHref(`/${definition.key}/${result.id}`);
-          setBanner(`The ${noun} was saved as a draft, but it could not be sent to ${reviewer}: ${apiErrorMessage(error)}`);
+          setBanner(t("problems.send", { noun, reviewer: reviewerWords.a, error: errorMessage(error) }));
           return;
         }
       }
@@ -600,7 +636,7 @@ export function ListingForm({
     const first = stepOf(Object.keys(invalid));
     const target = first >= 0 ? first : invalid.status ? steps.length - 1 : -1;
     if (target >= 0) scrollToSection(steps[target].id, true);
-    setBanner("A few details need attention before this can be saved — they are marked in red.");
+    setBanner(t("problems.invalid"));
   }
 
   function destroy() {
@@ -613,7 +649,7 @@ export function ListingForm({
         router.push(listHref);
         router.refresh();
       } catch (error) {
-        setBanner(apiErrorMessage(error));
+        setBanner(errorMessage(error));
       }
     });
   }
@@ -633,27 +669,27 @@ export function ListingForm({
   let secondary: BarAction | null = null;
   let primary: BarAction;
   if (offerReview) {
-    secondary = { label: "Save draft", icon: FilePen, onPress: () => saveAs(editing ? null : draftStatus, false) };
+    secondary = { label: t("bar.saveDraft"), icon: FilePen, onPress: () => saveAs(editing ? null : draftStatus, false) };
     primary = {
-      label: request?.status === "DRAFT" ? "Send back for review" : editing ? "Save and send for review" : "Send for review",
+      label: request?.status === "DRAFT" ? t("bar.sendBack") : editing ? t("bar.saveAndSend") : t("bar.send"),
       icon: Send,
       onPress: () => saveAs(editing ? null : draftStatus, true),
     };
   } else if (choosesStatus && statusField) {
     if (editing) {
       secondary = live
-        ? { label: "Unpublish", icon: FilePen, onPress: () => saveAs(draftStatus, null) }
-        : { label: "Publish", icon: Rocket, onPress: () => saveAs(liveStatus, null) };
-      primary = { label: "Save changes", icon: Save, onPress: () => saveAs(null, null) };
+        ? { label: t("bar.unpublish"), icon: FilePen, onPress: () => saveAs(draftStatus, null) }
+        : { label: t("bar.publish"), icon: Rocket, onPress: () => saveAs(liveStatus, null) };
+      primary = { label: actions("saveChanges"), icon: Save, onPress: () => saveAs(null, null) };
     } else {
-      secondary = { label: "Save draft", icon: FilePen, onPress: () => saveAs(draftStatus, null) };
-      primary = { label: `Publish ${noun}`, icon: Rocket, onPress: () => saveAs(liveStatus, null) };
+      secondary = { label: t("bar.saveDraft"), icon: FilePen, onPress: () => saveAs(draftStatus, null) };
+      primary = { label: t("bar.publishNoun", { noun }), icon: Rocket, onPress: () => saveAs(liveStatus, null) };
     }
   } else {
-    primary = { label: editing ? "Save changes" : `Create ${noun}`, icon: editing ? Save : Check, onPress: () => saveAs(null, null) };
+    primary = { label: editing ? actions("saveChanges") : actions("create", { noun }), icon: editing ? Save : Check, onPress: () => saveAs(null, null) };
   }
   const busy = isSubmitting || photosUploading;
-  const busyLabel = saveProgress ? progressLabel(saveProgress) : isSubmitting ? "Saving…" : photosUploading ? "Waiting for photos…" : null;
+  const busyLabel = saveProgress ? upload.progress(saveProgress) : isSubmitting ? actions("saving") : photosUploading ? t("bar.waitingForPhotos") : null;
 
   return (
     <FormProvider {...form}>
@@ -679,12 +715,12 @@ export function ListingForm({
           <div className="z-20 col-span-full -mx-4 bg-background px-4 pt-1 pb-1 md:-mx-6 md:px-6 lg:sticky lg:top-14">
             <div className="panel flex flex-wrap items-center gap-2 px-3 py-2">
               <Link className={buttonVariants({ variant: "ghost", size: "sm" })} href={cancelHref ?? listHref}>
-                Cancel
+                {actions("cancel")}
               </Link>
               {editing && isDirty ? (
                 <span className="inline-flex items-center gap-1.5 text-xs text-muted">
                   <span aria-hidden className="size-1.5 rounded-full bg-gold" />
-                  Unsaved changes
+                  {t("bar.unsaved")}
                 </span>
               ) : null}
               <span className="flex-1" />
@@ -693,18 +729,18 @@ export function ListingForm({
                   {standing.label}
                 </Badge>
               ) : !editing ? (
-                <Badge>Not saved yet</Badge>
+                <Badge>{t("bar.notSaved")}</Badge>
               ) : null}
               {
                 <button
-                  aria-label={previewHidden ? "Show preview" : "Hide preview"}
+                  aria-label={previewHidden ? t("bar.showPreview") : t("bar.hidePreview")}
                   aria-pressed={!previewHidden}
                   className={cn(
                     "hidden size-8 place-items-center rounded-md text-ink-soft transition-colors hover:bg-sand hover:text-ink xl:grid",
                     !previewHidden && "bg-teal-soft text-teal hover:bg-teal-soft hover:text-teal",
                   )}
                   onClick={() => showPreview(previewHidden)}
-                  title={previewHidden ? "Show preview" : "Hide preview"}
+                  title={previewHidden ? t("bar.showPreview") : t("bar.hidePreview")}
                   type="button"
                 >
                   {previewHidden ? <EyeOff aria-hidden className="size-4" /> : <Eye aria-hidden className="size-4" />}
@@ -733,10 +769,14 @@ export function ListingForm({
                   {savedHref ? (
                     <>
                       {" "}
-                      <Link className="font-medium underline underline-offset-2" href={savedHref}>
-                        Open the saved {noun}
-                      </Link>{" "}
-                      to add them again.
+                      {t.rich("problems.savedLink", {
+                        noun,
+                        link: (chunks) => (
+                          <Link className="font-medium underline underline-offset-2" href={savedHref}>
+                            {chunks}
+                          </Link>
+                        ),
+                      })}
                     </>
                   ) : null}
                 </span>
@@ -754,7 +794,7 @@ export function ListingForm({
             {!canEdit ? (
               <p className="flex items-start gap-2.5 rounded-lg border border-line bg-sand px-3 py-2.5 text-sm text-ink-soft" role="status">
                 <Lock aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
-                This {noun} is read-only for your account. Contributors can edit their own unpublished drafts.
+                {t("readOnly", { noun })}
               </p>
             ) : null}
 
@@ -770,7 +810,7 @@ export function ListingForm({
                     <h2 className="heading text-lg font-semibold text-ink" id={`${sectionDomId(each.id)}-title`}>
                       {each.title}
                     </h2>
-                    <HelpIcon id={`${sectionDomId(each.id)}-tip`} label={each.title} text={`${each.tip.title}. ${each.tip.body}`} />
+                    <HelpIcon id={`${sectionDomId(each.id)}-tip`} label={each.title} text={t("tip", { title: each.tip.title, body: each.tip.body })} />
                   </div>
                   <p className="mt-0.5 text-sm text-muted">{each.description}</p>
                 </header>
@@ -781,23 +821,25 @@ export function ListingForm({
                     <>
                       <Readiness onOpen={scrollToCheck} rows={checkRows} />
                       {statusField && (!canEdit || (reviewed && (waiting || request?.status === "DRAFT")) || (!choosesStatus && !offerReview)) ? (
-                        <FormSection description={`Who can see this ${noun}.`} title="Visibility">
+                        <FormSection description={t("visibility.description", { noun })} title={t("visibility.title")}>
                           {!canEdit ? (
-                            <p className="text-sm text-muted">An editor manages publication and changes to this {noun}.</p>
+                            <p className="text-sm text-muted">{t("visibility.editorManages", { noun })}</p>
                           ) : reviewed && (waiting || request?.status === "DRAFT") ? (
-                            <ReviewNote request={request} reviewer={reviewer ?? ""} waiting={waiting} />
+                            <ReviewNote request={request} reviewer={reviewerWords} waiting={waiting} />
                           ) : (
                             <p className="flex items-start gap-2.5 rounded-md bg-sand px-3 py-2.5 text-sm text-ink-soft">
                               <FilePen aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
                               <span>
                                 {reviewHref
-                                  ? `You are correcting this ${noun} before deciding on it. Save your changes, then approve it, send it back or reject it on the review.`
+                                  ? t("visibility.correcting", { noun })
                                   : editing
-                                  ? `Currently ${statusOption(definition, statusValueOf(definition, record))?.label.toLowerCase() ?? "unknown"}. Whether it is on the website is decided by a reviewer, not here.`
+                                  ? t("visibility.currently", {
+                                      status: statusOption(definition, statusValueOf(definition, record))?.label.toLowerCase() ?? t("visibility.unknown"),
+                                    })
                                   : canSetStatus
-                                    ? `New ${definition.labelPlural.toLowerCase()} start as drafts. You can publish it once it exists.`
-                                    : `It is saved as a draft. Whether it is on the website is decided by a reviewer, not here.`}
-                                {listingType && !canSetStatus && !reviewer && !reviewHref ? " Submit it from the publishing screen when it is ready." : ""}
+                                    ? t("visibility.newDrafts", { nouns: definition.labelPlural.toLowerCase() })
+                                    : t("visibility.savedAsDraft")}
+                                {listingType && !canSetStatus && !reviewer && !reviewHref ? ` ${t("visibility.submitFromPublishing")}` : ""}
                               </span>
                             </p>
                           )}
@@ -808,7 +850,7 @@ export function ListingForm({
 
                   {each.groups.map((group) => {
                     /* A group whose first field already says its name does not say it twice. */
-                    const titled = Boolean(group.title) && fieldsByName.get(group.fields[0] ?? "")?.label !== group.title;
+                    const titled = Boolean(group.title) && !group.echoes;
                     /* The map pin: search, the map and the paste box first, then the two numbers they fill. */
                     const pinned = group.fields.includes("latitude") && group.fields.includes("longitude");
                     /* A group whose every field is hidden for this kind — a homestay's star rating — leaves no empty band behind. */
@@ -907,21 +949,21 @@ export function ListingForm({
                   {each.review ? (
                     <>
                       <div className="flex flex-col items-center gap-2 px-5 py-5 xl:hidden">
-                        <p className="self-start text-xs font-medium text-muted">Preview, as the app shows it</p>
+                        <p className="self-start text-xs font-medium text-muted">{t("previewTitle")}</p>
                         <PhonePreview definition={definition} options={options} photos={photoCount} values={values} />
                       </div>
                       {editing && canDelete ? (
-                        <FormSection description="It is removed from the website and the dashboard for good. This cannot be undone." title={`Delete this ${noun}`}>
+                        <FormSection description={t("delete.description")} title={t("delete.title", { noun })}>
                           <div className="flex flex-wrap items-center gap-2">
                             {confirmingDelete ? (
                               <>
-                                <span className="text-sm text-ink">Delete permanently?</span>
+                                <span className="text-sm text-ink">{actions("deleteConfirm")}</span>
                                 <Button disabled={deleting} onClick={destroy} size="sm" type="button" variant="destructive">
                                   {deleting ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <Trash2 aria-hidden className="size-3.5" />}
-                                  Yes, delete
+                                  {actions("yesDelete")}
                                 </Button>
                                 <Button onClick={() => setConfirmingDelete(false)} size="sm" type="button" variant="ghost">
-                                  Keep it
+                                  {actions("keepIt")}
                                 </Button>
                               </>
                             ) : (
@@ -933,7 +975,7 @@ export function ListingForm({
                                 variant="secondary"
                               >
                                 <Trash2 aria-hidden className="size-3.5" />
-                                Delete {noun}
+                                {t("delete.button", { noun })}
                               </Button>
                             )}
                           </div>
@@ -946,9 +988,7 @@ export function ListingForm({
             ))}
 
             {gated ? (
-              <p className="rounded-xl border border-dashed border-line-strong px-5 py-4 text-sm text-muted">
-                Choose the type above to see the rest of the form. Every section after it is written for that choice.
-              </p>
+              <p className="rounded-xl border border-dashed border-line-strong px-5 py-4 text-sm text-muted">{t("gated")}</p>
             ) : null}
 
           </div>
@@ -1012,9 +1052,10 @@ interface SectionNavProps {
  * still missing is the Review section's business, not this one's.
  */
 function SectionList({ sections, current, onSelect, onOpen }: SectionNavProps & { readonly onOpen: (row: CheckRow) => void }) {
+  const t = useTranslations("forms.listing.nav");
   return (
-    <nav aria-label="Form sections">
-      <p className="mb-2 px-2 text-xs font-medium text-muted">On this page</p>
+    <nav aria-label={t("label")}>
+      <p className="mb-2 px-2 text-xs font-medium text-muted">{t("onThisPage")}</p>
 
       <ol className="flex flex-col gap-0.5">
         {sections.map((section) => {
@@ -1051,7 +1092,7 @@ function SectionList({ sections, current, onSelect, onOpen }: SectionNavProps & 
                             *
                           </span>
                         ) : null}
-                        {row.required ? <span className="sr-only">, required</span> : null}
+                        {row.required ? <span className="sr-only">{t("required")}</span> : null}
                       </button>
                     </li>
                   ))}
@@ -1067,6 +1108,7 @@ function SectionList({ sections, current, onSelect, onOpen }: SectionNavProps & 
 
 /** The sections as a row of chips that stays under the top bar, where there is no room for the navigator. */
 function SectionChips({ sections, current, onSelect }: SectionNavProps) {
+  const t = useTranslations("forms.listing.nav");
   const list = useRef<HTMLOListElement>(null);
 
   /* Keep the chip of the section in view centred, without touching the page's own scroll. */
@@ -1079,7 +1121,7 @@ function SectionChips({ sections, current, onSelect }: SectionNavProps) {
   }, [current]);
 
   return (
-    <nav aria-label="Form sections" className="sticky top-14 z-20 -mx-4 bg-background px-4 py-2 md:-mx-6 md:px-6 lg:hidden">
+    <nav aria-label={t("label")} className="sticky top-14 z-20 -mx-4 bg-background px-4 py-2 md:-mx-6 md:px-6 lg:hidden">
       <ol className="no-scrollbar flex gap-1 overflow-x-auto" ref={list}>
         {sections.map((section) => {
           const active = section.id === current;
@@ -1107,39 +1149,43 @@ function SectionChips({ sections, current, onSelect }: SectionNavProps) {
 
 /** The whole checklist in one place, before the listing is saved: what is met, and what is still missing. */
 function Readiness({ rows, onOpen }: { readonly rows: readonly CheckRow[]; readonly onOpen: (row: CheckRow) => void }) {
+  const t = useTranslations("forms.listing.readiness");
   const missingRequired = rows.filter((row) => row.required && !row.done).length;
   const done = rows.filter((row) => row.done).length;
 
   return (
     <FormSection
-      description={`${done} of ${rows.length} details in place. The recommended ones help travellers choose it.`}
-      title={missingRequired ? `${missingRequired} required detail${missingRequired === 1 ? "" : "s"} missing` : "Everything required is in place"}
+      description={t("description", { done, total: rows.length })}
+      title={missingRequired ? t("missing", { count: missingRequired }) : t("complete")}
     >
-      <ul className="grid gap-x-6 sm:grid-cols-2">
-        {rows.map((row) => (
-          <li className="flex h-10 items-center gap-2.5 border-b border-line" key={row.label}>
-            {row.done ? (
-              <CircleCheck aria-hidden className="size-4 shrink-0 text-success" />
-            ) : row.required ? (
-              <CircleAlert aria-hidden className="size-4 shrink-0 text-heritage" />
-            ) : (
-              <CircleDashed aria-hidden className="size-4 shrink-0 text-muted" />
-            )}
-            <span className={cn("min-w-0 flex-1 truncate text-sm", row.done ? "text-ink-soft" : "text-ink")}>{row.label}</span>
-            {row.done ? (
-              <span className="text-xs text-muted">Done</span>
-            ) : (
-              <button
-                className={cn("text-xs font-medium hover:underline", row.required ? "text-heritage" : "text-teal-deep")}
-                onClick={() => onOpen(row)}
-                type="button"
-              >
-                {row.required ? "Required · Add" : "Add"}
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
+      {/* Two columns only when the section itself has room for a name beside its action. */}
+      <div className="@container">
+        <ul className="grid gap-x-6 @xl:grid-cols-2">
+          {rows.map((row) => (
+            <li className="flex h-10 items-center gap-2.5 border-b border-line" key={row.label}>
+              {row.done ? (
+                <CircleCheck aria-hidden className="size-4 shrink-0 text-success" />
+              ) : row.required ? (
+                <CircleAlert aria-hidden className="size-4 shrink-0 text-heritage" />
+              ) : (
+                <CircleDashed aria-hidden className="size-4 shrink-0 text-muted" />
+              )}
+              <span className={cn("min-w-0 flex-1 truncate text-sm", row.done ? "text-ink-soft" : "text-ink")}>{row.label}</span>
+              {row.done ? (
+                <span className="text-xs text-muted">{t("done")}</span>
+              ) : (
+                <button
+                  className={cn("text-xs font-medium hover:underline", row.required ? "text-heritage" : "text-teal-deep")}
+                  onClick={() => onOpen(row)}
+                  type="button"
+                >
+                  {row.required ? t("requiredAdd") : t("add")}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
     </FormSection>
   );
 }
@@ -1159,23 +1205,25 @@ function latestRequest(requests: readonly PublishRequestResponse[], listingId: s
  * that it is waiting. What the reviewer last said is shown with the choice.
  */
 /** Where a listing stands with its reviewer: waiting, or handed back with a note. The sending itself is a button in the bar. */
-function ReviewNote({ reviewer, request, waiting }: { readonly reviewer: string; readonly request: PublishRequestResponse | null; readonly waiting: boolean }) {
+function ReviewNote({ reviewer, request, waiting }: { readonly reviewer: ReviewerWords; readonly request: PublishRequestResponse | null; readonly waiting: boolean }) {
+  const t = useTranslations("forms.listing.reviewNote");
+  const { dates } = useDates();
   if (waiting && request) {
+    const sent = datePartsOf(new Date(request.requestedAt));
     return (
       <p className="flex items-start gap-2.5 rounded-md bg-sand px-3 py-2.5 text-sm text-ink-soft" role="status">
         <Send aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
         <span>
-          Waiting for {reviewer} to review it, since {new Date(request.requestedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long" })}. You
-          can keep changing it — {reviewer.replace(/^an? /, "the ")} reviews what is saved.
+          {t("waiting", { reviewer: reviewer.a, day: sent.day, month: dates.months[sent.month - 1] ?? "", theReviewer: reviewer.the })}
         </span>
       </p>
     );
   }
   if (request?.status === "DRAFT") {
+    const asker = { name: request.reviewerName ?? reviewer.a, b: (chunks: React.ReactNode) => <span className="font-medium text-ink">{chunks}</span> };
     return (
       <p className="rounded-md border border-gold/30 bg-gold-soft px-3 py-2.5 text-sm text-ink-soft">
-        <span className="font-medium text-ink">{request.reviewerName ?? reviewer} asked for changes</span>
-        {request.reviewNote ? <>: “{request.reviewNote}”</> : null}. Send it back with the button at the top when it is ready.
+        {request.reviewNote ? t.rich("changesWithNote", { ...asker, note: request.reviewNote }) : t.rich("changes", asker)}
       </p>
     );
   }

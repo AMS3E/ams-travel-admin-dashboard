@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { BadgeCheck, History, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VerifyDrawer, type DrawerFocus, type VerifiableDestination } from "./verify-drawer";
@@ -12,6 +13,7 @@ import { VerifyDrawer, type DrawerFocus, type VerifiableDestination } from "./ve
  * evidence and the drawer is where the invoice goes.
  */
 export function VerifyButton({ destination }: { readonly destination: VerifiableDestination }) {
+  const t = useTranslations("verification.actions");
   const [focus, setFocus] = useState<DrawerFocus | null>(null);
 
   return (
@@ -23,7 +25,7 @@ export function VerifyButton({ destination }: { readonly destination: Verifiable
         variant="ghost"
       >
         <History aria-hidden className="size-4" />
-        History
+        {t("history")}
       </Button>
       <Button
         onClick={() => setFocus("verify")}
@@ -36,7 +38,7 @@ export function VerifyButton({ destination }: { readonly destination: Verifiable
         ) : (
           <BadgeCheck aria-hidden className="size-4" />
         )}
-        {destination.verified ? "Renew or revoke" : "Verify"}
+        {destination.verified ? t("renewOrRevoke") : t("verify")}
       </Button>
       {focus ? (
         <VerifyDrawer destination={destination} focus={focus} onClose={() => setFocus(null)} />

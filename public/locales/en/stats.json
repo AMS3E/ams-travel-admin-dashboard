@@ -1,0 +1,123 @@
+{
+  "status": {
+    "PUBLISHED": "Published",
+    "DRAFT": "Draft",
+    "ARCHIVED": "Archived"
+  },
+  "basis": {
+    "OFFICIAL_SITE": "Official site",
+    "PARTNER": "Partner",
+    "PAID": "Paid",
+    "TRAVELER_SCORE": "Travellers' reviews"
+  },
+  "badge": {
+    "verifiedOn": "Verified · {basis}",
+    "verified": "Verified",
+    "notVerified": "Not verified",
+    "traveler": "Recommended by Traveler"
+  },
+  "ratings": "{count, plural, one {# rating} other {# ratings}}",
+  "tiles": {
+    "verified": "Verified",
+    "average": "Average rating",
+    "browses": "Browses"
+  },
+  "list": {
+    "label": "Destination stats",
+    "search": "Search destinations",
+    "searchPlaceholder": "Search by name…",
+    "scope": "Which destinations",
+    "scopePublished": "Published",
+    "scopeAll": "All",
+    "sort": "Sort",
+    "sorts": {
+      "rating": "Rating, highest first",
+      "reviews": "Most reviewed",
+      "browses": "Most browsed",
+      "views": "Most viewed, all time",
+      "name": "Name A–Z"
+    },
+    "shown": "{shown} of {total}",
+    "noMatch": "No destination matches that search.",
+    "none": "No destination yet."
+  },
+  "table": {
+    "name": "Name",
+    "rating": "Rating",
+    "reviews": "Reviews",
+    "browses": "Browses",
+    "views": "Views",
+    "verified": "Verified",
+    "verifiedHelp": "As of today, whatever the period. A badge is never filtered by date.",
+    "status": "Status",
+    "statusHelp": "Today's status, whatever the period."
+  },
+  "period": {
+    "label": "Period",
+    "options": {
+      "all": "All time",
+      "today": "Today",
+      "week": "This week",
+      "month": "This month",
+      "custom": "Custom"
+    },
+    "from": "From",
+    "to": "To",
+    "between": "to",
+    "range": "{from} to {to}"
+  },
+  "detail": {
+    "noAddress": "No address on the listing yet.",
+    "rating": "Rating",
+    "ratingWithCount": "Rating · {count, plural, one {# rating} other {# ratings}}",
+    "reviews": "Reviews",
+    "views": "Views, all time",
+    "written": "Written {dates}.",
+    "writtenAll": "Every review written so far, newest first.",
+    "hide": "Hide",
+    "show": "Show",
+    "noneInPeriod": "No review in this period.",
+    "none": "No reviews yet.",
+    "verification": "Verification",
+    "recommended": "Shows as Recommended by AMS Travel in the app.",
+    "notRecommended": "Not shown as Recommended by AMS Travel.",
+    "earned": "The reviews have earned it Recommended by Traveler.",
+    "notFound": "Not found",
+    "edit": "Edit destination",
+    "back": "Back to Destination Stats"
+  },
+  "review": {
+    "target": {
+      "DESTINATION": "Destination",
+      "FOOD": "Food listing",
+      "STAY": "Stay",
+      "CORRIDOR": "Corridor"
+    },
+    "visit": {
+      "BUSINESS": "Business visit",
+      "COUPLES": "Couple visit",
+      "FAMILY": "Family visit",
+      "FRIENDS": "Friends visit",
+      "SOLO": "Solo visit"
+    },
+    "visitMonth": "{month} {year}",
+    "traveler": "Traveler",
+    "noText": "No written review.",
+    "photos": "Photos",
+    "visible": "Visible",
+    "hidden": "Hidden"
+  },
+  "reviewRows": {
+    "on": "{author} on {target}",
+    "aTarget": "{type, select, DESTINATION {a destination} FOOD {a food listing} STAY {a stay} other {a corridor}}",
+    "unknownAuthor": "Unknown author",
+    "untitled": "Untitled review"
+  },
+  "activity": {
+    "writes": "{count, plural, one {# write} other {# writes}}",
+    "empty": "Nothing has been written yet, or auditing is switched off.",
+    "noVisibleReviews": "No visible reviews yet."
+  },
+  "welcome": "Welcome back, {name}",
+  "live": "Live"
+}

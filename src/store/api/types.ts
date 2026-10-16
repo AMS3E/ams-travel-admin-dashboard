@@ -33,6 +33,8 @@ export interface ApiError {
   readonly message: string | null;
   /** Field name → message, for a request that failed validation. */
   readonly fieldErrors: Readonly<Record<string, string>>;
+  /** What a dashboard route said went wrong, when it said it without a sentence of the API's. */
+  readonly code?: string | null;
 }
 
 /**

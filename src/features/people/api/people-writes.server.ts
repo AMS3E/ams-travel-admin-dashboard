@@ -1,6 +1,7 @@
 import "server-only";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import {
   BUSINESS_ROLES,
   hasPermission,
@@ -8,12 +9,12 @@ import {
 } from "@/features/auth/permissions";
 import { requireAdminSession } from "@/features/auth/session";
 import {
-  accountChangesSchema,
-  accountSchema,
-  GENERIC_ACCOUNT_ERROR,
+  accountChangesSchemaWith,
+  accountSchemaWith,
   type AccountChanges,
   type AccountFormValues,
   type ActionResult,
+  type ValidationMessage,
 } from "@/features/people/form-state";
 import { BackendApiError, backendRequest } from "@/lib/backend-api.server";
 
@@ -29,17 +30,26 @@ function isBusinessRole(value: string): value is BusinessRole {
   return (BUSINESS_ROLES as readonly string[]).includes(value);
 }
 
+/** This file's sentences in the signed-in person's language. */
+async function words() {
+  const [t, validation] = await Promise.all([
+    getTranslations("people.writes"),
+    getTranslations("people.validation"),
+  ]);
+  return { t, say: (key: ValidationMessage) => validation(key) };
+}
+
 /**
  * The API answers errors as RFC 9457 problem documents, so the sentence worth
  * showing is inside the JSON rather than being the whole body.
  */
-function messageFrom(error: unknown): string {
-  if (!(error instanceof BackendApiError)) return GENERIC_ACCOUNT_ERROR;
+function messageFrom(error: unknown, fallback: string): string {
+  if (!(error instanceof BackendApiError)) return fallback;
   try {
     const problem = JSON.parse(error.detail) as { detail?: string };
-    return problem.detail?.trim() || GENERIC_ACCOUNT_ERROR;
+    return problem.detail?.trim() || fallback;
   } catch {
-    return error.detail || GENERIC_ACCOUNT_ERROR;
+    return error.detail || fallback;
   }
 }
 
@@ -47,11 +57,12 @@ export async function createAccount(
   values: AccountFormValues,
 ): Promise<ActionResult> {
   const { admin, token } = await requireAdminSession();
+  const { t, say } = await words();
   if (!hasPermission(admin.roles, "PERM_USER_MANAGE") || !hasPermission(admin.roles, "PERM_ROLE_ASSIGN")) {
-    return { ok: false, message: "Creating an account requires user-management and role-assignment permissions." };
+    return { ok: false, message: t("createNeedsPermissions") };
   }
 
-  const parsed = accountSchema.safeParse(values);
+  const parsed = accountSchemaWith(say).safeParse(values);
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of parsed.error.issues) {
@@ -60,7 +71,7 @@ export async function createAccount(
         fieldErrors[name] = issue.message;
       }
     }
-    return { ok: false, message: "Some fields need attention.", fieldErrors };
+    return { ok: false, message: t("fieldsNeedAttention"), fieldErrors };
   }
 
   /* `StaffRequest` takes the roles as a set; the form offers one to start with. */
@@ -74,9 +85,9 @@ export async function createAccount(
     revalidatePath("/people");
     return { ok: true, id: created.id };
   } catch (error) {
-    const message = messageFrom(error);
+    const message = messageFrom(error, t("keycloakRejected"));
     if (error instanceof BackendApiError && error.status === 409) {
-      return { ok: false, message, fieldErrors: { username: "Already in use." } };
+      return { ok: false, message, fieldErrors: { username: t("alreadyInUse") } };
     }
     return { ok: false, message };
   }
@@ -85,18 +96,19 @@ export async function createAccount(
 /** Edits one account's name, e-mail, phone, photo and whether it may sign in (Spring `PUT /staff/{id}`). */
 export async function updateAccount(id: string, values: AccountChanges): Promise<ActionResult> {
   const { admin, token } = await requireAdminSession();
+  const { t, say } = await words();
   if (!hasPermission(admin.roles, "PERM_USER_MANAGE")) {
-    return { ok: false, message: "Editing an account requires the user-management permission." };
+    return { ok: false, message: t("editNeedsPermission") };
   }
 
-  const parsed = accountChangesSchema.safeParse(values);
+  const parsed = accountChangesSchemaWith(say).safeParse(values);
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of parsed.error.issues) {
       const name = issue.path[0];
       if (typeof name === "string" && !fieldErrors[name]) fieldErrors[name] = issue.message;
     }
-    return { ok: false, message: "Some fields need attention.", fieldErrors };
+    return { ok: false, message: t("fieldsNeedAttention"), fieldErrors };
   }
 
   try {
@@ -109,9 +121,9 @@ export async function updateAccount(id: string, values: AccountChanges): Promise
     revalidatePath(`/people/${id}`);
     return { ok: true, id };
   } catch (error) {
-    const message = messageFrom(error);
+    const message = messageFrom(error, t("keycloakRejected"));
     if (error instanceof BackendApiError && error.status === 409) {
-      return { ok: false, message, fieldErrors: { email: "Already in use." } };
+      return { ok: false, message, fieldErrors: { email: t("alreadyInUse") } };
     }
     return { ok: false, message };
   }
@@ -123,8 +135,9 @@ export async function setRoles(
   roles: readonly string[],
 ): Promise<ActionResult> {
   const { admin, token } = await requireAdminSession();
+  const { t } = await words();
   if (!hasPermission(admin.roles, "PERM_ROLE_ASSIGN")) {
-    return { ok: false, message: "This account cannot assign roles." };
+    return { ok: false, message: t("cannotAssignRoles") };
   }
 
   /*
@@ -145,6 +158,6 @@ export async function setRoles(
     revalidatePath(`/people/${id}`);
     return { ok: true, id };
   } catch (error) {
-    return { ok: false, message: messageFrom(error) };
+    return { ok: false, message: messageFrom(error, t("keycloakRejected")) };
   }
 }

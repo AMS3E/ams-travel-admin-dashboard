@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Fragment, useState, type Dispatch, type DragEvent } from "react";
 import { ArrowDown, ArrowUp, CalendarPlus, ChevronDown, GripVertical, MapPin, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +11,7 @@ import { Surface } from "@/components/ui/surface";
 import { Textarea } from "@/components/ui/textarea";
 import type { DestinationChoice } from "@/features/corridors/api/contracts";
 import { DestinationPicker } from "@/features/corridors/components/destination-picker";
-import { TRANSPORT_LABELS, TRANSPORT_TYPES, formatDistance, formatMinutes } from "@/features/corridors/format";
+import { TRANSPORT_TYPES, formatDistance, formatMinutes, type CorridorsT } from "@/features/corridors/format";
 import {
   DEFAULT_TRANSPORT,
   isUnpinned,
@@ -47,6 +48,7 @@ const newKey = () => crypto.randomUUID();
  * away until asked for.
  */
 export function ItineraryDaysEditor({ days, dispatch, destinations, places, legs, selected, onSelect }: ItineraryDaysEditorProps) {
+  const t = useTranslations("corridors");
   const [picking, setPicking] = useState<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [armed, setArmed] = useState<string | null>(null);
@@ -100,15 +102,9 @@ export function ItineraryDaysEditor({ days, dispatch, destinations, places, legs
     <div className="flex min-w-0 flex-col gap-4">
       {unpinned.length > 0 || drafts.length > 0 ? (
         <div className="rounded-lg border border-gold-deep/15 bg-gold-soft px-4 py-3 text-xs text-gold-deep">
-          {unpinned.length > 0 ? (
-            <p>
-              No map pin on {unpinned.map((place) => place.name).join(", ")}: add its latitude and longitude on the destination so the route can reach it.
-            </p>
-          ) : null}
+          {unpinned.length > 0 ? <p>{t("days.noPin", { names: unpinned.map((place) => place.name).join(", ") })}</p> : null}
           {drafts.length > 0 ? (
-            <p className={unpinned.length > 0 ? "mt-1" : undefined}>
-              Not published yet: {drafts.map((place) => place.name).join(", ")}. The corridor can be published once they are.
-            </p>
+            <p className={unpinned.length > 0 ? "mt-1" : undefined}>{t("days.notPublished", { names: drafts.map((place) => place.name).join(", ") })}</p>
           ) : null}
         </div>
       ) : null}
@@ -121,18 +117,18 @@ export function ItineraryDaysEditor({ days, dispatch, destinations, places, legs
           <Surface aria-labelledby={`day-${day.key}`} key={day.key}>
             <header className="flex flex-wrap items-end gap-3 border-b border-line px-4 py-3">
               <h3 className="pb-2 text-md font-semibold whitespace-nowrap text-ink" id={`day-${day.key}`}>
-                Day {dayNumber}
+                {t("words.day", { day: dayNumber })}
               </h3>
               <label className="flex min-w-48 flex-1 flex-col gap-1">
-                <span className="text-xs font-medium text-muted">Title</span>
+                <span className="text-xs font-medium text-muted">{t("words.title")}</span>
                 <Input
                   onChange={(event) => dispatch({ type: "editDay", day: day.key, patch: { title: event.target.value } })}
-                  placeholder="e.g. Phnom Penh and the silk island"
+                  placeholder={t("days.titlePlaceholder")}
                   value={day.title}
                 />
               </label>
               <label className="flex w-28 flex-col gap-1">
-                <span className="text-xs font-medium text-muted">Starts</span>
+                <span className="text-xs font-medium text-muted">{t("days.starts")}</span>
                 <Input
                   className="tabular-nums"
                   onChange={(event) => dispatch({ type: "editDay", day: day.key, patch: { startTime: event.target.value } })}
@@ -143,10 +139,10 @@ export function ItineraryDaysEditor({ days, dispatch, destinations, places, legs
               <div className="flex gap-1 pb-0.5">
                 <Button
                   aria-expanded={detailsOpen}
-                  aria-label={`Day ${dayNumber} description and notes`}
+                  aria-label={t("days.detailsLabel", { day: dayNumber })}
                   onClick={() => toggleOpen(day.key)}
                   size="icon-sm"
-                  title="Description and notes"
+                  title={t("days.details")}
                   type="button"
                   variant="ghost"
                 >
@@ -154,14 +150,14 @@ export function ItineraryDaysEditor({ days, dispatch, destinations, places, legs
                 </Button>
                 {days.length > 1 ? (
                   <Button
-                    aria-label={`Remove day ${dayNumber}`}
+                    aria-label={t("days.removeLabel", { day: dayNumber })}
                     onClick={() => {
-                      if (day.stops.length === 0 || window.confirm(`Remove Day ${dayNumber} and its ${day.stops.length} stops?`)) {
+                      if (day.stops.length === 0 || window.confirm(t("days.removeConfirm", { day: dayNumber, count: day.stops.length }))) {
                         dispatch({ type: "removeDay", day: day.key });
                       }
                     }}
                     size="icon-sm"
-                    title="Remove this day"
+                    title={t("days.remove")}
                     type="button"
                     variant="ghost"
                   >
@@ -172,7 +168,7 @@ export function ItineraryDaysEditor({ days, dispatch, destinations, places, legs
               {detailsOpen ? (
                 <div className="grid w-full gap-3 md:grid-cols-2">
                   <label className="flex flex-col gap-1">
-                    <span className="text-xs font-medium text-muted">Description</span>
+                    <span className="text-xs font-medium text-muted">{t("days.description")}</span>
                     <Textarea
                       onChange={(event) => dispatch({ type: "editDay", day: day.key, patch: { description: event.target.value } })}
                       rows={3}
@@ -180,7 +176,7 @@ export function ItineraryDaysEditor({ days, dispatch, destinations, places, legs
                     />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-xs font-medium text-muted">Notes for the traveller</span>
+                    <span className="text-xs font-medium text-muted">{t("days.notes")}</span>
                     <Textarea
                       onChange={(event) => dispatch({ type: "editDay", day: day.key, patch: { notes: event.target.value } })}
                       rows={3}
@@ -192,14 +188,14 @@ export function ItineraryDaysEditor({ days, dispatch, destinations, places, legs
             </header>
 
             <ol
-              aria-label={`Day ${dayNumber} stops`}
+              aria-label={t("days.stopsLabel", { day: dayNumber })}
               className={cn("flex flex-col px-4", day.stops.length > 0 || dragging ? "min-h-14 py-3" : "py-0")}
               onDragOver={(event) => dragOverDay(event, day)}
               onDrop={drop}
             >
               {day.stops.length === 0 && dragging ? (
                 <li className={cn("rounded-md border border-dashed border-line-strong px-3 py-4 text-center text-xs text-muted", dropAt?.day === day.key && "border-teal bg-teal-soft")}>
-                  Drop the stop here.
+                  {t("days.drop")}
                 </li>
               ) : null}
               {day.stops.map((stop, stopIndex) => {
@@ -215,8 +211,9 @@ export function ItineraryDaysEditor({ days, dispatch, destinations, places, legs
                         dispatch={dispatch}
                         firstOfDay={stopIndex === 0}
                         leg={legs.get(legKey(from.destinationId, stop.destinationId, stop.transportType))}
-                        placeName={places.get(stop.destinationId)?.name ?? "this stop"}
+                        placeName={places.get(stop.destinationId)?.name ?? t("leg.thisStop")}
                         stop={stop}
+                        t={t}
                       />
                     ) : null}
                     {showDropBefore ? <li aria-hidden className="my-1 h-0.5 rounded-full bg-teal" /> : null}
@@ -238,6 +235,7 @@ export function ItineraryDaysEditor({ days, dispatch, destinations, places, legs
                       selected={selected === stop.key}
                       sequence={order + 1}
                       stop={stop}
+                      t={t}
                     />
                     {showDropAfter ? <li aria-hidden className="my-1 h-0.5 rounded-full bg-teal" /> : null}
                   </Fragment>
@@ -259,14 +257,14 @@ export function ItineraryDaysEditor({ days, dispatch, destinations, places, legs
                   }}
                   placeholder={
                     day.stops.length === 0
-                      ? `Search a destination to start Day ${dayNumber}`
-                      : `Add the next stop of Day ${dayNumber}`
+                      ? t("days.searchFirst", { day: dayNumber })
+                      : t("days.searchNext", { day: dayNumber })
                   }
                 />
               ) : (
                 <Button onClick={() => setPicking(day.key)} size="sm" type="button" variant="secondary">
                   <Plus aria-hidden className="size-4" />
-                  Add stop
+                  {t("days.addStop")}
                 </Button>
               )}
             </div>
@@ -276,7 +274,7 @@ export function ItineraryDaysEditor({ days, dispatch, destinations, places, legs
 
       <Button className="self-start" onClick={() => dispatch({ type: "addDay", key: newKey() })} type="button" variant="secondary">
         <CalendarPlus aria-hidden className="size-4" />
-        Add day {days.length + 1}
+        {t("days.addDay", { day: days.length + 1 })}
       </Button>
     </div>
   );
@@ -293,6 +291,7 @@ function LegLine({
   firstOfDay,
   placeName,
   dispatch,
+  t,
 }: {
   readonly stop: DraftStop;
   readonly leg: KnownLeg | undefined;
@@ -300,33 +299,34 @@ function LegLine({
   readonly firstOfDay: boolean;
   readonly placeName: string;
   readonly dispatch: Dispatch<DraftAction>;
+  readonly t: CorridorsT;
 }) {
-  const fromDayBefore = firstOfDay ? " · from the day before" : "";
+  const fromDayBefore = (text: string) => (firstOfDay ? `${text} · ${t("leg.fromDayBefore")}` : text);
   const samePlace = (leg ? leg.distanceKm === 0 : apartKm != null && apartKm < 0.05)
     ? firstOfDay
-      ? "Starts where the day before ended"
-      : "Same place as the stop before"
+      ? t("leg.startsWhereEnded")
+      : t("words.samePlace")
     : null;
   const distance =
     samePlace ??
     (leg
-      ? `${formatDistance(leg.distanceKm)} · ${formatMinutes(leg.minutes)}${fromDayBefore}`
+      ? fromDayBefore(`${formatDistance(t, leg.distanceKm)} · ${formatMinutes(t, leg.minutes)}`)
       : apartKm != null
-        ? `${formatDistance(apartKm)} apart in a straight line${fromDayBefore}`
-        : "Distance unknown: a stop has no map pin");
+        ? fromDayBefore(t("leg.straight", { distance: formatDistance(t, apartKm) }))
+        : t("leg.unknown"));
 
   return (
     <li className="flex flex-wrap items-center gap-2 py-1.5 pl-9 text-xs text-muted">
       <ArrowDown aria-hidden className="size-3.5" />
       <Select
-        aria-label={`How to get to ${placeName}`}
+        aria-label={t("leg.howTo", { place: placeName })}
         className="h-7 w-32 py-0 text-xs"
         onChange={(event) => dispatch({ type: "editStop", stop: stop.key, patch: { transportType: event.target.value as DraftStop["transportType"] } })}
         value={stop.transportType || DEFAULT_TRANSPORT}
       >
         {TRANSPORT_TYPES.map((type) => (
           <option key={type} value={type}>
-            {TRANSPORT_LABELS[type]}
+            {t(`transport.${type}`)}
           </option>
         ))}
       </Select>
@@ -336,12 +336,12 @@ function LegLine({
 }
 
 /** "Arrive 08:00 · Leave 09:30 · Stay 1 h 30 min", from what is filled in. */
-function timesOf(stop: DraftStop): string {
+function timesOf(stop: DraftStop, t: CorridorsT): string {
   const minutes = Number(stop.duration);
   return [
-    stop.arrivalTime ? `Arrive ${stop.arrivalTime}` : null,
-    stop.departureTime ? `Leave ${stop.departureTime}` : null,
-    stop.duration.trim() && !Number.isNaN(minutes) ? `Stay ${formatMinutes(minutes)}` : null,
+    stop.arrivalTime ? t("words.arrive", { time: stop.arrivalTime }) : null,
+    stop.departureTime ? t("words.leave", { time: stop.departureTime }) : null,
+    stop.duration.trim() && !Number.isNaN(minutes) ? t("words.stay", { time: formatMinutes(t, minutes) }) : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -365,6 +365,7 @@ interface StopCardProps {
   readonly onDragOver: (event: DragEvent<HTMLElement>) => void;
   readonly onDrop: (event: DragEvent<HTMLElement>) => void;
   readonly onDragEnd: () => void;
+  readonly t: CorridorsT;
 }
 
 function StopCard({
@@ -385,10 +386,13 @@ function StopCard({
   onDragOver,
   onDrop,
   onDragEnd,
+  t,
 }: StopCardProps) {
-  const name = place?.name ?? "Unknown destination";
-  const times = timesOf(stop);
-  const extras = [stop.title && `“${stop.title}”`, (stop.description || stop.notes) && "notes added"].filter(Boolean).join(" · ");
+  const name = place?.name ?? t("words.unknownDestination");
+  const times = timesOf(stop, t);
+  const extras = [stop.title && t("stop.quotedTitle", { title: stop.title }), (stop.description || stop.notes) && t("stop.notesAdded")]
+    .filter(Boolean)
+    .join(" · ");
   const edit = (patch: Partial<Omit<DraftStop, "key">>) => dispatch({ type: "editStop", stop: stop.key, patch });
 
   return (
@@ -411,7 +415,7 @@ function StopCard({
     >
       <div className="flex items-start gap-2 px-3 py-2.5">
         <button
-          aria-label={`Drag ${name} to reorder`}
+          aria-label={t("stop.dragLabel", { name })}
           className="mt-1.5 cursor-grab touch-none rounded-sm text-muted hover:text-ink active:cursor-grabbing"
           onPointerDown={() => onArm(stop.key)}
           onPointerUp={() => onArm(null)}
@@ -420,7 +424,7 @@ function StopCard({
           <GripVertical aria-hidden className="size-4" />
         </button>
         <button
-          aria-label={`Show ${name} on the map`}
+          aria-label={t("stop.showLabel", { name })}
           className="relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-md border border-line bg-sand"
           onClick={() => onSelect(stop.key)}
           type="button"
@@ -450,12 +454,12 @@ function StopCard({
             >
               {name}
             </button>
-            {isFirst ? <Badge>Start</Badge> : null}
-            {place && isUnpinned(place) ? <Badge tone="warning">No map pin</Badge> : null}
-            {place && isUnpublished(place) ? <Badge>Draft</Badge> : null}
+            {isFirst ? <Badge>{t("stop.start")}</Badge> : null}
+            {place && isUnpinned(place) ? <Badge tone="warning">{t("words.noMapPin")}</Badge> : null}
+            {place && isUnpublished(place) ? <Badge>{t("words.draft")}</Badge> : null}
           </div>
           <p className="mt-0.5 truncate text-xs text-muted">
-            {[place?.provinceName ?? "No province", ...(place?.categories ?? [])].join(" · ")}
+            {[place?.provinceName ?? t("words.noProvince"), ...(place?.categories ?? [])].join(" · ")}
             {" · "}
             <a
               className="font-medium text-teal-deep hover:underline"
@@ -463,7 +467,7 @@ function StopCard({
               rel="noreferrer"
               target="_blank"
             >
-              View destination
+              {t("stop.viewDestination")}
             </a>
           </p>
           {place?.shortDescription ? <p className="mt-1 line-clamp-2 text-xs text-ink-soft">{place.shortDescription}</p> : null}
@@ -476,7 +480,7 @@ function StopCard({
           >
             <ChevronDown aria-hidden className={cn("size-3.5 shrink-0 transition-transform", expanded && "rotate-180")} />
             <span className="truncate tabular-nums">
-              {expanded ? "Hide times and notes" : [times, extras].filter(Boolean).join(" · ") || "Add times or notes"}
+              {expanded ? t("stop.hide") : [times, extras].filter(Boolean).join(" · ") || t("stop.add")}
             </span>
           </button>
 
@@ -484,11 +488,11 @@ function StopCard({
             <div className="mt-2 grid gap-2 pb-1">
               <div className="grid grid-cols-3 gap-2">
                 <label className="flex flex-col gap-1">
-                  <span className="text-2xs font-medium text-muted">Arrival</span>
+                  <span className="text-2xs font-medium text-muted">{t("stop.arrival")}</span>
                   <Input className="h-8 tabular-nums" onChange={(event) => edit({ arrivalTime: event.target.value })} type="time" value={stop.arrivalTime} />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-2xs font-medium text-muted">Departure</span>
+                  <span className="text-2xs font-medium text-muted">{t("stop.departure")}</span>
                   <Input
                     aria-invalid={Boolean(stop.arrivalTime && stop.departureTime && stop.departureTime < stop.arrivalTime) || undefined}
                     className="h-8 tabular-nums"
@@ -498,7 +502,7 @@ function StopCard({
                   />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-2xs font-medium text-muted">Stay (min)</span>
+                  <span className="text-2xs font-medium text-muted">{t("stop.stayMinutes")}</span>
                   <Input
                     className="h-8 tabular-nums"
                     inputMode="numeric"
@@ -512,21 +516,21 @@ function StopCard({
                 </label>
               </div>
               <label className="flex flex-col gap-1">
-                <span className="text-2xs font-medium text-muted">Title</span>
+                <span className="text-2xs font-medium text-muted">{t("words.title")}</span>
                 <Input
                   className="h-8"
                   maxLength={200}
                   onChange={(event) => edit({ title: event.target.value })}
-                  placeholder="e.g. Sunset on Koh Trong"
+                  placeholder={t("stop.titlePlaceholder")}
                   value={stop.title}
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-2xs font-medium text-muted">What happens here</span>
+                <span className="text-2xs font-medium text-muted">{t("stop.what")}</span>
                 <Textarea onChange={(event) => edit({ description: event.target.value })} rows={2} value={stop.description} />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-2xs font-medium text-muted">Notes</span>
+                <span className="text-2xs font-medium text-muted">{t("stop.notes")}</span>
                 <Textarea maxLength={4000} onChange={(event) => edit({ notes: event.target.value })} rows={2} value={stop.notes} />
               </label>
             </div>
@@ -535,7 +539,7 @@ function StopCard({
 
         <div className="flex shrink-0 gap-0.5">
           <Button
-            aria-label={`Move ${name} earlier`}
+            aria-label={t("stop.earlier", { name })}
             disabled={isFirst}
             onClick={() => dispatch({ type: "shiftStop", stop: stop.key, by: -1 })}
             size="icon-sm"
@@ -545,7 +549,7 @@ function StopCard({
             <ArrowUp aria-hidden className="size-4" />
           </Button>
           <Button
-            aria-label={`Move ${name} later`}
+            aria-label={t("stop.later", { name })}
             disabled={isLast}
             onClick={() => dispatch({ type: "shiftStop", stop: stop.key, by: 1 })}
             size="icon-sm"
@@ -555,7 +559,7 @@ function StopCard({
             <ArrowDown aria-hidden className="size-4" />
           </Button>
           <Button
-            aria-label={`Remove ${name}`}
+            aria-label={t("stop.remove", { name })}
             onClick={() => dispatch({ type: "removeStop", stop: stop.key })}
             size="icon-sm"
             type="button"

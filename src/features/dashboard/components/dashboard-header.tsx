@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import type { BusinessRole } from "@/features/auth/permissions";
 import type { AdminUser } from "@/features/auth/types";
-import { ROLE_PROFILES } from "@/features/dashboard/roles";
+import { useRoleProfile } from "@/features/dashboard/roles";
 import { PageHeader } from "@/features/shell/components/page-header";
 
 interface DashboardHeaderProps {
@@ -16,7 +17,8 @@ interface DashboardHeaderProps {
  * otherwise similar-looking boards, so it is never omitted.
  */
 export function DashboardHeader({ admin, role, actions }: DashboardHeaderProps) {
-  const profile = ROLE_PROFILES[role];
+  const t = useTranslations("stats");
+  const profile = useRoleProfile()(role);
   const firstName = admin.name.split(/\s+/)[0] || admin.username;
 
   return (
@@ -24,7 +26,7 @@ export function DashboardHeader({ admin, role, actions }: DashboardHeaderProps) 
       actions={actions}
       description={profile.blurb}
       eyebrow={profile.title}
-      title={`Welcome back, ${firstName}`}
+      title={t("welcome", { name: firstName })}
     />
   );
 }

@@ -2,11 +2,11 @@
 
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { CircleCheck, Loader2, Trash2, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useClearAuditLogMutation } from "@/features/dashboard/api/dashboard-api";
-import { plural } from "@/features/dashboard/audit";
 import { hasStatus } from "@/store/api/api-error";
 
 /* Typed to confirm: this is the one control that destroys the record everything else answers to. */
@@ -14,6 +14,7 @@ const CONFIRM_WORD = "CLEAR";
 
 /** Clears the whole audit log. Shown only for `PERM_FULL_CONTROL`; the API enforces the same. */
 export function ClearAuditLog() {
+  const t = useTranslations("audit.clear");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -25,7 +26,7 @@ export function ClearAuditLog() {
         <p className="inline-flex items-center gap-1.5 text-xs text-muted" role="status">
           <CircleCheck aria-hidden className="size-3.5 text-success" />
           {notice}
-          {refreshing ? " Refreshing…" : null}
+          {refreshing ? ` ${t("refreshing")}` : null}
         </p>
       ) : null}
       <Button
@@ -37,13 +38,13 @@ export function ClearAuditLog() {
         variant="secondary"
       >
         <Trash2 aria-hidden className="size-3.5" />
-        Clear logs
+        {t("button")}
       </Button>
       {open ? (
         <ClearDialog
           onCleared={(removed) => {
             setOpen(false);
-            setNotice(removed == null ? "Cleared the log." : `Cleared ${plural(removed, "entry", "entries")}.`);
+            setNotice(removed == null ? t("cleared") : t("clearedCount", { count: removed }));
             /* The table is server-rendered, so the page is asked again. */
             startRefresh(() => router.refresh());
           }}
@@ -62,6 +63,7 @@ function ClearDialog({
   readonly onCleared: (removed: number | null) => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const t = useTranslations("audit.clear");
   const [typed, setTyped] = useState("");
   const [failure, setFailure] = useState<string | null>(null);
   const [clearAuditLog, { isLoading }] = useClearAuditLogMutation();
@@ -87,7 +89,7 @@ function ClearDialog({
       onCleared(typeof removed === "number" ? removed : null);
     } catch (error) {
       setFailure(
-        hasStatus(error, 403) ? "Clearing the log needs full control." : "The log could not be cleared. Nothing was removed. Try again.",
+        hasStatus(error, 403) ? t("forbidden") : t("failed"),
       );
     }
   }
@@ -117,21 +119,18 @@ function ClearDialog({
           </span>
           <div className="min-w-0">
             <h2 className="heading text-lg font-semibold text-ink" id={titleId}>
-              Clear the entire audit log?
+              {t("title")}
             </h2>
             <div className="mt-1.5 flex flex-col gap-2 text-sm text-muted" id={textId}>
-              <p>
-                Every entry is permanently deleted: who created, changed or deleted each record, when, and from where.
-                Past changes can no longer be investigated, and this cannot be undone.
-              </p>
-              <p>One new entry will record that you cleared the log and how many entries were removed.</p>
+              <p>{t("text")}</p>
+              <p>{t("note")}</p>
             </div>
           </div>
         </div>
 
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-ink-soft" htmlFor={inputId}>
-            Type <span className="font-mono font-semibold text-ink">{CONFIRM_WORD}</span> to confirm
+            {t.rich("type", { mono: (chunks) => <span className="font-mono font-semibold text-ink">{chunks}</span>, word: CONFIRM_WORD })}
           </label>
           <Input
             autoCapitalize="characters"
@@ -153,11 +152,11 @@ function ClearDialog({
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button autoFocus disabled={isLoading} onClick={onClose} type="button" variant="secondary">
-            Cancel
+            {t("cancel")}
           </Button>
           <Button disabled={!confirmed || isLoading} type="submit" variant="destructive">
             {isLoading ? <Loader2 aria-hidden className="size-4 animate-spin" /> : <Trash2 aria-hidden className="size-4" />}
-            Clear all entries
+            {t("confirm")}
           </Button>
         </div>
       </form>

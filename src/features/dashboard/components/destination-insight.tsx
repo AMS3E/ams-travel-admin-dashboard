@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { visitLine } from "@/features/dashboard/reviews";
+import { useFormatter, useTranslations } from "next-intl";
+import { useVisitLine } from "@/features/dashboard/reviews";
 import Image from "next/image";
 import { Eye, ImageIcon, MapPin, MessageSquare, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -12,23 +13,16 @@ import { hasPermission } from "@/features/auth/permissions";
 import { useGetCatalogQuery, useGetCatalogRecordQuery } from "@/features/catalog/api/catalog-api";
 import { QueryState } from "@/features/cms/components/query-state";
 import { useGetDestinationReviewsQuery, useModerateReviewMutation } from "@/features/editorial/api/editorial-api";
-import { BASIS_LABELS } from "@/features/verification/api/contracts";
 import { useGetDestinationVerificationsQuery } from "@/features/verification/api/verification-api";
 import { VerificationHistory } from "@/features/verification/components/verification-history";
 import { VerifyButton } from "@/features/verification/components/verify-button";
+import { useDates } from "@/i18n/use-dates";
 import type { DestinationStatsPeriod } from "../api/contracts";
 import { useGetDestinationStatsQuery } from "../api/dashboard-api";
-import { cambodianDay, formatDateTime } from "../format";
-import { PeriodControl, inWindow, periodDates, windowOf, type Period } from "./period-control";
+import { cambodianDay } from "../format";
+import { isListingStatus, STATUS_TONES, useStandingText } from "./destination-stats-page";
+import { PeriodControl, inWindow, usePeriodDates, windowOf, type Period } from "./period-control";
 import { StatGrid, StatTile } from "./stat-tile";
-
-const STATUS: Readonly<Record<string, { label: string; tone: "active" | "neutral" | "inactive" }>> = {
-  PUBLISHED: { label: "Published", tone: "active" },
-  DRAFT: { label: "Draft", tone: "neutral" },
-  ARCHIVED: { label: "Archived", tone: "inactive" },
-};
-
-const count = (value: number) => value.toLocaleString();
 
 /**
  * One destination's insight: the listing as it stands, what travellers made
@@ -37,10 +31,16 @@ const count = (value: number) => value.toLocaleString();
  * which open their own controls; editing the listing is the form's job.
  */
 export function DestinationInsight({ id, grants }: { readonly id: string; readonly grants: readonly string[] }) {
+  const t = useTranslations("stats");
+  const format = useFormatter();
+  const count = (value: number) => format.number(value);
+  const { dateTime } = useDates();
+  const visitLine = useVisitLine();
+  const standing = useStandingText();
   const [period, setPeriod] = useState<Period>("all");
   const [custom, setCustom] = useState<DestinationStatsPeriod>({});
   const window = windowOf(period, custom);
-  const dates = periodDates(window);
+  const dates = usePeriodDates()(window);
   const record = useGetCatalogRecordQuery({ resource: "destinations", id });
   const provinces = useGetCatalogQuery("provinces");
   const stats = useGetDestinationStatsQuery(window);
@@ -54,7 +54,7 @@ export function DestinationInsight({ id, grants }: { readonly id: string; readon
   const text = (name: string) => (place && typeof place[name] === "string" && (place[name] as string).trim()) || null;
   const province = provinces.data?.find((row) => row.id === place?.provinceId);
   const provinceName = province && typeof province.name === "string" ? province.name : null;
-  const status = STATUS[String(place?.status)];
+  const status = place && isListingStatus(place.status) ? place.status : null;
   const row = stats.data?.places.find((each) => each.id === id);
   const shown = (reviews.data ?? []).filter((review) => inWindow(review.createdAt, window, cambodianDay));
 
@@ -75,17 +75,13 @@ export function DestinationInsight({ id, grants }: { readonly id: string; readon
             <>
               <p className="flex items-center gap-1 text-sm text-ink-soft">
                 <MapPin aria-hidden className="size-3.5 shrink-0 text-muted" />
-                {[text("address"), provinceName].filter(Boolean).join(", ") || "No address on the listing yet."}
+                {[text("address"), provinceName].filter(Boolean).join(", ") || t("detail.noAddress")}
               </p>
               {text("slogan") ? <p className="mt-0.5 text-sm text-muted italic">“{text("slogan")}”</p> : null}
               <div className="mt-2 flex flex-wrap items-center gap-2" data-field="standing">
-                {status ? <Badge dot tone={status.tone}>{status.label}</Badge> : null}
-                {row ? (
-                  <Badge tone={row.verified ? "info" : "neutral"}>
-                    {row.verified && row.basis ? `Verified · ${BASIS_LABELS[row.basis]}` : row.verified ? "Verified" : "Not verified"}
-                  </Badge>
-                ) : null}
-                {row?.travelerRecommended ? <Badge tone="success">Recommended by Traveler</Badge> : null}
+                {status ? <Badge dot tone={STATUS_TONES[status]}>{t(`status.${status}`)}</Badge> : null}
+                {row ? <Badge tone={row.verified ? "info" : "neutral"}>{standing(row)}</Badge> : null}
+                {row?.travelerRecommended ? <Badge tone="success">{t("badge.traveler")}</Badge> : null}
               </div>
             </>
           ) : null}
@@ -100,21 +96,21 @@ export function DestinationInsight({ id, grants }: { readonly id: string; readon
         <div className="p-4">
           {stats.error ? <QueryState error={stats.error} loading={false} retry={stats.refetch} /> : null}
           <StatGrid>
-            <StatTile icon={Star} label={row ? `Rating · ${count(row.ratingCount)} ${row.ratingCount === 1 ? "rating" : "ratings"}` : "Rating"} value={row ? (row.averageRating == null ? "—" : row.averageRating.toFixed(1)) : null} />
-            <StatTile icon={MessageSquare} label="Reviews" value={row ? count(row.reviewCount) : null} />
-            <StatTile icon={Eye} label="Browses" value={row ? count(row.browses) : null} />
-            <StatTile icon={Eye} label="Views, all time" value={row ? count(row.viewCount) : null} />
+            <StatTile icon={Star} label={row ? t("detail.ratingWithCount", { count: row.ratingCount }) : t("detail.rating")} value={row ? (row.averageRating == null ? "—" : row.averageRating.toFixed(1)) : null} />
+            <StatTile icon={MessageSquare} label={t("detail.reviews")} value={row ? count(row.reviewCount) : null} />
+            <StatTile icon={Eye} label={t("tiles.browses")} value={row ? count(row.browses) : null} />
+            <StatTile icon={Eye} label={t("detail.views")} value={row ? count(row.viewCount) : null} />
           </StatGrid>
         </div>
       </Surface>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         {/* Every review, in the period. */}
-        <Surface aria-label="Reviews">
+        <Surface aria-label={t("detail.reviews")}>
           <SurfaceHeader
             actions={reviews.data ? <span className="text-xs text-muted tabular-nums">{count(shown.length)}</span> : null}
-            description={dates ? `Written ${dates}.` : "Every review written so far, newest first."}
-            title="Reviews"
+            description={dates ? t("detail.written", { dates }) : t("detail.writtenAll")}
+            title={t("detail.reviews")}
           />
           {reviews.isLoading || reviews.error ? (
             <div className="p-3">
@@ -127,13 +123,14 @@ export function DestinationInsight({ id, grants }: { readonly id: string; readon
                 {shown.map((review) => {
                   const visible = review.status === "VISIBLE";
                   const photos = review.photos ?? [];
+                  const visit = visitLine(review);
                   return (
                     <li className="p-4" key={review.id}>
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
-                          <h3 className="text-sm font-medium text-ink">{review.authorName || "Traveler"}</h3>
-                          <p className="mt-0.5 text-xs text-muted">{formatDateTime(review.createdAt)}</p>
-                          {visitLine(review) ? <p className="mt-0.5 text-xs text-muted">{visitLine(review)}</p> : null}
+                          <h3 className="text-sm font-medium text-ink">{review.authorName || t("review.traveler")}</h3>
+                          <p className="mt-0.5 text-xs text-muted">{dateTime(review.createdAt)}</p>
+                          {visit ? <p className="mt-0.5 text-xs text-muted">{visit}</p> : null}
                         </div>
                         <span className="flex items-center gap-1 text-xs font-medium text-ink-soft tabular-nums">
                           <Star aria-hidden className="size-3.5 fill-gold text-gold" />
@@ -141,9 +138,9 @@ export function DestinationInsight({ id, grants }: { readonly id: string; readon
                         </span>
                       </div>
                       {review.title ? <h4 className="mt-2 text-sm font-medium text-ink">{review.title}</h4> : null}
-                      <p className="mt-1 text-sm leading-relaxed text-ink-soft">{review.content || "No written review."}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-ink-soft">{review.content || t("review.noText")}</p>
                       {photos.length ? (
-                        <ul aria-label="Photos" className="mt-3 flex flex-wrap gap-2">
+                        <ul aria-label={t("review.photos")} className="mt-3 flex flex-wrap gap-2">
                           {photos.map((photo) =>
                             photo.mediaUrl ? (
                               <li key={photo.id}>
@@ -154,7 +151,7 @@ export function DestinationInsight({ id, grants }: { readonly id: string; readon
                         </ul>
                       ) : null}
                       <div className="mt-2 flex items-center justify-between">
-                        <Badge dot tone={visible ? "success" : "neutral"}>{visible ? "Visible" : "Hidden"}</Badge>
+                        <Badge dot tone={visible ? "success" : "neutral"}>{visible ? t("review.visible") : t("review.hidden")}</Badge>
                         {moderator ? (
                           <Button
                             disabled={moderation.isLoading}
@@ -163,7 +160,7 @@ export function DestinationInsight({ id, grants }: { readonly id: string; readon
                             type="button"
                             variant="ghost"
                           >
-                            {visible ? "Hide" : "Show"}
+                            {visible ? t("detail.hide") : t("detail.show")}
                           </Button>
                         ) : null}
                       </div>
@@ -172,26 +169,22 @@ export function DestinationInsight({ id, grants }: { readonly id: string; readon
                 })}
               </ul>
             ) : (
-              <p className="px-4 py-6 text-center text-sm text-muted">{dates ? "No review in this period." : "No reviews yet."}</p>
+              <p className="px-4 py-6 text-center text-sm text-muted">{dates ? t("detail.noneInPeriod") : t("detail.none")}</p>
             )
           ) : null}
         </Surface>
 
         {/* The Verified badge: where it stands, and every decision behind it. */}
         <div className="flex flex-col gap-4">
-          <Surface aria-label="Verification" className="flex flex-wrap items-center gap-3 p-4">
+          <Surface aria-label={t("detail.verification")} className="flex flex-wrap items-center gap-3 p-4">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-sm font-semibold">Verification</h2>
-                {row ? (
-                  <Badge tone={row.verified ? "gold" : "neutral"}>
-                    {row.verified && row.basis ? `Verified · ${BASIS_LABELS[row.basis]}` : row.verified ? "Verified" : "Not verified"}
-                  </Badge>
-                ) : null}
+                <h2 className="text-sm font-semibold">{t("detail.verification")}</h2>
+                {row ? <Badge tone={row.verified ? "gold" : "neutral"}>{standing(row)}</Badge> : null}
               </div>
               <p className="mt-1 text-xs text-muted">
-                {row?.verified ? "Shows as Recommended by AMS Travel in the app." : "Not shown as Recommended by AMS Travel."}
-                {row?.travelerRecommended ? " The reviews have earned it Recommended by Traveler." : ""}
+                {row?.verified ? t("detail.recommended") : t("detail.notRecommended")}
+                {row?.travelerRecommended ? ` ${t("detail.earned")}` : ""}
               </p>
             </div>
             {verifies && place ? (

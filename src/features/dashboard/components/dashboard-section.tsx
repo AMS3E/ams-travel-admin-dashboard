@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -10,18 +10,14 @@ interface DashboardSectionProps {
   readonly children: ReactNode;
 }
 
-/** Turns a heading into an id `aria-labelledby` can point at. */
-function sectionId(title: string): string {
-  return `section-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-}
-
 export function DashboardSection({
   title,
   description,
   action,
   children,
 }: DashboardSectionProps) {
-  const id = sectionId(title);
+  /* An id from React, not the title: a Khmer title has no letters a-z to make one from. */
+  const id = `section-${useId()}`;
 
   return (
     <section aria-labelledby={id}>

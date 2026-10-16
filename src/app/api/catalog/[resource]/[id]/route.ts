@@ -1,4 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
+import { localizedResource } from "@/features/catalog/localize.server";
 import { canSetStatus } from "@/features/auth/permissions";
 import { getCurrentAdmin } from "@/features/auth/session";
 import { findRecord } from "@/features/catalog/api/catalog.server";
@@ -20,8 +22,8 @@ interface RouteParams {
   }>;
 }
 
-const unknownRow = () =>
-  NextResponse.json({ message: "Unknown catalogue row." }, { status: 404 });
+const unknownRow = async () =>
+  NextResponse.json({ message: (await getTranslations("errors.api"))("unknownRow") }, { status: 404 });
 
 /** One row, as the API lets this account read it — for a drawer that shows it beside something else. */
 export async function GET(_request: NextRequest, { params }: RouteParams) {
@@ -54,7 +56,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const model = definition.status;
   if (!model) {
     return NextResponse.json(
-      { message: `${definition.labelPlural} have no status.` },
+      { message: (await getTranslations("errors.api"))("noStatus", { label: (await localizedResource(resource)).labelPlural }) },
       { status: 400 },
     );
   }
@@ -62,12 +64,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const session = await requireAdminToken();
   if ("response" in session) return session.response;
   if (!hasValidRequestOrigin(request)) {
-    return NextResponse.json({ message: "Invalid request origin." }, { status: 403 });
+    return NextResponse.json({ message: (await getTranslations("errors.api"))("invalidOrigin") }, { status: 403 });
   }
   const admin = await getCurrentAdmin();
   if (!admin || !canSetStatus(admin.roles, resource)) {
     return NextResponse.json(
-      { message: "This account cannot change whether this is on the public site." },
+      { message: (await getTranslations("errors.api"))("cannotPublish") },
       { status: 403 },
     );
   }
@@ -80,7 +82,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   if (typeof status !== "string" || !allowed.includes(status)) {
     return NextResponse.json(
-      { message: `Status must be one of ${allowed.join(", ")}.` },
+      { message: (await getTranslations("errors.api"))("statusOneOf", { list: allowed.join(", ") }) },
       { status: 400 },
     );
   }

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { firstLine } from "@/lib/text";
 import { Badge } from "@/components/ui/badge";
 import type { DestinationResponse } from "@/features/catalog/api/contracts";
@@ -32,6 +33,7 @@ export function DestinationRows({
   trailing,
   action,
 }: DestinationRowsProps) {
+  const t = useTranslations("stats");
   if (!destinations.length) return <EmptyRow>{empty}</EmptyRow>;
 
   return (
@@ -42,7 +44,7 @@ export function DestinationRows({
             <>
               {showStatus ? (
                 <Badge tone={isLive(destination) ? "active" : "neutral"}>
-                  {isLive(destination) ? "Live" : destination.status === "ARCHIVED" ? "Archived" : "Draft"}
+                  {isLive(destination) ? t("live") : destination.status === "ARCHIVED" ? t("status.ARCHIVED") : t("status.DRAFT")}
                 </Badge>
               ) : null}
             </>

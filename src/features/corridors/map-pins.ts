@@ -1,5 +1,5 @@
 import type { MapStop } from "@/features/corridors/api/contracts";
-import { TRANSPORT_LABELS, formatDistance, formatMinutes, shortTime } from "@/features/corridors/format";
+import { formatDistance, formatMinutes, shortTime, type CorridorsT } from "@/features/corridors/format";
 
 /** A stop's point, when its destination is pinned. */
 export function pointOf(stop: MapStop): { readonly lat: number; readonly lng: number } | null {
@@ -28,7 +28,7 @@ export function pinElement(numbers: readonly number[], extraClass = ""): HTMLEle
 }
 
 /** What a marker opens on: the place's photo, name, summary, times and the way there. Built from nodes, not HTML: names and notes are text. */
-export function infoContent(stop: MapStop): HTMLElement {
+export function infoContent(stop: MapStop, t: CorridorsT): HTMLElement {
   const root = document.createElement("div");
   root.className = "w-60 font-sans text-ink";
   if (stop.coverUrl) {
@@ -44,7 +44,7 @@ export function infoContent(stop: MapStop): HTMLElement {
   root.append(title);
   const subtitle = document.createElement("div");
   subtitle.className = "m-0 text-xs text-muted";
-  subtitle.textContent = [`Day ${stop.dayNumber}`, stop.subtitle].filter(Boolean).join(" · ");
+  subtitle.textContent = [t("words.day", { day: stop.dayNumber }), stop.subtitle].filter(Boolean).join(" · ");
   root.append(subtitle);
   if (stop.summary) {
     const summary = document.createElement("div");
@@ -55,12 +55,20 @@ export function infoContent(stop: MapStop): HTMLElement {
   const facts: string[] = [];
   const arrive = shortTime(stop.arrivalTime);
   const leave = shortTime(stop.departureTime);
-  if (arrive || leave) facts.push([arrive && `Arrive ${arrive}`, leave && `leave ${leave}`].filter(Boolean).join(", "));
-  if (stop.recommendedDurationMinutes != null) facts.push(`Stay ${formatMinutes(stop.recommendedDurationMinutes)}`);
+  if (arrive && leave) facts.push(t("map.arriveLeave", { arrive, leave }));
+  else if (arrive) facts.push(t("words.arrive", { time: arrive }));
+  else if (leave) facts.push(t("map.leaveOnly", { leave }));
+  if (stop.recommendedDurationMinutes != null) facts.push(t("words.stay", { time: formatMinutes(t, stop.recommendedDurationMinutes) }));
   if (stop.transportType && (stop.distanceKm != null || stop.travelMinutes != null)) {
-    facts.push(`${formatDistance(stop.distanceKm)} · ${formatMinutes(stop.travelMinutes)} by ${TRANSPORT_LABELS[stop.transportType].toLowerCase()}`);
+    facts.push(
+      t("words.travelBy", {
+        distance: formatDistance(t, stop.distanceKm),
+        time: formatMinutes(t, stop.travelMinutes),
+        transport: t(`transportWord.${stop.transportType}`),
+      }),
+    );
   } else if (stop.transportType) {
-    facts.push(`By ${TRANSPORT_LABELS[stop.transportType].toLowerCase()}`);
+    facts.push(t("words.by", { transport: t(`transportWord.${stop.transportType}`) }));
   }
   if (facts.length) {
     const list = document.createElement("ul");
@@ -76,7 +84,7 @@ export function infoContent(stop: MapStop): HTMLElement {
     const link = document.createElement("a");
     link.href = stop.href;
     link.className = "map-link mt-2 inline-block text-xs font-medium text-teal-deep hover:underline";
-    link.textContent = "Open destination";
+    link.textContent = t("map.openDestination");
     root.append(link);
   }
   return root;

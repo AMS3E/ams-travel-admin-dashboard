@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { hasValidRequestOrigin, requireAdminToken, toErrorResponse } from "@/lib/api-route.server";
 import { backendRequest } from "@/lib/backend-api.server";
 import { UUID_PATTERN } from "@/lib/ids";
@@ -59,7 +60,7 @@ async function forward(request: NextRequest, context: Context) {
     request.method === "GET" ? reads : (writes[request.method] ?? []);
   if (!allowed.some((pattern) => pattern.test(target)))
     return NextResponse.json(
-      { message: "Unknown CMS operation." },
+      { message: (await getTranslations("errors.api"))("unknownCms") },
       { status: 404 },
     );
   const session = await requireAdminToken();
@@ -69,7 +70,7 @@ async function forward(request: NextRequest, context: Context) {
     !hasValidRequestOrigin(request)
   ) {
     return NextResponse.json(
-      { message: "Invalid request origin." },
+      { message: (await getTranslations("errors.api"))("invalidOrigin") },
       { status: 403 },
     );
   }

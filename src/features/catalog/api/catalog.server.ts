@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
+import { getTranslations } from "next-intl/server";
 import { getSessionToken } from "@/features/auth/session";
 import type { CatalogRecord } from "@/features/catalog/api/contracts";
 import {
@@ -20,6 +21,7 @@ import {
   isResourceKey,
   referencedResources,
 } from "@/features/catalog/resources";
+import { localizeDefinition } from "@/features/catalog/localize.server";
 import { backendRequest } from "@/lib/backend-api.server";
 
 /**
@@ -253,12 +255,13 @@ interface UserRow {
  */
 const loadUserOptions = cache(async (): Promise<ReferenceOption[]> => {
   const token = await getSessionToken();
+  const t = await getTranslations("catalog.options");
   try {
     const users = await backendRequest<UserRow[]>("/users", {}, token ?? undefined);
     return users
       .map((user) => ({
         value: user.id,
-        label: [user.fullName, user.email].filter(Boolean).join(" · ") || "Unnamed account",
+        label: [user.fullName, user.email].filter(Boolean).join(" · ") || t("unnamedAccount"),
         inactive: user.status === "INACTIVE",
       }))
       .sort((a, b) => byName(a.label, b.label));
@@ -279,7 +282,7 @@ async function optionsFor(key: ReferenceKey): Promise<readonly ReferenceOption[]
   try {
     if (key === "tourism-regions") {
       const regions = (await getRecords("regions")).filter((region) => region.kind === "TOURISM");
-      const options = toOptions(getResource("regions"), regions);
+      const options = toOptions(await localizeDefinition(getResource("regions")), regions);
       /* Each region's own categories and tags, in its order: all an attraction of that region is offered. */
       return options.map((option) => {
         const region = regions.find((each) => each.id === option.value);
@@ -295,10 +298,11 @@ async function optionsFor(key: ReferenceKey): Promise<readonly ReferenceOption[]
     /* The zones provinces sit in: never a tourism region, which is a theme. */
     if (key === "zones") {
       const zones = (await getRecords("regions")).filter((region) => region.kind !== "TOURISM");
-      return toOptions(getResource("regions"), zones);
+      return toOptions(await localizeDefinition(getResource("regions")), zones);
     }
     if (!isResourceKey(key)) return await loadUserOptions();
-    return toOptions(getResource(key), await getRecords(key));
+    /* In the reader's language: a row with no name is offered under its type's name. */
+    return toOptions(await localizeDefinition(getResource(key)), await getRecords(key));
   } catch {
     return [];
   }

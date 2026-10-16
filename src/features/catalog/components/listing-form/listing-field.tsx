@@ -24,6 +24,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -43,6 +44,7 @@ import type {
   ResourceField,
 } from "@/features/catalog/resource";
 import { cn } from "@/lib/utils";
+import type englishForms from "@locales/en/forms.json";
 
 /* Written in the browser only, like the map: the editor has no server rendering. */
 const RichText = dynamic(() => import("@/features/catalog/components/fields/rich-text"), {
@@ -50,9 +52,9 @@ const RichText = dynamic(() => import("@/features/catalog/components/fields/rich
   loading: () => <div className="min-h-40 rounded-md border border-line-strong bg-paper" />,
 });
 
-/** "A", "A and B", "A, B and C". */
-function names(list: readonly string[]): string {
-  return list.length < 2 ? (list[0] ?? "") : `${list.slice(0, -1).join(", ")} and ${list[list.length - 1]}`;
+/** "A", "A and B", "A, B and C"; `and` joins the last two in the reader's language. */
+function names(list: readonly string[], and: (rest: string, last: string) => string): string {
+  return list.length < 2 ? (list[0] ?? "") : and(list.slice(0, -1).join(", "), list[list.length - 1]);
 }
 
 /** The pictures on the type tiles, by the API's enum values. */
@@ -69,26 +71,15 @@ const TYPE_ICONS: Readonly<Record<string, LucideIcon>> = {
   MARKET: Store,
 };
 
-/** One line under each type, so the choice is made on meaning rather than a word. */
-const TYPE_HINTS: Readonly<Record<string, string>> = {
-  HOTEL: "Rooms, a front desk, daily service",
-  GUESTHOUSE: "A small, family-run place to stay",
-  HOSTEL: "Shared dorms and social spaces",
-  RESORT: "Pools, gardens, everything on site",
-  HOMESTAY: "A room in a local family's home",
-  VILLA: "A whole private house",
-  RESTAURANT: "Meals at a table. Bars too.",
-  CAFE: "Coffee and cakes. Bakeries too.",
-  STREET_FOOD: "Stalls, carts and night markets",
-  MARKET: "Food stalls and fresh produce",
-  OTHER: "Anything that fits none of these",
-};
+/** The types with a line under them (`forms.field.typeHints`), so the choice is made on meaning rather than a word. */
+type TypeHint = keyof typeof englishForms.field.typeHints;
 
-const PRICE_HINTS: Readonly<Record<string, string>> = {
-  $: "Budget",
-  $$: "Moderate",
-  $$$: "Upscale",
-  $$$$: "Fine dining",
+/** What each price range means, by its key under `forms.field.priceHints`. */
+const PRICE_HINTS: Readonly<Record<string, keyof typeof englishForms.field.priceHints>> = {
+  $: "budget",
+  $$: "moderate",
+  $$$: "upscale",
+  $$$$: "fine",
 };
 
 /** Currencies a listing in Cambodia is priced in, offered before typing one. */
@@ -107,6 +98,7 @@ interface ShellProps {
 
 /** The info icon beside a label or a section title: a click opens the help; a click elsewhere, or Escape, closes it. */
 export function HelpIcon({ id, label, text }: { readonly id: string; readonly label: string; readonly text: string }) {
+  const t = useTranslations("forms.field");
   const [open, setOpen] = useState(false);
   const holder = useRef<HTMLSpanElement>(null);
   useEffect(() => {
@@ -129,7 +121,7 @@ export function HelpIcon({ id, label, text }: { readonly id: string; readonly la
       <button
         aria-controls={id}
         aria-expanded={open}
-        aria-label={`About ${label}`}
+        aria-label={t("about", { label })}
         className={cn("grid size-5 place-items-center rounded-full text-muted transition-colors hover:bg-sand hover:text-ink", open && "bg-sand text-ink")}
         onClick={() => setOpen((shown) => !shown)}
         type="button"
@@ -231,6 +223,8 @@ function slugOf(name: string): string {
  * once something is wrong with it.
  */
 function SlugField({ field, error, pathPrefix }: { readonly field: ResourceField; readonly error?: string; readonly pathPrefix: string }) {
+  const t = useTranslations("forms.field");
+  const actions = useTranslations("forms.actions");
   const { control, register } = useFormContext<FormValues>();
   const [open, setOpen] = useState(false);
   const name = useWatch({ control, name: "name" });
@@ -240,13 +234,13 @@ function SlugField({ field, error, pathPrefix }: { readonly field: ResourceField
   if (!open && !error) {
     return (
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted md:col-span-2">
-        <span>Web address</span>
-        <code className="rounded bg-sand px-1.5 py-0.5 font-mono text-[11px] text-ink-soft">
+        <span>{t("webAddress")}</span>
+        <code className="rounded bg-sand px-1.5 py-0.5 font-mono text-2xs text-ink-soft">
           {pathPrefix}
           {made || "made-from-the-name"}
         </code>
         <button className="font-medium text-ink-soft underline-offset-2 hover:text-ink hover:underline" onClick={() => setOpen(true)} type="button">
-          Edit
+          {actions("edit")}
         </button>
       </div>
     );
@@ -274,6 +268,8 @@ function SlugField({ field, error, pathPrefix }: { readonly field: ResourceField
 
 /** Renders one registry field with the listing form's own control for it. */
 export function ListingField({ field: declared, options, locked = false, pathPrefix, wide = false, narrowing }: ListingFieldProps) {
+  const t = useTranslations("forms.field");
+  const and = (rest: string, last: string) => t("and", { rest, last });
   const {
     control,
     register,
@@ -379,7 +375,7 @@ export function ListingField({ field: declared, options, locked = false, pathPre
 
   if (field.kind === "enums" && field.name === "amenities") {
     return (
-      <FieldShell className="md:col-span-2" error={error} field={declared.labelFor ? field : { ...field, label: "Facilities & services" }}>
+      <FieldShell className="md:col-span-2" error={error} field={declared.labelFor ? field : { ...field, label: t("facilities") }}>
         {({ labelId }) => (
           <Controller
             control={control}
@@ -403,7 +399,7 @@ export function ListingField({ field: declared, options, locked = false, pathPre
             render={({ field: bound }) => (
               <AmenityPicker
                 labelledBy={labelId}
-                noun="this list"
+                noun="list"
                 onChange={bound.onChange}
                 options={offered}
                 /* What only this kind has is a written sequence, so it reads in its own order. */
@@ -470,11 +466,14 @@ export function ListingField({ field: declared, options, locked = false, pathPre
       ? undefined
       : narrowed.scope.length === 0
         ? field.narrowedBy?.from
-          ? `Choose its theme first to see only that theme's ${noun}.`
-          : `Choose a tourism region above to see only its ${noun}.`
-        : (ownHint ?? `Only the ${noun} of ${names(narrowed.scope)}.`) +
+          ? t("narrowed.chooseTheme", { noun })
+          : t("narrowed.chooseRegion", { noun })
+        : (ownHint ?? t("narrowed.only", { noun, names: names(narrowed.scope, and) })) +
           (outside
-            ? ` ${outside} chosen earlier ${outside === 1 ? "is" : "are"} not in ${narrowed.scope.length === 1 ? "this region" : "these regions"}: select ${outside === 1 ? "it" : "them"} to take ${outside === 1 ? "it" : "them"} away.`
+            ? ` ${t("narrowed.outside", {
+                count: outside,
+                where: narrowed.scope.length === 1 ? t("narrowed.thisRegion") : t("narrowed.theseRegions"),
+              })}`
             : "");
     return (
       <FieldShell className="md:col-span-2" error={error} field={field} status={status}>
@@ -485,7 +484,7 @@ export function ListingField({ field: declared, options, locked = false, pathPre
             render={({ field: bound }) => (
               <ChipSelect
                 describedBy={describedBy}
-                emptyText={narrowed?.scope.length ? `${names(narrowed.scope)} has no ${noun} yet.` : undefined}
+                emptyText={narrowed?.scope.length ? t("narrowed.empty", { names: names(narrowed.scope, and), noun }) : undefined}
                 flagged={narrowed?.outside}
                 label={field.label}
                 labelledBy={labelId}
@@ -523,7 +522,7 @@ export function ListingField({ field: declared, options, locked = false, pathPre
 
         switch (field.kind) {
           case "textarea": {
-            const prompt = "The full story, in your own words.";
+            const prompt = t("storyPrompt");
             if (field.rich) {
               return (
                 <Controller
@@ -550,12 +549,12 @@ export function ListingField({ field: declared, options, locked = false, pathPre
             return (
               <Select {...aria} {...register(field.name)}>
                 <option value="">
-                  {field.required ? `Choose a ${field.label.toLowerCase()}` : "Not set"}
+                  {field.required ? t("chooseA", { label: field.label.toLowerCase() }) : t("notSet")}
                 </option>
                 {options.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
-                    {option.inactive ? " (retired)" : ""}
+                    {option.inactive ? ` ${t("retired")}` : ""}
                   </option>
                 ))}
               </Select>
@@ -564,7 +563,7 @@ export function ListingField({ field: declared, options, locked = false, pathPre
           case "enum":
             return (
               <Select {...aria} {...register(field.name)}>
-                <option value="">{field.required ? `Choose a ${field.label.toLowerCase()}` : "Not set"}</option>
+                <option value="">{field.required ? t("chooseA", { label: field.label.toLowerCase() }) : t("notSet")}</option>
                 {offered.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -604,7 +603,7 @@ export function ListingField({ field: declared, options, locked = false, pathPre
                 {...register(field.name)}
                 autoComplete="off"
                 inputMode={field.name === "phone" ? "tel" : field.name === "contactEmail" ? "email" : field.name === "website" ? "url" : undefined}
-                placeholder={declared.hintFor && field.name === "name" ? undefined : PLACEHOLDERS[field.name]}
+                placeholder={declared.hintFor && field.name === "name" ? undefined : placeholderOf(field.name, t)}
                 type="text"
               />
             );
@@ -614,13 +613,18 @@ export function ListingField({ field: declared, options, locked = false, pathPre
   );
 }
 
+/** Sample values, written the same in every language: a number, an address, a link. */
 const PLACEHOLDERS: Readonly<Record<string, string>> = {
-  name: "e.g. Angkor Wat",
-  address: "Street, village or landmark it is on",
   phone: "+855 12 345 678",
   contactEmail: "hello@example.com",
   website: "https://",
 };
+
+/** What a box shows while empty: words for a name or an address, a sample for the rest. */
+function placeholderOf(name: string, t: ReturnType<typeof useTranslations<"forms.field">>): string | undefined {
+  if (name === "name" || name === "address") return t(`placeholders.${name}`);
+  return PLACEHOLDERS[name];
+}
 
 /* -------------------------------------------------------------------------- */
 
@@ -634,7 +638,9 @@ function TypeTile({
   readonly selected: boolean;
   readonly onChange: (value: string) => void;
 }) {
+  const t = useTranslations("forms.field.typeHints");
   const Icon = TYPE_ICONS[option.value] ?? Shapes;
+  const hint = t.has(option.value as TypeHint) ? t(option.value as TypeHint) : "";
   return (
     <button
       aria-checked={selected}
@@ -649,7 +655,7 @@ function TypeTile({
       <Icon aria-hidden className={cn("size-5 shrink-0", selected ? "text-teal" : "text-muted")} strokeWidth={1.75} />
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-medium text-ink">{option.label}</span>
-        <span className="block text-xs leading-snug text-muted">{TYPE_HINTS[option.value] ?? ""}</span>
+        <span className="block text-xs leading-snug text-muted">{hint}</span>
       </span>
       <span
         aria-hidden
@@ -704,6 +710,8 @@ function StarRatingInput({
   readonly labelledBy: string;
   readonly describedBy?: string;
 }) {
+  const t = useTranslations("forms.field");
+  const actions = useTranslations("forms.actions");
   const [hover, setHover] = useState(0);
   const current = Math.round(Number(value) || 0);
   const shown = hover || current;
@@ -720,7 +728,7 @@ function StarRatingInput({
         {[1, 2, 3, 4, 5].map((star) => (
           <button
             aria-checked={current === star}
-            aria-label={`${star} star${star === 1 ? "" : "s"}`}
+            aria-label={t("stars", { count: star })}
             className="rounded-sm p-0.5"
             key={star}
             onBlur={() => setHover(0)}
@@ -739,11 +747,11 @@ function StarRatingInput({
         ))}
       </div>
       <p aria-live="polite" className="text-sm text-ink-soft">
-        {shown ? `${shown}-star property` : "Not rated"}
+        {shown ? t("starProperty", { count: shown }) : t("notRated")}
       </p>
       {current ? (
         <button className="text-xs text-muted underline-offset-2 hover:text-ink hover:underline" onClick={() => onChange("")} type="button">
-          Clear
+          {actions("clear")}
         </button>
       ) : null}
     </div>
@@ -761,6 +769,7 @@ function PriceRangeInput({
   readonly onChange: (value: string) => void;
   readonly labelledBy: string;
 }) {
+  const t = useTranslations("forms.field");
   /* As wide as its words, not the row: the shell would otherwise stretch it. */
   return (
     <div aria-labelledby={labelledBy} className="inline-flex max-w-full flex-wrap self-start overflow-hidden rounded-md border border-line-strong bg-paper" role="radiogroup">
@@ -780,7 +789,7 @@ function PriceRangeInput({
           >
             <span className="text-sm font-semibold tracking-wide">{option.label}</span>
             <span className={cn("text-2xs", selected ? "text-teal-deep/80" : "text-muted")}>
-              {option.value ? PRICE_HINTS[option.value] : "Not set"}
+              {option.value ? (PRICE_HINTS[option.value] ? t(`priceHints.${PRICE_HINTS[option.value]}`) : undefined) : t("notSet")}
             </span>
           </button>
         );
@@ -805,6 +814,8 @@ function FacilitiesField({
   readonly onChange: (value: string[]) => void;
   readonly labelledBy: string;
 }) {
+  const t = useTranslations("forms.field");
+  const actions = useTranslations("forms.actions");
   const [open, setOpen] = useState(false);
   const labels = useMemo(() => new Map(options.map((option) => [option.value, option.label.split(" · ").pop() ?? option.label])), [options]);
   const chosen = value.filter((slug) => labels.has(slug));
@@ -831,7 +842,7 @@ function FacilitiesField({
             <span className="inline-flex items-center gap-1 rounded-md border border-line bg-sand px-2 py-1 text-xs text-ink" key={slug}>
               {labels.get(slug)}
               <button
-                aria-label={`Remove ${labels.get(slug)}`}
+                aria-label={t("remove", { name: labels.get(slug) ?? slug })}
                 className="grid size-4 place-items-center rounded-full text-muted hover:bg-sand-deep hover:text-heritage"
                 onClick={() => onChange(value.filter((each) => each !== slug))}
                 type="button"
@@ -841,10 +852,10 @@ function FacilitiesField({
             </span>
           ))
         ) : (
-          <span className="text-sm text-muted">None chosen yet.</span>
+          <span className="text-sm text-muted">{t("noneChosen")}</span>
         )}
         <Button className="ml-auto" onClick={() => setOpen(true)} size="sm" type="button" variant="secondary">
-          Choose facilities
+          {t("chooseFacilities")}
         </Button>
       </div>
 
@@ -860,10 +871,10 @@ function FacilitiesField({
               >
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <h3 className="text-base font-semibold text-ink" id="facilities-dialog-title">
-                    Facilities & services
+                    {t("facilities")}
                   </h3>
                   <button
-                    aria-label="Close"
+                    aria-label={actions("close")}
                     className="grid size-8 place-items-center rounded-md text-muted hover:bg-sand hover:text-ink"
                     onClick={() => setOpen(false)}
                     type="button"
@@ -874,7 +885,7 @@ function FacilitiesField({
                 <AmenityPicker labelledBy={labelledBy} onChange={onChange} options={options} popular={[]} value={value} />
                 <div className="mt-4 flex justify-end border-t border-line pt-4">
                   <Button onClick={() => setOpen(false)} size="sm" type="button">
-                    Done
+                    {actions("done")}
                   </Button>
                 </div>
               </div>
@@ -976,11 +987,13 @@ function ChipSelect({
   /** What to say when there is nothing to offer, instead of "none exist yet". */
   readonly emptyText?: string;
 }) {
+  const t = useTranslations("forms.field");
+  const actions = useTranslations("forms.actions");
   const [term, setTerm] = useState("");
   const selected = useMemo(() => new Set(value), [value]);
   const needle = term.trim().toLowerCase();
   const visible = needle ? options.filter((option) => option.label.toLowerCase().includes(needle)) : options;
-  const sections = groupSections(visible);
+  const sections = groupSections(visible, t("otherGroup"));
 
   function toggle(option: string) {
     onChange(selected.has(option) ? value.filter((item) => item !== option) : [...value, option]);
@@ -989,7 +1002,7 @@ function ChipSelect({
   if (!options.length) {
     return (
       <p className="rounded-md border border-dashed border-line-strong px-3 py-3 text-sm text-muted">
-        {emptyText ?? `No ${label.toLowerCase()} exist yet.`}
+        {emptyText ?? t("noneExist", { label: label.toLowerCase() })}
       </p>
     );
   }
@@ -1001,20 +1014,18 @@ function ChipSelect({
           <div className="relative min-w-48 flex-1 sm:max-w-xs">
             <Search aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" />
             <Input
-              aria-label={`Search ${label.toLowerCase()}`}
+              aria-label={t("search", { label: label.toLowerCase() })}
               className="h-8 pl-8 text-sm"
               onChange={(event) => setTerm(event.target.value)}
-              placeholder={`Search ${label.toLowerCase()}…`}
+              placeholder={t("searchPlaceholder", { label: label.toLowerCase() })}
               type="search"
               value={term}
             />
           </div>
-          <span className="text-xs text-muted tabular-nums">
-            {value.length} of {options.length} selected
-          </span>
+          <span className="text-xs text-muted tabular-nums">{t("selected", { count: value.length, total: options.length })}</span>
           {value.length ? (
             <button className="text-xs font-medium text-teal-deep hover:underline" onClick={() => onChange([])} type="button">
-              Clear
+              {actions("clear")}
             </button>
           ) : null}
         </div>
@@ -1036,9 +1047,9 @@ function ChipSelect({
           {visible.map(chip)}
           {visible.length === 0 ? (
             <li className="flex items-center gap-2 py-1 text-xs text-muted">
-              Nothing matches “{term}”.
+              {t("noMatch", { term })}
               <button className="inline-flex items-center gap-1 font-medium text-teal-deep" onClick={() => setTerm("")} type="button">
-                <X aria-hidden className="size-3" /> Clear search
+                <X aria-hidden className="size-3" /> {t("clearSearch")}
               </button>
             </li>
           ) : null}
@@ -1064,25 +1075,25 @@ function ChipSelect({
             option.inactive && !on && "opacity-60",
           )}
           onClick={() => toggle(option.value)}
-          title={off ? "Not in the chosen region. Select to take it away." : undefined}
+          title={off ? t("notInRegionTitle") : undefined}
           type="button"
         >
           {on ? <Check aria-hidden className="size-3.5" strokeWidth={2.5} /> : null}
           {option.label}
-          {option.inactive ? <span className="text-2xs text-muted">(retired)</span> : null}
-          {off ? <span className="text-2xs">(not in region)</span> : null}
+          {option.inactive ? <span className="text-2xs text-muted">{t("retired")}</span> : null}
+          {off ? <span className="text-2xs">{t("notInRegion")}</span> : null}
         </button>
       </li>
     );
   }
 }
 
-/** The options under their group headings, in the order they come; null when none has a group. */
-function groupSections(options: readonly ReferenceOption[]): { name: string; options: ReferenceOption[] }[] | null {
+/** The options under their group headings, in the order they come; null when none has a group. `other` names the rest. */
+function groupSections(options: readonly ReferenceOption[], other: string): { name: string; options: ReferenceOption[] }[] | null {
   if (!options.some((option) => option.group)) return null;
   const sections = new Map<string, ReferenceOption[]>();
   for (const option of options) {
-    const name = option.group ?? "Other";
+    const name = option.group ?? other;
     sections.set(name, [...(sections.get(name) ?? []), option]);
   }
   return [...sections].map(([name, list]) => ({ name, options: list }));
@@ -1094,11 +1105,12 @@ function groupSections(options: readonly ReferenceOption[]): { name: string; opt
  * with one on the same row.
  */
 function ToggleRow({ field }: { readonly field: ResourceField }) {
+  const t = useTranslations("forms.field");
   const { control, register } = useFormContext<FormValues>();
   const on = useWatch({ control, name: field.name }) === true;
 
   return (
-    <FieldShell field={{ ...field, hint: field.hint ?? TOGGLE_HINTS[field.name] }}>
+    <FieldShell field={{ ...field, hint: field.hint ?? (field.name === "isLocalSpecialty" ? t("toggleHints.isLocalSpecialty") : undefined) }}>
       {({ id, describedBy }) => (
         <label className="flex h-9 w-fit cursor-pointer items-center gap-2.5 has-disabled:cursor-not-allowed">
           <span className="relative inline-flex shrink-0">
@@ -1112,13 +1124,9 @@ function ToggleRow({ field }: { readonly field: ResourceField }) {
               className="absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow-xs transition-transform peer-checked:translate-x-4"
             />
           </span>
-          <span className={cn("text-sm", on ? "font-medium text-ink" : "text-muted")}>{on ? "On" : "Off"}</span>
+          <span className={cn("text-sm", on ? "font-medium text-ink" : "text-muted")}>{on ? t("on") : t("off")}</span>
         </label>
       )}
     </FieldShell>
   );
 }
-
-const TOGGLE_HINTS: Readonly<Record<string, string>> = {
-  isLocalSpecialty: "A dish or a place the area is known for — worth the trip on its own.",
-};

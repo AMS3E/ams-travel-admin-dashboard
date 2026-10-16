@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   Bar,
   BarChart,
@@ -26,11 +27,12 @@ export interface ActivityPoint {
  * palette — a value ramp here would encode height twice and say nothing new.
  */
 function TooltipCard({ point }: { readonly point: ActivityPoint }) {
+  const t = useTranslations("stats.activity");
   return (
     <div className="card px-3 py-2 text-xs">
       <p className="font-semibold text-ink">{point.date}</p>
       <p className="mt-0.5 text-muted">
-        {point.writes} {point.writes === 1 ? "write" : "writes"}
+        {t("writes", { count: point.writes })}
       </p>
     </div>
   );

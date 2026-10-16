@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { useMessages, useTranslations } from "next-intl";
 import { ExternalLink, ImageIcon } from "lucide-react";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
 import type { FormValues, ReferenceOptions, ResourceDefinition } from "@/features/catalog/resource";
@@ -40,7 +41,9 @@ interface ListingReviewProps {
  * with what was left empty marked where it would have been.
  */
 export function ListingReview({ definition, kind, values, options, cover, photos, rooms, currency }: ListingReviewProps) {
-  const steps = listingSteps(definition, kind).filter((step) => !step.review);
+  const t = useTranslations("publishing.listingReview");
+  const stepWords = useTranslations("forms.steps");
+  const steps = listingSteps(definition, kind, stepWords).filter((step) => !step.review);
   const labels = amenityLabels(options.amenities ?? []);
 
   return (
@@ -48,7 +51,7 @@ export function ListingReview({ definition, kind, values, options, cover, photos
       <Photos cover={cover} photos={photos} />
       {steps.map((step) =>
         step.id === "rooms" ? (
-          <ItemsStep empty="No rooms added yet. A stay is booked by its rooms." items={rooms} key={step.id} step={step}>
+          <ItemsStep empty={t("noRooms")} items={rooms} key={step.id} step={step}>
             {(room) => (
               <RoomCard
                 amenityLabels={labels}
@@ -68,38 +71,39 @@ export function ListingReview({ definition, kind, values, options, cover, photos
 }
 
 function Photos({ cover, photos }: { readonly cover: string | null; readonly photos: readonly ReviewPhoto[] }) {
+  const t = useTranslations("publishing.listingReview");
   const count = photos.length;
   return (
     <Surface aria-labelledby="review-photos">
       <SurfaceHeader
-        description={`${cover ? "A cover photo" : "No cover photo"} and ${count ? `${count} more ${count === 1 ? "photo" : "photos"}` : "no other photos"}`}
+        description={t("photosSummary", { cover: cover ? "yes" : "no", count })}
         id="review-photos"
-        title="Photos"
+        title={t("photos")}
       />
       <div className="grid gap-3 p-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <figure className="relative aspect-16/10 overflow-hidden rounded-md border border-line bg-sand-deep">
           {cover ? (
-            <Image alt="Cover photo" className="object-cover" fill sizes="(min-width: 1024px) 480px, 100vw" src={cover} unoptimized />
+            <Image alt={t("coverAlt")} className="object-cover" fill sizes="(min-width: 1024px) 480px, 100vw" src={cover} unoptimized />
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-muted">
               <ImageIcon aria-hidden className="size-5" strokeWidth={1.75} />
-              <span className="text-xs">No cover photo</span>
+              <span className="text-xs">{t("noCover")}</span>
             </div>
           )}
-          <figcaption className="absolute bottom-2 left-2 rounded bg-scrim px-1.5 py-0.5 text-2xs font-medium text-white">Cover</figcaption>
+          <figcaption className="absolute bottom-2 left-2 rounded bg-scrim px-1.5 py-0.5 text-2xs font-medium text-white">{t("cover")}</figcaption>
         </figure>
         {count ? (
           <ul className="grid grid-cols-3 content-start gap-2">
             {photos.map((photo) => (
               <li className="relative aspect-4/3 overflow-hidden rounded-md border border-line bg-sand-deep" key={photo.key}>
-                <a aria-label="Open the photo" href={photo.url} rel="noreferrer" target="_blank">
+                <a aria-label={t("openPhoto")} href={photo.url} rel="noreferrer" target="_blank">
                   <Image alt="" className="object-cover" fill sizes="160px" src={photo.url} unoptimized />
                 </a>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="self-center text-center text-sm text-muted">No other photos yet.</p>
+          <p className="self-center text-center text-sm text-muted">{t("noOtherPhotos")}</p>
         )}
       </div>
     </Surface>
@@ -113,7 +117,9 @@ function AnswersStep({ definition, step, values, options }: {
   readonly values: FormValues;
   readonly options: ReferenceOptions;
 }) {
-  const groups = reviewGroups(definition, step, values, options);
+  const t = useTranslations("publishing.listingReview");
+  const words = useMessages().publishing.answers;
+  const groups = reviewGroups(definition, step, values, options, words);
   if (!groups.length) return null;
   const rows = groups.flatMap((group) => group.rows);
   const missing = rows.filter((row) => row.value === null).length;
@@ -124,11 +130,11 @@ function AnswersStep({ definition, step, values, options }: {
       <SurfaceHeader
         actions={map ? (
           <a className="inline-flex items-center gap-1 text-xs font-medium text-teal-deep hover:underline" href={map} rel="noreferrer" target="_blank">
-            Open the pin on a map
+            {t("openPin")}
             <ExternalLink aria-hidden className="size-3" />
           </a>
         ) : undefined}
-        description={missing ? `${missing} of ${rows.length} not given` : "Everything answered"}
+        description={missing ? t("notGivenCount", { missing, total: rows.length }) : t("allAnswered")}
         id={`review-${step.id}`}
         title={step.title}
       />
@@ -147,6 +153,7 @@ function AnswersStep({ definition, step, values, options }: {
 }
 
 function Answer({ row }: { readonly row: ReviewRow }) {
+  const t = useTranslations("publishing.listingReview");
   const list = Array.isArray(row.value) ? row.value : null;
   const wide = row.prose || (list !== null && list.length > 3);
   return (
@@ -154,7 +161,7 @@ function Answer({ row }: { readonly row: ReviewRow }) {
       <dt className="text-xs text-muted">{row.label}</dt>
       <dd className="mt-0.5 text-sm text-ink">
         {row.value === null ? (
-          <span className={row.required ? "font-medium text-heritage" : "text-muted"}>{row.required ? "Missing — required" : "Not given"}</span>
+          <span className={row.required ? "font-medium text-heritage" : "text-muted"}>{row.required ? t("missingRequired") : t("notGiven")}</span>
         ) : list ? (
           <ul className="flex flex-wrap gap-1.5">
             {list.map((item) => (
@@ -178,9 +185,10 @@ function ItemsStep({ step, items, empty, children }: {
   readonly empty: string;
   readonly children: (item: ReviewItem) => React.ReactNode;
 }) {
+  const t = useTranslations("publishing.listingReview");
   return (
     <Surface aria-labelledby={`review-${step.id}`}>
-      <SurfaceHeader description={items.length ? `${items.length} added` : "None added"} id={`review-${step.id}`} title={step.title} />
+      <SurfaceHeader description={items.length ? t("added", { count: items.length }) : t("noneAdded")} id={`review-${step.id}`} title={step.title} />
       {items.length ? (
         <ul className="flex flex-col gap-3 p-4">
           {items.map((item) => <li key={item.id}>{children(item)}</li>)}

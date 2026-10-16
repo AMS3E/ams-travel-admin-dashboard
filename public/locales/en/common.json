@@ -1,0 +1,134 @@
+{
+  "loading": "Loading…",
+  "tryAgain": "Try again",
+  "cancel": "Cancel",
+  "close": "Close",
+  "pagination": {
+    "label": "Pagination",
+    "rowsPerPage": "Rows per page",
+    "previous": "Previous page",
+    "next": "Next page",
+    "page": "Page {page}",
+    "pageOf": "Page {page} of {count}"
+  },
+  "copy": {
+    "copy": "Copy {label}",
+    "copied": "Copied",
+    "failed": "Could not copy"
+  },
+  "dates": {
+    "weekdays": [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday"
+    ],
+    "months": [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ],
+    "monthsShort": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ],
+    "day": "{weekday} {day} {month}",
+    "dayYear": "{weekday} {day} {month} {year}",
+    "full": "{weekday} {day} {month} {year} at {time}",
+    "stamp": "{day} {monthShort} {year}, {time}",
+    "date": "{day} {monthShort} {year}"
+  },
+  "relative": {
+    "justNow": "just now",
+    "minutes": "{count, plural, one {# minute ago} other {# minutes ago}}",
+    "hours": "{count, plural, one {# hour ago} other {# hours ago}}",
+    "days": "{count, plural, =1 {yesterday} other {# days ago}}"
+  },
+  "validation": {
+    "required": "{label} is required",
+    "number": "{label} must be a number",
+    "whole": "{label} must be a whole number",
+    "below": "{label} cannot be below {min}",
+    "above": "{label} cannot be above {max}",
+    "chooseOne": "Choose a {label}",
+    "chooseMany": "Choose at least one {label}",
+    "hours": "Hours look like 07:00-22:00",
+    "date": "{label} must be a date",
+    "time": "{label} must be a time, e.g. 14:00",
+    "photo": "Upload the photo here. A pasted key looks like general/…/photo.jpg; a web link cannot be used.",
+    "maxLength": "{label} takes at most {max} characters",
+    "paired": "{label} goes with {other}: fill in both, or neither",
+    "status": "Status must be one of {values}"
+  },
+  "back": "Back",
+  "signIn": "Sign in",
+  "clearSearch": "Clear the search",
+  "rowMenu": {
+    "actions": "Actions",
+    "actionsFor": "Actions for {label}"
+  },
+  "apiError": {
+    "sessionEnded": "Your session has ended. Sign in again to continue.",
+    "forbidden": "You do not have permission to access this content.",
+    "gone": "This content is no longer available.",
+    "failed": "We could not load this content. Please try again.",
+    "rejected": "The request was rejected.",
+    "unreachable": "The catalogue API could not be reached."
+  },
+  "profileForm": {
+    "nameRequired": "Display name is required.",
+    "photoKey": "Upload a photo — a picture is saved by its media key, not by an address.",
+    "attention": "Some fields need attention.",
+    "sessionEnded": "Your session has ended. Sign in again.",
+    "notSaved": "Your profile could not be saved. Please try again."
+  },
+  "roleProfiles": {
+    "PARTNER": {
+      "title": "Partner dashboard",
+      "blurb": "Your listings, and where each one stands."
+    },
+    "CONTRIBUTOR": {
+      "title": "Contributor dashboard",
+      "blurb": "Your drafts, and where each one stands."
+    },
+    "EDITOR": {
+      "title": "Editor dashboard",
+      "blurb": "What is waiting to be published, and what is waiting to be moderated."
+    },
+    "BDO": {
+      "title": "BDO dashboard",
+      "blurb": "Partner listings, and the catalogue they join."
+    },
+    "ADMIN": {
+      "title": "Admin dashboard",
+      "blurb": "The whole platform — catalogue, people, and the audit trail."
+    },
+    "overview": "Overview"
+  },
+  "map": {
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out"
+  }
+}

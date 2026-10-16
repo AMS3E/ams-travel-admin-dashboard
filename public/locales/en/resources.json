@@ -1,0 +1,1653 @@
+{
+  "destinations": {
+    "label": "Destination",
+    "labelPlural": "Destinations",
+    "description": "Every place a visitor can open. The richest record in the catalogue.",
+    "columns": {
+      "name": "Name",
+      "address": "Address",
+      "createdBy": "Created by",
+      "approvedBy": "Approved by",
+      "verified": "Verified",
+      "provinceId": "Province",
+      "status": "Status"
+    },
+    "status": {
+      "DRAFT": {
+        "label": "Draft",
+        "hint": "not on the public site yet"
+      },
+      "PUBLISHED": {
+        "label": "Published",
+        "hint": "visible on the public site"
+      },
+      "ARCHIVED": {
+        "label": "Archived",
+        "hint": "taken off the public site"
+      }
+    },
+    "fields": {
+      "name": {
+        "label": "Name"
+      },
+      "slug": {
+        "label": "Link name",
+        "hint": "The end of this listing's web address, e.g. ams.travel/foods/mekong-grill. Leave it empty and we make one from the name.",
+        "pattern": "Use lower-case letters and numbers joined by hyphens, e.g. angkor-wat — or leave it empty."
+      },
+      "shortDescription": {
+        "label": "Short description",
+        "hint": "One or two sentences. This is the text on every card across the website."
+      },
+      "description": {
+        "label": "About",
+        "hint": "The full story. The app shows its first lines on the page and all of it under Read more. Headings, bold, lists and links come through."
+      },
+      "slogan": {
+        "label": "Slogan",
+        "hint": "One line someone said about it. The app quotes it at the top of the page, e.g. “Angkor Wat, the crown jewel of Cambodia, emanates history and awe in equal measure.”"
+      },
+      "sloganBy": {
+        "label": "Said by",
+        "hint": "Optional. Who said it, e.g. Gail Gutradt, shown under the quote. Leave it empty for a slogan of its own."
+      },
+      "coverKey": {
+        "label": "Cover image",
+        "section": "Media"
+      },
+      "provinceId": {
+        "label": "Province",
+        "hint": "The region follows from the province.",
+        "section": "Placement"
+      },
+      "tourismRegionIds": {
+        "label": "Tourism region",
+        "hint": "The region the place is best known for. Its categories and tags follow from it, and it is listed on that region's page.",
+        "section": "Classification"
+      },
+      "theme": {
+        "label": "Theme",
+        "options": {
+          "ANCIENT-CAPITALS": "Ancient Capitals & Khmer Civilization",
+          "COASTAL-ISLAND": "Coastal & Island Region",
+          "ECO-COMMUNITY": "Eco-Community Tourism",
+          "KHMER-CULINARY": "Khmer Culinary Region",
+          "LUXURY-TOURISM": "Luxury Tourism",
+          "MEKONG-TONLE-SAP": "Mekong & Tonle Sap Civilization",
+          "MOUNTAIN-WATERFALL": "Mountain & Waterfall Region",
+          "NORTHEASTERN": "Northeastern Civilization",
+          "URBAN-LIFESTYLE": "Urban Lifestyle & Nightlife"
+        }
+      },
+      "categoryIds": {
+        "label": "Categories",
+        "section": "Classification"
+      },
+      "tagIds": {
+        "label": "Tags",
+        "section": "Classification"
+      },
+      "interestIds": {
+        "label": "Interests",
+        "hint": "What a traveller comes for. It is listed under each one on the Interests tab and on its province's page, whatever its region.",
+        "section": "Classification"
+      },
+      "address": {
+        "label": "Address",
+        "section": "Location"
+      },
+      "latitude": {
+        "label": "Latitude",
+        "section": "Location"
+      },
+      "longitude": {
+        "label": "Longitude",
+        "section": "Location"
+      }
+    }
+  },
+  "destination-media": {
+    "label": "Destination photo",
+    "labelPlural": "Media Library",
+    "description": "The photographs and videos shown on a destination page.",
+    "columns": {
+      "mediaUrl": "Media",
+      "ownerId": "Destination",
+      "caption": "Caption",
+      "mediaType": "Type",
+      "sortOrder": "#",
+      "isCover": "Cover"
+    },
+    "fields": {
+      "ownerId": {
+        "label": "Destination"
+      },
+      "mediaKey": {
+        "label": "File"
+      },
+      "mediaType": {
+        "label": "Type",
+        "options": {
+          "IMAGE": "Image",
+          "VIDEO": "Video"
+        }
+      },
+      "sortOrder": {
+        "label": "Sort order",
+        "hint": "Lower numbers come first."
+      },
+      "caption": {
+        "label": "Caption",
+        "hint": "Describe the photograph for anyone who cannot see it."
+      },
+      "isCover": {
+        "label": "Use as the cover"
+      }
+    }
+  },
+  "stays": {
+    "label": "Stay",
+    "labelPlural": "Stays",
+    "description": "Hotels, resorts, guesthouses and homestays — a partner's own, or listed by the editors. Each shows on the page of every destination within 50 km of its map pin.",
+    "columns": {
+      "name": "Name",
+      "address": "Address",
+      "ownerUserId": "Created by",
+      "approvedBy": "Approved by",
+      "type": "Type",
+      "status": "Status"
+    },
+    "status": {
+      "DRAFT": {
+        "label": "Draft",
+        "hint": "not on the public site yet"
+      },
+      "PUBLISHED": {
+        "label": "Published",
+        "hint": "visible on the public site"
+      },
+      "ARCHIVED": {
+        "label": "Archived",
+        "hint": "taken off the public site"
+      }
+    },
+    "fields": {
+      "name": {
+        "label": "Name"
+      },
+      "type": {
+        "label": "Kind (API)",
+        "options": {
+          "GUESTHOUSE": "Guesthouse",
+          "HOMESTAY": "Homestay",
+          "HOSTEL": "Hostel",
+          "HOTEL": "Hotel",
+          "RESORT": "Resort",
+          "VILLA": "Villa",
+          "OTHER": "Other"
+        }
+      },
+      "starRating": {
+        "label": "Star rating",
+        "hint": "One to five, for a hotel or resort with an official rating. Leave it empty otherwise."
+      },
+      "shortDescription": {
+        "label": "Short description",
+        "hint": "One or two sentences. This is the text on every card across the website."
+      },
+      "description": {
+        "label": "About",
+        "hint": "The full story: who runs it, what the rooms and the place are like, what is nearby. The app shows its first lines on the page and all of it under Read more."
+      },
+      "slogan": {
+        "label": "Slogan",
+        "hint": "One line someone said about it. The app quotes it at the top of the page, e.g. “Angkor Wat, the crown jewel of Cambodia, emanates history and awe in equal measure.”"
+      },
+      "sloganBy": {
+        "label": "Said by",
+        "hint": "Optional. Who said it, e.g. Gail Gutradt, shown under the quote. Leave it empty for a slogan of its own."
+      },
+      "interestIds": {
+        "label": "Type",
+        "hint": "What travellers browse by: a traveller looking for one of these finds this stay on its page. Tick every one that fits.",
+        "section": "Classification"
+      },
+      "ownerUserId": {
+        "label": "Owner account",
+        "hint": "The account this stay is listed for — the partner, or the contributor who looks after it. Leave it empty when your own team does; whoever writes their own is filled in for them.",
+        "section": "Placement"
+      },
+      "provinceId": {
+        "label": "Province",
+        "hint": "Filled in from the map pin, for you to check. Travellers find this listing by its pin, not by the province.",
+        "section": "Placement"
+      },
+      "address": {
+        "label": "Address",
+        "section": "Location"
+      },
+      "latitude": {
+        "label": "Latitude",
+        "hint": "Travellers see it on the page of every destination within 50 km of the pin.",
+        "section": "Location"
+      },
+      "longitude": {
+        "label": "Longitude",
+        "section": "Location"
+      },
+      "specialties": {
+        "label": "Specialties"
+      },
+      "amenities": {
+        "label": "Facilities",
+        "hint": "Everything a guest can use. Guests filter stays by these, so tick only what is really there. The list itself is kept under Taxonomy › Amenities.",
+        "section": "Facilities"
+      },
+      "coverKey": {
+        "label": "Cover image",
+        "section": "Media"
+      },
+      "priceFrom": {
+        "label": "Price from",
+        "hint": "The lowest a guest pays for one night. Once the rooms have prices, this follows the cheapest room by itself.",
+        "section": "Prices & policies"
+      },
+      "currency": {
+        "label": "Currency",
+        "hint": "Three letters, e.g. USD or KHR.",
+        "section": "Prices & policies"
+      },
+      "checkInFrom": {
+        "label": "Earliest check-in",
+        "hint": "The time the first guest can arrive, e.g. 14:00 (2 pm).",
+        "section": "Prices & policies"
+      },
+      "checkOutUntil": {
+        "label": "Latest check-out",
+        "hint": "The time rooms must be free by, e.g. 12:00 (midday).",
+        "section": "Prices & policies"
+      },
+      "phone": {
+        "label": "Phone",
+        "section": "Contact"
+      },
+      "contactEmail": {
+        "label": "E-mail",
+        "section": "Contact"
+      },
+      "website": {
+        "label": "Website",
+        "section": "Contact"
+      },
+      "telegram": {
+        "label": "Telegram",
+        "hint": "A handle such as @riversidehotel, or a t.me link.",
+        "section": "Contact"
+      },
+      "whatsapp": {
+        "label": "WhatsApp",
+        "hint": "The number WhatsApp answers on, with the country code.",
+        "section": "Contact"
+      },
+      "facebookUrl": {
+        "label": "Facebook page",
+        "section": "Contact"
+      },
+      "breakfastOption": {
+        "label": "Breakfast",
+        "section": "Services",
+        "options": {
+          "NONE": "No breakfast",
+          "INCLUDED": "Included in the room price",
+          "EXTRA_CHARGE": "Served, at extra cost"
+        }
+      },
+      "breakfastTypes": {
+        "label": "What breakfast is served",
+        "section": "Services",
+        "options": {
+          "american": "American",
+          "asian": "Asian",
+          "buffet": "Buffet",
+          "continental": "Continental",
+          "halal": "Halal",
+          "khmer": "Khmer",
+          "vegan": "Vegan",
+          "vegetarian": "Vegetarian"
+        }
+      },
+      "breakfastPrice": {
+        "label": "Breakfast price, per person",
+        "section": "Services"
+      },
+      "parkingOption": {
+        "label": "Parking",
+        "section": "Services",
+        "options": {
+          "FREE": "Free parking",
+          "NONE": "No parking",
+          "PAID": "Paid parking"
+        }
+      },
+      "parkingPrice": {
+        "label": "Parking price, per day",
+        "section": "Services"
+      },
+      "checkInUntil": {
+        "label": "Latest check-in",
+        "hint": "After this hour nobody can check in. Leave empty if someone is at the desk all night.",
+        "section": "House rules"
+      },
+      "checkOutFrom": {
+        "label": "Earliest check-out",
+        "hint": "Only if guests cannot leave before a certain hour. Usually left empty.",
+        "section": "House rules"
+      },
+      "minCheckInAge": {
+        "label": "Youngest guest who can check in alone",
+        "hint": "In years, e.g. 18. Leave empty if there is no such rule.",
+        "section": "House rules"
+      },
+      "childrenAllowed": {
+        "label": "Children welcome",
+        "section": "House rules"
+      },
+      "petsPolicy": {
+        "label": "Pets",
+        "section": "House rules",
+        "options": {
+          "NOT_ALLOWED": "Pets not allowed",
+          "ON_REQUEST": "Pets on request",
+          "ALLOWED": "Pets welcome"
+        }
+      },
+      "smokingPolicy": {
+        "label": "Smoking",
+        "section": "House rules",
+        "options": {
+          "NO_SMOKING": "No smoking anywhere",
+          "DESIGNATED_AREAS": "In designated areas only",
+          "ALLOWED": "Smoking allowed"
+        }
+      },
+      "partiesAllowed": {
+        "label": "Guests may hold parties or events",
+        "section": "House rules"
+      },
+      "quietHours": {
+        "label": "Quiet hours",
+        "hint": "The hours guests must keep the noise down, e.g. 22:00-07:00. Leave empty if there are none.",
+        "section": "House rules",
+        "pattern": "Quiet hours look like 22:00-07:00."
+      },
+      "paymentMethods": {
+        "label": "Ways to pay",
+        "hint": "Travellers from abroad look for cards; most guests here pay with KHQR or cash.",
+        "section": "Payments",
+        "options": {
+          "aba-pay": "ABA Pay",
+          "acleda": "ACLEDA",
+          "amex": "American Express",
+          "bank-transfer": "Bank transfer",
+          "cash": "Cash",
+          "jcb": "JCB",
+          "khqr": "KHQR (Bakong)",
+          "mastercard": "Mastercard",
+          "paypal": "PayPal",
+          "unionpay": "UnionPay",
+          "visa": "Visa",
+          "wing": "Wing"
+        }
+      },
+      "languagesSpoken": {
+        "label": "Languages the staff speak",
+        "hint": "So a guest knows they can be helped in their own language.",
+        "section": "Payments",
+        "options": {
+          "zh": "Chinese",
+          "en": "English",
+          "fr": "French",
+          "de": "German",
+          "ja": "Japanese",
+          "km": "Khmer",
+          "ko": "Korean",
+          "ru": "Russian",
+          "es": "Spanish",
+          "th": "Thai",
+          "vi": "Vietnamese"
+        }
+      },
+      "policies": {
+        "label": "Stay policies",
+        "hint": "Check-in and check-out times, children, pets, smoking, how guests can pay — in your own words. Headings and lists come through.",
+        "section": "House rules"
+      }
+    }
+  },
+  "stay-media": {
+    "label": "Stay photo",
+    "labelPlural": "Stay media",
+    "description": "The photographs shown on a stay's page.",
+    "columns": {
+      "mediaUrl": "Media",
+      "ownerId": "Stay",
+      "caption": "Caption",
+      "sortOrder": "#",
+      "isCover": "Cover"
+    },
+    "fields": {
+      "ownerId": {
+        "label": "Stay"
+      },
+      "mediaKey": {
+        "label": "File"
+      },
+      "mediaType": {
+        "label": "Type",
+        "options": {
+          "IMAGE": "Image",
+          "VIDEO": "Video"
+        }
+      },
+      "sortOrder": {
+        "label": "Sort order",
+        "hint": "Lower numbers come first."
+      },
+      "caption": {
+        "label": "Caption",
+        "hint": "Describe the photograph for anyone who cannot see it."
+      },
+      "isCover": {
+        "label": "Use as the cover"
+      }
+    }
+  },
+  "foods": {
+    "label": "Food listing",
+    "labelPlural": "Foods",
+    "description": "Restaurants, cafes, markets and street food, and the local specialities worth the trip. Each shows on the page of every destination within 50 km of its map pin.",
+    "columns": {
+      "name": "Name",
+      "address": "Address",
+      "createdBy": "Created by",
+      "approvedBy": "Approved by",
+      "type": "Type",
+      "isLocalSpecialty": "Speciality",
+      "status": "Status"
+    },
+    "status": {
+      "DRAFT": {
+        "label": "Draft",
+        "hint": "not on the public site yet"
+      },
+      "PUBLISHED": {
+        "label": "Published",
+        "hint": "visible on the public site"
+      },
+      "ARCHIVED": {
+        "label": "Archived",
+        "hint": "taken off the public site"
+      }
+    },
+    "fields": {
+      "name": {
+        "label": "Name"
+      },
+      "slug": {
+        "label": "Link name",
+        "hint": "The end of this listing's web address, e.g. ams.travel/foods/mekong-grill. Leave it empty and we make one from the name.",
+        "pattern": "Use lower-case letters and numbers joined by hyphens, e.g. angkor-wat — or leave it empty."
+      },
+      "type": {
+        "label": "Kind (API)",
+        "options": {
+          "CAFE": "Cafe",
+          "MARKET": "Market",
+          "RESTAURANT": "Restaurant",
+          "STREET_FOOD": "Street food",
+          "OTHER": "Other"
+        }
+      },
+      "shortDescription": {
+        "label": "Short description",
+        "hint": "One or two sentences. This is the text on every card across the website."
+      },
+      "description": {
+        "label": "About",
+        "hint": "The full story: what it serves, what it is like inside, when to come. The app shows its first lines on the page and all of it under Read more."
+      },
+      "slogan": {
+        "label": "Slogan",
+        "hint": "One line someone said about it. The app quotes it at the top of the page, e.g. “Angkor Wat, the crown jewel of Cambodia, emanates history and awe in equal measure.”"
+      },
+      "sloganBy": {
+        "label": "Said by",
+        "hint": "Optional. Who said it, e.g. Gail Gutradt, shown under the quote. Leave it empty for a slogan of its own."
+      },
+      "interestIds": {
+        "label": "Type",
+        "hint": "What travellers browse by: a traveller looking for one of these finds this place on its page. Tick every one that fits.",
+        "section": "Classification"
+      },
+      "ownerUserId": {
+        "label": "Owner account",
+        "hint": "The account this listing is listed for — the partner, or the contributor who looks after it. Leave it empty when your own team does; whoever writes their own is filled in for them.",
+        "section": "Placement"
+      },
+      "provinceId": {
+        "label": "Province",
+        "hint": "Filled in from the map pin, for you to check. Travellers find this listing by its pin, not by the province.",
+        "section": "Placement"
+      },
+      "address": {
+        "label": "Address",
+        "section": "Location"
+      },
+      "latitude": {
+        "label": "Latitude",
+        "hint": "Travellers see it on the page of every destination within 50 km of the pin.",
+        "section": "Location"
+      },
+      "longitude": {
+        "label": "Longitude",
+        "section": "Location"
+      },
+      "coverKey": {
+        "label": "Cover image",
+        "section": "Media"
+      },
+      "specialties": {
+        "label": "Specialties"
+      },
+      "priceRange": {
+        "label": "Price range",
+        "hint": "$ is a street stall, $$$$ is fine dining.",
+        "section": "Prices & policies",
+        "options": {
+          "$": "$",
+          "$$": "$$",
+          "$$$": "$$$",
+          "$$$$": "$$$$"
+        }
+      },
+      "averageMealPrice": {
+        "label": "A meal usually costs",
+        "hint": "What one person spends on an ordinary visit — the figure a traveller budgets by.",
+        "section": "Prices & policies"
+      },
+      "priceFrom": {
+        "label": "Price from",
+        "hint": "The lowest a visitor pays for one item. Set by the API, never asked here.",
+        "section": "Prices & policies"
+      },
+      "currency": {
+        "label": "Currency",
+        "hint": "Three letters, e.g. USD or KHR.",
+        "section": "Prices & policies"
+      },
+      "paymentMethods": {
+        "label": "Ways to pay",
+        "section": "Prices & policies",
+        "options": {
+          "aba-pay": "ABA Pay",
+          "acleda": "ACLEDA",
+          "amex": "American Express",
+          "bank-transfer": "Bank transfer",
+          "cash": "Cash",
+          "jcb": "JCB",
+          "khqr": "KHQR (Bakong)",
+          "mastercard": "Mastercard",
+          "paypal": "PayPal",
+          "unionpay": "UnionPay",
+          "visa": "Visa",
+          "wing": "Wing"
+        }
+      },
+      "openingHours": {
+        "label": "Opening hours",
+        "hint": "For example 07:00-22:00. Leave a day empty when it is closed.",
+        "section": "Prices & policies"
+      },
+      "phone": {
+        "label": "Phone",
+        "section": "Contact"
+      },
+      "contactEmail": {
+        "label": "E-mail",
+        "section": "Contact"
+      },
+      "website": {
+        "label": "Website",
+        "section": "Contact"
+      },
+      "telegram": {
+        "label": "Telegram",
+        "hint": "A handle such as @riversidegrill, or a t.me link.",
+        "section": "Contact"
+      },
+      "whatsapp": {
+        "label": "WhatsApp",
+        "hint": "The number WhatsApp answers on, with the country code.",
+        "section": "Contact"
+      },
+      "facebookUrl": {
+        "label": "Facebook page",
+        "hint": "Where most places here post today's dishes.",
+        "section": "Contact"
+      }
+    }
+  },
+  "food-menu-items": {
+    "label": "Dish",
+    "labelPlural": "Menu dishes",
+    "description": "The dishes each food listing serves — what a dish is in both languages, what is in it, how spicy it is and what it costs. The listing form no longer asks for them; the API keeps what was written.",
+    "columns": {
+      "name": "Dish",
+      "foodId": "Listing",
+      "course": "Course",
+      "price": "Price",
+      "status": "Status"
+    },
+    "status": {
+      "ACTIVE": {
+        "label": "On the menu",
+        "hint": "travellers can see it"
+      },
+      "INACTIVE": {
+        "label": "Off the menu",
+        "hint": "kept here, hidden from travellers"
+      }
+    },
+    "fields": {
+      "foodId": {
+        "label": "Food listing",
+        "section": "Dish"
+      },
+      "name": {
+        "label": "Dish name",
+        "section": "Dish"
+      },
+      "localName": {
+        "label": "Name in Khmer",
+        "hint": "What a traveller points at to order: អាម៉ុកត្រី.",
+        "section": "Dish"
+      },
+      "pronunciation": {
+        "label": "How to say it",
+        "hint": "Written the way it sounds: “amok trey”.",
+        "section": "Dish"
+      },
+      "course": {
+        "label": "Course",
+        "section": "Dish",
+        "options": {
+          "STARTER": "Starter",
+          "SOUP": "Soup",
+          "SALAD": "Salad",
+          "NOODLES": "Noodles",
+          "RICE": "Rice",
+          "CURRY": "Curry",
+          "GRILL": "Grill",
+          "SEAFOOD": "Seafood",
+          "MAIN": "Main",
+          "SIDE": "Side",
+          "SNACK": "Snack",
+          "DESSERT": "Dessert",
+          "DRINK": "Drink",
+          "COFFEE": "Coffee",
+          "SET_MENU": "Set menu"
+        }
+      },
+      "description": {
+        "label": "Describe the dish",
+        "hint": "How it is cooked and what comes with it.",
+        "section": "Dish"
+      },
+      "price": {
+        "label": "Price",
+        "section": "Price & portion"
+      },
+      "portion": {
+        "label": "What the price buys",
+        "hint": "“One bowl”, “300 g”, “Serves 2”.",
+        "section": "Price & portion"
+      },
+      "serves": {
+        "label": "How many people it feeds",
+        "hint": "1 for a single plate; 2 or more for a dish meant to share.",
+        "section": "Price & portion"
+      },
+      "spiceLevel": {
+        "label": "How spicy",
+        "hint": "0 not spicy, 1 mild, 2 hot, 3 Khmer hot.",
+        "section": "Price & portion"
+      },
+      "labels": {
+        "label": "Diet and allergens",
+        "section": "Diet",
+        "options": {
+          "contains-dairy": "Contains dairy",
+          "contains-nuts": "Contains nuts",
+          "contains-pork": "Contains pork",
+          "contains-shellfish": "Contains shellfish",
+          "gluten-free": "Gluten-free",
+          "halal": "Halal",
+          "raw": "Served raw",
+          "vegan": "Vegan",
+          "vegetarian": "Vegetarian"
+        }
+      },
+      "isSignature": {
+        "label": "The dish they are known for",
+        "section": "Diet"
+      },
+      "photoKeys": {
+        "label": "Photos",
+        "hint": "Chosen from the listing's gallery, in the food form's Menu step.",
+        "section": "Photos"
+      },
+      "sortOrder": {
+        "label": "Order",
+        "section": "Placement"
+      }
+    }
+  },
+  "stay-rooms": {
+    "label": "Room",
+    "labelPlural": "Stay rooms",
+    "description": "The rooms each stay offers — who a room sleeps, in which beds, what it has and what a night costs. Made in the stay's own Rooms step; the cheapest room on sale is its “From” price.",
+    "columns": {
+      "name": "Room",
+      "stayId": "Stay",
+      "roomType": "Type",
+      "pricePerNight": "Per night",
+      "status": "Status"
+    },
+    "status": {
+      "ACTIVE": {
+        "label": "Bookable",
+        "hint": "guests can see and book it"
+      },
+      "INACTIVE": {
+        "label": "Hidden",
+        "hint": "kept here, not shown to guests"
+      }
+    },
+    "fields": {
+      "stayId": {
+        "label": "Stay",
+        "section": "Room"
+      },
+      "name": {
+        "label": "Room name",
+        "section": "Room"
+      },
+      "description": {
+        "label": "Description",
+        "hint": "What the room is like and what makes it the one to choose. The room's page shows all of it.",
+        "section": "Room"
+      },
+      "highlight": {
+        "label": "Highlight",
+        "hint": "One line that makes this room stand out, e.g. Corner room with the sunset over the Mekong.",
+        "section": "Room"
+      },
+      "roomType": {
+        "label": "Room type",
+        "section": "Room",
+        "options": {
+          "APARTMENT": "Apartment",
+          "DORM_BED": "Bed in a dorm",
+          "BUNGALOW": "Bungalow",
+          "DOUBLE": "Double",
+          "TWIN_DOUBLE": "Double or twin",
+          "FAMILY": "Family",
+          "QUADRUPLE": "Quadruple",
+          "SINGLE": "Single",
+          "STUDIO": "Studio",
+          "SUITE": "Suite",
+          "TRIPLE": "Triple",
+          "TWIN": "Twin",
+          "VILLA": "Villa",
+          "DORM_ROOM": "Whole dorm room"
+        }
+      },
+      "roomCount": {
+        "label": "How many rooms like this",
+        "hint": "Ten identical doubles are one room here, with 10 in this box.",
+        "section": "Room"
+      },
+      "singleBeds": {
+        "label": "Single bed",
+        "section": "Beds"
+      },
+      "doubleBeds": {
+        "label": "Double bed",
+        "section": "Beds"
+      },
+      "queenBeds": {
+        "label": "Queen bed",
+        "section": "Beds"
+      },
+      "kingBeds": {
+        "label": "King bed",
+        "section": "Beds"
+      },
+      "bunkBeds": {
+        "label": "Bunk bed",
+        "section": "Beds"
+      },
+      "sofaBeds": {
+        "label": "Sofa bed",
+        "section": "Beds"
+      },
+      "futonBeds": {
+        "label": "Futon mat",
+        "section": "Beds"
+      },
+      "maxAdults": {
+        "label": "Adults",
+        "section": "Guests"
+      },
+      "maxChildren": {
+        "label": "Children",
+        "section": "Guests"
+      },
+      "sizeSqm": {
+        "label": "Size (m²)",
+        "section": "Room details"
+      },
+      "bedrooms": {
+        "label": "Bedrooms",
+        "section": "Layout"
+      },
+      "livingRooms": {
+        "label": "Living rooms",
+        "section": "Layout"
+      },
+      "bathroomCount": {
+        "label": "Bathrooms",
+        "section": "Layout"
+      },
+      "floor": {
+        "label": "Floor",
+        "hint": "Ground floor is 0, first floor up is 1. Leave empty when these rooms are on different floors.",
+        "section": "Layout"
+      },
+      "liftAccess": {
+        "label": "A lift reaches it",
+        "section": "Layout"
+      },
+      "housekeeping": {
+        "label": "Cleaning",
+        "section": "Layout",
+        "options": {
+          "DAILY": "Cleaned daily",
+          "ON_REQUEST": "Cleaned on request",
+          "WEEKLY": "Cleaned weekly",
+          "NONE": "Not cleaned during the stay"
+        }
+      },
+      "view": {
+        "label": "View",
+        "section": "Room details",
+        "options": {
+          "CITY": "City view",
+          "COURTYARD": "Courtyard view",
+          "GARDEN": "Garden view",
+          "LAKE": "Lake view",
+          "MOUNTAIN": "Mountain view",
+          "POOL": "Pool view",
+          "RICE_FIELD": "Rice-field view",
+          "RIVER": "River view",
+          "SEA": "Sea view",
+          "STREET": "Street view",
+          "TEMPLE": "Temple view"
+        }
+      },
+      "bathroom": {
+        "label": "Bathroom",
+        "section": "Room details",
+        "options": {
+          "PRIVATE": "Private bathroom",
+          "SHARED": "Shared bathroom"
+        }
+      },
+      "smokingAllowed": {
+        "label": "Smoking allowed",
+        "section": "Room details"
+      },
+      "hasWindow": {
+        "label": "Has a window",
+        "section": "Room details"
+      },
+      "extraBeds": {
+        "label": "Extra beds you can add",
+        "section": "Guests"
+      },
+      "extraBedPrice": {
+        "label": "Extra bed, per night",
+        "section": "Guests"
+      },
+      "cots": {
+        "label": "Cots you can add",
+        "section": "Guests"
+      },
+      "cotPrice": {
+        "label": "Cot, per night",
+        "hint": "Leave empty when a cot is free.",
+        "section": "Guests"
+      },
+      "childrenFreeUnderAge": {
+        "label": "Children stay free under age",
+        "hint": "In the beds already there. Empty when every child is charged.",
+        "section": "Guests"
+      },
+      "amenities": {
+        "label": "Facilities",
+        "section": "Facilities"
+      },
+      "pricePerNight": {
+        "label": "Price per night",
+        "section": "Price & policy"
+      },
+      "weekendPrice": {
+        "label": "Weekend price",
+        "hint": "What a Friday or Saturday night costs. Leave it empty when the price is the same all week.",
+        "section": "Price & policy"
+      },
+      "breakfastIncluded": {
+        "label": "Breakfast included",
+        "section": "Price & policy"
+      },
+      "highSeasonPrice": {
+        "label": "High-season price (Nov–Apr)",
+        "hint": "Leave empty when the price is the same all year.",
+        "section": "Price & policy"
+      },
+      "taxesIncluded": {
+        "label": "Taxes included in the price",
+        "section": "Price & policy"
+      },
+      "minNights": {
+        "label": "Shortest stay (nights)",
+        "hint": "1 means a guest can book a single night.",
+        "section": "Price & policy"
+      },
+      "weeklyPrice": {
+        "label": "Price per week",
+        "hint": "Leave empty when there is no weekly rate.",
+        "section": "Price & policy"
+      },
+      "monthlyPrice": {
+        "label": "Price per month",
+        "hint": "Leave empty when there is no monthly rate.",
+        "section": "Price & policy"
+      },
+      "paymentTerms": {
+        "label": "Payment",
+        "section": "Price & policy",
+        "options": {
+          "PAY_AT_PROPERTY": "Pay at the property",
+          "DEPOSIT": "Deposit to book",
+          "PREPAYMENT": "Pay in advance"
+        }
+      },
+      "depositPercent": {
+        "label": "Deposit (% of the stay)",
+        "section": "Price & policy"
+      },
+      "freeCancellationDays": {
+        "label": "Free cancellation (days before arrival)",
+        "hint": "Empty is non-refundable; 0 is free up to the day of arrival.",
+        "section": "Price & policy"
+      },
+      "photoKeys": {
+        "label": "Photos",
+        "hint": "Chosen from the stay's gallery, in the stay form's Rooms step.",
+        "section": "Photos"
+      },
+      "sortOrder": {
+        "label": "Order",
+        "section": "Room"
+      }
+    }
+  },
+  "food-media": {
+    "label": "Food photo",
+    "labelPlural": "Food media",
+    "description": "The photographs shown on a food listing.",
+    "columns": {
+      "mediaUrl": "Media",
+      "ownerId": "Food listing",
+      "caption": "Caption",
+      "sortOrder": "#",
+      "isCover": "Cover"
+    },
+    "fields": {
+      "ownerId": {
+        "label": "Food listing"
+      },
+      "mediaKey": {
+        "label": "File"
+      },
+      "mediaType": {
+        "label": "Type",
+        "options": {
+          "IMAGE": "Image",
+          "VIDEO": "Video"
+        }
+      },
+      "sortOrder": {
+        "label": "Sort order",
+        "hint": "Lower numbers come first."
+      },
+      "caption": {
+        "label": "Caption",
+        "hint": "Describe the photograph for anyone who cannot see it."
+      },
+      "isCover": {
+        "label": "Use as the cover"
+      }
+    }
+  },
+  "regions": {
+    "label": "Tourism Region",
+    "labelPlural": "Tourism Regions",
+    "description": "The regions travellers discover Cambodia by. Each has its own categories and search filters.",
+    "columns": {
+      "name": "Name",
+      "code": "Code",
+      "categoryIds": "Categories",
+      "tagIds": "Search filters",
+      "status": "Status"
+    },
+    "status": {
+      "ACTIVE": {
+        "label": "Active",
+        "hint": "visible on the public site"
+      },
+      "INACTIVE": {
+        "label": "Retired",
+        "hint": "hidden from the public site"
+      }
+    },
+    "fields": {
+      "kind": {
+        "label": "Kind",
+        "options": {
+          "TOURISM": "Tourism",
+          "ZONE": "Zone"
+        }
+      },
+      "code": {
+        "label": "Code"
+      },
+      "parentId": {
+        "label": "Part of"
+      },
+      "name": {
+        "label": "Name",
+        "hint": "As the website's Discover page names it. A new region's page address is made from it."
+      },
+      "sortOrder": {
+        "label": "Its number on Discover",
+        "hint": "Discover, the attraction form's themes and every list of regions show them in this order. The others move to make room."
+      },
+      "description": {
+        "label": "Overview",
+        "hint": "The lines under its name on its Discover page, under Overview."
+      },
+      "coverKey": {
+        "label": "Cover picture",
+        "hint": "Its card on Explore and the banner of its page in the app. A wide photograph of the region's best-known place reads best.",
+        "section": "Media"
+      },
+      "mapKey": {
+        "label": "Historical maps",
+        "hint": "The Historical Map on its page in the app. A picture of the region's map with its places marked reads best.",
+        "section": "Media"
+      },
+      "categoryIds": {
+        "label": "Categories",
+        "hint": "What its places are sorted by, in the order its page shows them: move one up or down. Its attractions are offered only these.",
+        "section": "Its own lists"
+      },
+      "tagIds": {
+        "label": "Search filters",
+        "hint": "The tags its page offers as filters, in the order it shows them, and the only ones its attractions are offered. A tag is a plain label with nothing under it.",
+        "section": "Its own lists"
+      },
+      "amsRecommended": {
+        "label": "Recommended by AMS Travel",
+        "hint": "Shows the AMS Travel badge on its card on Explore and at the top of its page in the app.",
+        "section": "Recommendation"
+      }
+    }
+  },
+  "corridors": {
+    "label": "Tourism Corridor",
+    "labelPlural": "Tourism Corridors",
+    "description": "Day-by-day travel plans through destinations, with the road route between the stops. Its days and stops are planned in the itinerary builder.",
+    "columns": {
+      "name": "Name",
+      "createdBy": "Created by",
+      "durationDays": "Days",
+      "stopCount": "Stops",
+      "routeStatus": "Route",
+      "status": "Status"
+    },
+    "status": {
+      "DRAFT": {
+        "label": "Draft",
+        "hint": "not on the public site yet"
+      },
+      "PUBLISHED": {
+        "label": "Published",
+        "hint": "visible on the public site"
+      }
+    },
+    "fields": {
+      "name": {
+        "label": "Name"
+      },
+      "slug": {
+        "label": "Link name",
+        "hint": "The end of this listing's web address, e.g. ams.travel/foods/mekong-grill. Leave it empty and we make one from the name.",
+        "pattern": "Use lower-case letters and numbers joined by hyphens, e.g. angkor-wat — or leave it empty."
+      },
+      "shortDescription": {
+        "label": "Short description",
+        "hint": "One or two sentences for the corridor's card and the top of its page."
+      },
+      "description": {
+        "label": "Description"
+      },
+      "coverKey": {
+        "label": "Cover image",
+        "section": "Media"
+      },
+      "estimatedBudgetMin": {
+        "label": "Budget from",
+        "hint": "What the trip costs one traveller, at the least.",
+        "section": "Budget per person (US$)"
+      },
+      "estimatedBudgetMax": {
+        "label": "Budget up to",
+        "section": "Budget per person (US$)"
+      },
+      "interestIds": {
+        "label": "Kinds of trip it suits",
+        "hint": "Interests from the Tourism Corridors group. A traveller browsing one of them on Explore finds this corridor on its page.",
+        "section": "Where it appears"
+      },
+      "sortOrder": {
+        "label": "Its place in the list",
+        "hint": "The website lists the corridors top to bottom in this order. The others move to make room.",
+        "section": "Standing"
+      }
+    }
+  },
+  "corridor-media": {
+    "label": "Corridor photo",
+    "labelPlural": "Corridor media",
+    "description": "The photographs shown on a tourism corridor's page in the app, one of them its cover.",
+    "columns": {
+      "mediaUrl": "Media",
+      "ownerId": "Tourism corridor",
+      "caption": "Caption",
+      "sortOrder": "#",
+      "isCover": "Cover"
+    },
+    "fields": {
+      "ownerId": {
+        "label": "Tourism corridor"
+      },
+      "mediaKey": {
+        "label": "File"
+      },
+      "mediaType": {
+        "label": "Type",
+        "options": {
+          "IMAGE": "Image",
+          "VIDEO": "Video"
+        }
+      },
+      "sortOrder": {
+        "label": "Sort order",
+        "hint": "Lower numbers come first."
+      },
+      "caption": {
+        "label": "Caption",
+        "hint": "Describe the photograph for anyone who cannot see it."
+      },
+      "isCover": {
+        "label": "Use as the cover"
+      }
+    }
+  },
+  "provinces": {
+    "label": "Province",
+    "labelPlural": "Provinces",
+    "description": "Cambodia's provinces. A destination is placed by its province; the app lists them with a cover and puts each on its map by its centre.",
+    "columns": {
+      "name": "Name",
+      "placeCount": "Places",
+      "createdBy": "Created by",
+      "status": "Status"
+    },
+    "status": {
+      "ACTIVE": {
+        "label": "Active",
+        "hint": "visible on the public site"
+      },
+      "INACTIVE": {
+        "label": "Retired",
+        "hint": "hidden from the public site"
+      }
+    },
+    "fields": {
+      "name": {
+        "label": "Name",
+        "hint": "For example: Kampot."
+      },
+      "coverKey": {
+        "label": "Cover picture",
+        "hint": "Its card on the app's list of provinces and the top of its page. A wide photograph of its best-known place reads best.",
+        "section": "Media"
+      },
+      "latitude": {
+        "label": "Latitude",
+        "hint": "Both or neither: the marker the app puts on the province. Decimal degrees, north positive.",
+        "section": "Map"
+      },
+      "longitude": {
+        "label": "Longitude",
+        "hint": "Decimal degrees, east positive. Cambodia lies between 102 and 108.",
+        "section": "Map"
+      }
+    }
+  },
+  "interests": {
+    "label": "Interest",
+    "labelPlural": "Interests",
+    "description": "What travellers explore by, in six groups: the Explore shelves and each province's page. A Tourism Corridors interest lists corridors.",
+    "columns": {
+      "name": "Name",
+      "groupName": "Group",
+      "sortOrder": "#",
+      "createdBy": "Created by",
+      "status": "Status"
+    },
+    "status": {
+      "ACTIVE": {
+        "label": "Active",
+        "hint": "visible on the public site"
+      },
+      "INACTIVE": {
+        "label": "Retired",
+        "hint": "hidden from the public site"
+      }
+    },
+    "fields": {
+      "name": {
+        "label": "Name",
+        "hint": "For example: Waterfalls."
+      },
+      "groupName": {
+        "label": "Group",
+        "hint": "Its shelf under Explore › Interests.",
+        "options": {
+          "Activities & Experiences": "Activities & Experiences",
+          "Attraction Sites": "Attraction Sites",
+          "Food": "Food",
+          "Stays": "Stays",
+          "Tourism Corridors": "Tourism Corridors",
+          "Water": "Water"
+        }
+      },
+      "sortOrder": {
+        "label": "Place in its group",
+        "hint": "Click between two, or use the arrows. The others move to make room."
+      },
+      "description": {
+        "label": "Description",
+        "hint": "Optional. The line under its name on its page."
+      },
+      "coverKey": {
+        "label": "Cover picture",
+        "hint": "Its picture on its shelf and at the top of its page. A clear photograph of the activity reads best.",
+        "section": "Media"
+      }
+    }
+  },
+  "categories": {
+    "label": "Category",
+    "labelPlural": "Categories",
+    "description": "What each tourism region's places are sorted by, such as Temples or Beach. An attraction is offered only its region's own.",
+    "columns": {
+      "name": "Name",
+      "tourismRegionIds": "Tourism regions",
+      "createdBy": "Created by",
+      "status": "Status"
+    },
+    "status": {
+      "ACTIVE": {
+        "label": "Active",
+        "hint": "visible on the public site"
+      },
+      "INACTIVE": {
+        "label": "Retired",
+        "hint": "hidden from the public site"
+      }
+    },
+    "fields": {
+      "tourismRegionIds": {
+        "label": "Tourism regions",
+        "hint": "The regions this category belongs to. It is offered only on their pages and to the destinations in them."
+      },
+      "name": {
+        "label": "Name",
+        "hint": "What a traveller browsing the region looks for, e.g. Temples."
+      },
+      "description": {
+        "label": "Description",
+        "hint": "Optional. A line on what belongs in it."
+      }
+    }
+  },
+  "tags": {
+    "label": "Tag",
+    "labelPlural": "Tags",
+    "description": "The search filters each tourism region offers, such as UNESCO or Kayak. An attraction is offered only its region's own.",
+    "columns": {
+      "name": "Name",
+      "tourismRegionIds": "Tourism regions",
+      "createdBy": "Created by",
+      "status": "Status"
+    },
+    "status": {
+      "ACTIVE": {
+        "label": "Active",
+        "hint": "visible on the public site"
+      },
+      "INACTIVE": {
+        "label": "Retired",
+        "hint": "hidden from the public site"
+      }
+    },
+    "fields": {
+      "tourismRegionIds": {
+        "label": "Tourism regions",
+        "hint": "The regions this tag belongs to. It is offered only on their pages and to the destinations in them."
+      },
+      "name": {
+        "label": "Name",
+        "hint": "The filter a traveller ticks on the region's page, e.g. Kayak."
+      },
+      "description": {
+        "label": "Description",
+        "hint": "Optional. A line on when it applies."
+      }
+    }
+  },
+  "amenities": {
+    "label": "Amenity",
+    "labelPlural": "Amenities",
+    "description": "What a stay offers — a pool, free Wi-Fi, a hairdryer — at the property, in the room, or both. The stay form's Facilities and a room's Amenities read this one list.",
+    "columns": {
+      "name": "Name",
+      "groupName": "Group",
+      "level": "Offered",
+      "iconKey": "Icon",
+      "sortOrder": "#",
+      "status": "Status"
+    },
+    "status": {
+      "ACTIVE": {
+        "label": "Active",
+        "hint": "visible on the public site"
+      },
+      "INACTIVE": {
+        "label": "Retired",
+        "hint": "hidden from the public site"
+      }
+    },
+    "fields": {
+      "name": {
+        "label": "Name",
+        "hint": "For example: Rooftop pool. Renaming keeps the link name, so saved stays keep their tick."
+      },
+      "groupName": {
+        "label": "Group",
+        "hint": "The heading it is picked under.",
+        "options": {
+          "Accessibility": "Accessibility",
+          "Bathroom": "Bathroom",
+          "Comfort": "Comfort",
+          "Family & pets": "Family & pets",
+          "Food & drink": "Food & drink",
+          "Internet": "Internet",
+          "Parking & transport": "Parking & transport",
+          "Safety & access": "Safety & access",
+          "Services": "Services",
+          "Space & outdoors": "Space & outdoors",
+          "Tech & work": "Tech & work",
+          "Wellbeing": "Wellbeing"
+        }
+      },
+      "level": {
+        "label": "Offered",
+        "hint": "At the property: every guest can use it, whatever room they book. In the room: it differs room by room. Both: the hotel has it, and a room can say so too.",
+        "options": {
+          "PROPERTY": "At the property",
+          "ROOM": "In the room",
+          "BOTH": "Both"
+        }
+      },
+      "sortOrder": {
+        "label": "Place in its group",
+        "hint": "Click between two, or use the arrows. The others move to make room."
+      },
+      "iconKey": {
+        "label": "Icon",
+        "hint": "The small picture beside its name on the apps. None draws a tick.",
+        "options": {
+          "accessibility": "accessibility",
+          "air-vent": "air-vent",
+          "arrow-up-down": "arrow-up-down",
+          "baby": "baby",
+          "bath": "bath",
+          "bed-single": "bed-single",
+          "blinds": "blinds",
+          "bug-off": "bug-off",
+          "car": "car",
+          "check": "check",
+          "clock": "clock",
+          "coffee": "coffee",
+          "compass": "compass",
+          "concierge-bell": "concierge-bell",
+          "cooking-pot": "cooking-pot",
+          "door-closed": "door-closed",
+          "door-open": "door-open",
+          "droplets": "droplets",
+          "dumbbell": "dumbbell",
+          "egg-fried": "egg-fried",
+          "fan": "fan",
+          "flame": "flame",
+          "flower-2": "flower-2",
+          "footprints": "footprints",
+          "glass-water": "glass-water",
+          "heater": "heater",
+          "lamp": "lamp",
+          "lamp-desk": "lamp-desk",
+          "laptop": "laptop",
+          "layers": "layers",
+          "lock": "lock",
+          "luggage": "luggage",
+          "martini": "martini",
+          "microwave": "microwave",
+          "monitor-play": "monitor-play",
+          "moon": "moon",
+          "paw-print": "paw-print",
+          "phone": "phone",
+          "plane": "plane",
+          "plug": "plug",
+          "refrigerator": "refrigerator",
+          "shirt": "shirt",
+          "shower-head": "shower-head",
+          "siren": "siren",
+          "sofa": "sofa",
+          "sparkles": "sparkles",
+          "spray-can": "spray-can",
+          "square-parking": "square-parking",
+          "sun": "sun",
+          "trees": "trees",
+          "tv": "tv",
+          "users": "users",
+          "utensils": "utensils",
+          "vault": "vault",
+          "volume-x": "volume-x",
+          "washing-machine": "washing-machine",
+          "waves": "waves",
+          "wifi": "wifi",
+          "wind": "wind",
+          "wine": "wine"
+        }
+      }
+    }
+  },
+  "badge-definitions": {
+    "label": "Badge",
+    "labelPlural": "Badges",
+    "description": "What a traveller earns for exploring: browsing, reviewing and collecting stamps. The track and tier follow from how a badge is earned; a new badge gets a period for every season.",
+    "columns": {
+      "name": "Name",
+      "code": "Code",
+      "track": "Track",
+      "tier": "Tier",
+      "criteriaType": "Earned by",
+      "criteriaValue": "Threshold",
+      "status": "Status"
+    },
+    "status": {
+      "ACTIVE": {
+        "label": "Active",
+        "hint": "visible on the public site"
+      },
+      "INACTIVE": {
+        "label": "Retired",
+        "hint": "hidden from the public site"
+      }
+    },
+    "fields": {
+      "name": {
+        "label": "Name"
+      },
+      "code": {
+        "label": "Code",
+        "hint": "A unique code, e.g. `BROWSER_SILVER`."
+      },
+      "iconKey": {
+        "label": "Icon",
+        "hint": "An icon name, e.g. `compass` — not an upload."
+      },
+      "description": {
+        "label": "Description"
+      },
+      "criteriaType": {
+        "label": "Earned by",
+        "section": "Criteria",
+        "options": {
+          "BROWSES": "Destinations browsed",
+          "REVIEWS": "Reviews written",
+          "DESTINATION_STAMPS": "Stamps at chosen destinations",
+          "STAMPS": "Stamps collected"
+        }
+      },
+      "criteriaValue": {
+        "label": "Threshold",
+        "hint": "How many it takes within one badge period.",
+        "section": "Criteria"
+      }
+    }
+  },
+  "badge-periods": {
+    "label": "Badge period",
+    "labelPlural": "Badge periods",
+    "description": "The windows badges are earned in, one per badge per season. Progress starts again when a new period begins. Saving a season rewrites its periods, so change the season rather than one of these.",
+    "columns": {
+      "name": "Name",
+      "badgeId": "Badge",
+      "startDate": "Starts",
+      "endDate": "Ends",
+      "status": "Status"
+    },
+    "status": {
+      "ACTIVE": {
+        "label": "Active",
+        "hint": "visible on the public site"
+      },
+      "INACTIVE": {
+        "label": "Retired",
+        "hint": "hidden from the public site"
+      }
+    },
+    "fields": {
+      "name": {
+        "label": "Period name"
+      },
+      "badgeId": {
+        "label": "Badge"
+      },
+      "startDate": {
+        "label": "Starts on",
+        "hint": "Inclusive."
+      },
+      "endDate": {
+        "label": "Ends on",
+        "hint": "Inclusive."
+      }
+    }
+  },
+  "seasons": {
+    "label": "Season",
+    "labelPlural": "Seasons",
+    "description": "The tourist calendar: when the high and green seasons run. Saving a season updates every badge's period for it to the same name and dates; deleting one retires those periods. Two seasons on the calendar may not overlap.",
+    "columns": {
+      "name": "Name",
+      "startsOn": "Starts",
+      "endsOn": "Ends"
+    },
+    "status": {
+      "ACTIVE": {
+        "label": "Active",
+        "hint": "on the calendar — every badge's period for it is live"
+      },
+      "INACTIVE": {
+        "label": "Retired",
+        "hint": "off the calendar — its badge periods are retired too"
+      }
+    },
+    "fields": {
+      "name": {
+        "label": "Season name"
+      },
+      "kind": {
+        "label": "Kind",
+        "options": {
+          "GREEN": "Green season",
+          "HIGH": "High season"
+        }
+      },
+      "startsOn": {
+        "label": "Starts on",
+        "hint": "Inclusive. No two seasons may start on the same day."
+      },
+      "endsOn": {
+        "label": "Ends on",
+        "hint": "Inclusive — a season owns its closing day."
+      }
+    }
+  }
+}

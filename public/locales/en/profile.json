@@ -1,0 +1,189 @@
+{
+  "title": "My profile",
+  "editor": {
+    "changePhoto": "Change profile photo",
+    "preview": "Preview · not saved",
+    "verifiedEmail": "Verified email",
+    "myDashboard": "My dashboard",
+    "detailsTitle": "Personal details",
+    "detailsDescription": "How you appear to your team across the back office.",
+    "displayName": "Display name",
+    "displayNameHint": "Shown on your requests, decisions and in the audit log.",
+    "email": "Email",
+    "emailHint": "Your sign-in address. Ask an administrator to change it.",
+    "photo": "Profile photo",
+    "photoHint": "JPEG, PNG, WebP or AVIF, up to 8 MB. A square photo looks best.",
+    "saved": "Profile saved. Your team sees the change now.",
+    "saveFailed": "Your profile could not be saved. Please try again.",
+    "unsaved": "You have unsaved changes.",
+    "upToDate": "Everything is up to date.",
+    "discard": "Discard",
+    "saving": "Saving…",
+    "uploadingPhoto": "Uploading photo…",
+    "save": "Save changes",
+    "yourAccount": "Your account"
+  },
+  "photo": {
+    "empty": "Add a photo",
+    "filled": "Your photo",
+    "uploading": "Uploading your photo…",
+    "instructions": "Drag an image here, or choose one from your device.",
+    "drop": "Drop to upload",
+    "replace": "Replace photo",
+    "upload": "Upload photo",
+    "remove": "Remove",
+    "wrongType": "Choose a JPEG, PNG, WebP or AVIF image.",
+    "tooLarge": "That photo is larger than 8 MB. Choose a smaller one."
+  },
+  "security": {
+    "title": "Sign-in & security",
+    "description": "You sign in with your password and a code sent to your email. This dashboard never sees either.",
+    "changePassword": "Change password",
+    "changePasswordNote": "Opens the staff sign-in's “Set a new password” page and brings you back here. It may ask you to sign in again first.",
+    "methods": "Two-factor & sign-in methods",
+    "methodsDescription": "How you sign in, and your saved sign-in methods.",
+    "devices": "Devices & sessions",
+    "devicesDescription": "See where you are signed in, and sign out other devices.",
+    "newTab": "(opens in a new tab)",
+    "username": "Username",
+    "signedIn": "Signed in",
+    "signOut": "Sign out",
+    "notices": {
+      "success": "Your password has been changed. Use the new one next time you sign in.",
+      "cancelled": "Password not changed. Your current password still works.",
+      "error": "Keycloak could not change your password. Try again."
+    }
+  },
+  "workspace": {
+    "title": "Your role",
+    "homeScreen": "Home screen",
+    "youReview": "You review",
+    "noDesk": "No review desk",
+    "submissions": "Your submissions",
+    "reviewedBy": "Reviewed by {reviewer}",
+    "access": "Access",
+    "fullControl": "Every workspace, with full control"
+  },
+  "desks": {
+    "PARTNER": "Partner listing",
+    "CONTRIBUTOR": "Contributor draft",
+    "STAFF": "Staff content"
+  },
+  "reviewers": {
+    "PARTNER": "a BDO",
+    "CONTRIBUTOR": "an editor",
+    "STAFF": "an administrator"
+  },
+  "requestStatus": {
+    "DRAFT": "Changes requested",
+    "PENDING_REVIEW": "Pending",
+    "APPROVED": "Approved",
+    "REJECTED": "Rejected",
+    "PUBLISHED": "Published",
+    "UNPUBLISHED": "Unpublished"
+  },
+  "contributions": {
+    "title": "Your contributions",
+    "description": "What you have added to the catalogue, and where it stands.",
+    "allRequests": "All requests",
+    "created": "Created",
+    "createdHint": "Attractions, stays and food listings you started",
+    "live": "Live",
+    "liveHint": "On the public site",
+    "inReview": "In review",
+    "waitingOn": "Waiting on {reviewer}",
+    "awaiting": "Awaiting a decision",
+    "drafts": "Drafts",
+    "draftsHint": "Not approved yet",
+    "returned": "<b>{count, plural, one {One submission} other {# submissions}}</b> came back with changes to make.",
+    "latest": "Latest submissions",
+    "emptyTitle": "Nothing submitted yet",
+    "emptyDescription": "When you send a destination for approval, it appears here with the decision it gets.",
+    "create": "Create a destination"
+  },
+  "capabilities": {
+    "title": "What you can do",
+    "description": "Decided by your role. The screens offer exactly these.",
+    "count": "{granted} of {total}",
+    "withheld": "Not part of your role ({count})",
+    "needOne": "Need one of these? An administrator can change your role.",
+    "items": {
+      "create": {
+        "label": "Create destinations",
+        "detail": "Start new places as drafts. They stay off the public site until approved."
+      },
+      "editAny": {
+        "label": "Edit any destination",
+        "detail": "Correct and update every destination in the catalogue."
+      },
+      "editOwn": {
+        "label": "Edit your own destinations",
+        "detail": "Keep the destinations you created up to date."
+      },
+      "publishBoth": {
+        "label": "Publish and unpublish",
+        "detail": "Change what travellers can see on the public site."
+      },
+      "unpublish": {
+        "label": "Take destinations offline",
+        "detail": "Change what travellers can see on the public site."
+      },
+      "publish": {
+        "label": "Publish destinations",
+        "detail": "Change what travellers can see on the public site."
+      },
+      "approvePartners": {
+        "label": "Approve partner listings",
+        "detail": "Answer publishing requests from partners."
+      },
+      "approveContributors": {
+        "label": "Approve contributor drafts",
+        "detail": "Answer publishing requests from contributors."
+      },
+      "approveStaff": {
+        "label": "Approve editor and BDO content",
+        "detail": "Decide on what the reviewing desks write themselves."
+      },
+      "verify": {
+        "label": "Verify destinations",
+        "detail": "Verify any destination on evidence — an invoice or a licence — and renew or revoke it."
+      },
+      "listingsAny": {
+        "label": "Manage stays and food listings",
+        "detail": "List, correct and publish the stays and food near every destination."
+      },
+      "listingsPartner": {
+        "label": "Manage your business's stays and food",
+        "detail": "Keep the stays and food listings your partner runs up to date."
+      },
+      "listingsOwn": {
+        "label": "Write your own stays and food listings",
+        "detail": "List stays and places to eat, and send them to an editor to publish."
+      },
+      "corridors": {
+        "label": "Curate corridors",
+        "detail": "Build routes between destinations."
+      },
+      "taxonomy": {
+        "label": "Manage regions and taxonomy",
+        "detail": "Tourism regions, provinces, interests, categories and tags, and the history vocabulary: periods, monarchs, styles and religions."
+      },
+      "reviews": {
+        "label": "Moderate reviews",
+        "detail": "Hide or restore what travellers write."
+      },
+      "media": {
+        "label": "Upload media",
+        "detail": "Add photos to destinations, stays and food listings."
+      },
+      "people": {
+        "label": "Manage people and roles",
+        "detail": "Create back-office accounts and assign roles."
+      },
+      "audit": {
+        "label": "Read the audit log",
+        "detail": "See who changed what, and when."
+      }
+    }
+  }
+}

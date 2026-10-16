@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { CircleAlert, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
 
 export function QueryState({
   loading,
@@ -14,6 +15,8 @@ export function QueryState({
   readonly error?: unknown;
   readonly retry?: () => unknown;
 }) {
+  const t = useTranslations("common");
+  const apiErrorMessage = useApiErrorMessage();
   if (error)
     return (
       <div
@@ -27,12 +30,12 @@ export function QueryState({
         "status" in error &&
         error.status === 401 ? (
           <Link className="font-medium underline underline-offset-2" href="/login">
-            Sign in
+            {t("signIn")}
           </Link>
         ) : (
           retry && (
             <Button onClick={() => retry()} size="sm" variant="secondary">
-              Try again
+              {t("tryAgain")}
             </Button>
           )
         )}
@@ -42,7 +45,7 @@ export function QueryState({
     return (
       <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted" role="status">
         <Loader2 aria-hidden className="size-4 animate-spin" />
-        Loading…
+        {t("loading")}
       </div>
     );
   return null;

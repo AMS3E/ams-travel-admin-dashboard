@@ -3,12 +3,14 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { ImageOff, ImagePlus, Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { IMAGE_ACCEPT, MAX_IMAGE_BYTES, imageProblem, prepareImage } from "@/features/catalog/media-upload";
+import { IMAGE_ACCEPT, MAX_IMAGE_BYTES, prepareImage } from "@/features/catalog/media-upload";
 import { mediaPath, type ResourceField } from "@/features/catalog/resource";
+import { useUploadText } from "@/features/catalog/use-image-upload";
 import { useUploadMedia } from "@/features/media/api/media-api";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
 import { cn } from "@/lib/utils";
 
 interface DropzoneProps {
@@ -29,6 +31,9 @@ interface DropzoneProps {
  * again. A listing's cover is not set here: it is chosen in its gallery.
  */
 export function PhotoDropzone({ id, value, previewUrl, onChange, category, describedBy, invalid }: DropzoneProps) {
+  const t = useTranslations("forms.cover");
+  const text = useUploadText();
+  const errorMessage = useApiErrorMessage();
   const fileInput = useRef<HTMLInputElement>(null);
   const uploadMedia = useUploadMedia();
   const [uploading, setUploading] = useState(false);
@@ -43,12 +48,12 @@ export function PhotoDropzone({ id, value, previewUrl, onChange, category, descr
   function take(files: readonly File[]) {
     if (!files.length) return;
     const [first, ...rest] = files;
-    setNote(rest.length ? "Only the first photo is used as the cover." : null);
+    setNote(rest.length ? t("onlyFirst") : null);
     void upload(first);
   }
 
   async function upload(picked: File) {
-    const problem = imageProblem(picked);
+    const problem = text.problem(picked);
     if (problem) {
       setFailure(problem);
       return;
@@ -58,7 +63,7 @@ export function PhotoDropzone({ id, value, previewUrl, onChange, category, descr
     try {
       const file = await prepareImage(picked);
       if (file.size > MAX_IMAGE_BYTES) {
-        setFailure(`${picked.name} is still larger than 8 MB after resizing.`);
+        setFailure(text.tooLarge(picked.name));
         return;
       }
       const body = new FormData();
@@ -67,7 +72,7 @@ export function PhotoDropzone({ id, value, previewUrl, onChange, category, descr
       const payload = await uploadMedia(body);
       onChange(payload.key, payload.uri || mediaPath(payload.key));
     } catch (error) {
-      setFailure(apiErrorMessage(error));
+      setFailure(errorMessage(error));
     } finally {
       setUploading(false);
       if (fileInput.current) fileInput.current.value = "";
@@ -83,11 +88,11 @@ export function PhotoDropzone({ id, value, previewUrl, onChange, category, descr
               <div className="absolute inset-0 grid place-items-center text-muted">
                 <span className="flex flex-col items-center gap-1.5 text-xs">
                   <ImageOff aria-hidden className="size-6" />
-                  No image could be read at this key.
+                  {t("unreadable")}
                 </span>
               </div>
             ) : (
-              <Image alt="Cover photo" className="object-cover" fill onError={() => setBrokenSrc(preview)} sizes="320px" src={preview} unoptimized />
+              <Image alt={t("alt")} className="object-cover" fill onError={() => setBrokenSrc(preview)} sizes="320px" src={preview} unoptimized />
             )}
             {uploading ? (
               <div className="absolute inset-0 grid place-items-center bg-scrim text-white">
@@ -98,7 +103,7 @@ export function PhotoDropzone({ id, value, previewUrl, onChange, category, descr
           <div className="flex flex-row gap-2 sm:flex-col">
             <Button disabled={uploading} onClick={() => fileInput.current?.click()} size="sm" type="button" variant="secondary">
               <RefreshCw aria-hidden className="size-3.5" />
-              Replace
+              {t("replace")}
             </Button>
             <Button
               className="text-heritage hover:bg-heritage-soft hover:text-heritage"
@@ -112,7 +117,7 @@ export function PhotoDropzone({ id, value, previewUrl, onChange, category, descr
               variant="ghost"
             >
               <Trash2 aria-hidden className="size-3.5" />
-              Remove
+              {t("remove")}
             </Button>
           </div>
         </div>
@@ -148,19 +153,13 @@ export function PhotoDropzone({ id, value, previewUrl, onChange, category, descr
             <ImagePlus aria-hidden className={cn("size-5", dragging ? "text-teal" : "text-muted")} strokeWidth={1.75} />
           )}
           <span className="text-sm text-ink">
-            {uploading ? (
-              "Uploading…"
-            ) : dragging ? (
-              "Drop to upload"
-            ) : (
-              <>
-                <span className="font-medium text-teal-deep">Upload a photo</span> or drag it here
-              </>
-            )}
+            {uploading
+              ? t("uploading")
+              : dragging
+                ? t("dropToUpload")
+                : t.rich("uploadOrDrag", { b: (chunks) => <span className="font-medium text-teal-deep">{chunks}</span> })}
           </span>
-          <span className="text-xs text-muted">
-            JPEG, PNG, WebP or AVIF · large photos are resized · landscape works best
-          </span>
+          <span className="text-xs text-muted">{t("formats")}</span>
         </button>
       )}
 
@@ -187,17 +186,17 @@ export function PhotoDropzone({ id, value, previewUrl, onChange, category, descr
       <details className="group">
         <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-xs text-muted select-none hover:text-ink">
           <span className="transition-transform group-open:rotate-90">›</span>
-          Use a photo already uploaded
+          {t("useUploaded")}
         </summary>
         <Input
-          aria-label="Media key"
+          aria-label={t("mediaKey")}
           className="mt-2 h-8 font-mono text-xs"
           onChange={(event) => {
             const key = event.target.value.trim();
             setFailure(null);
             onChange(key, key ? mediaPath(key) : "");
           }}
-          placeholder="e.g. general/00000000-0000-0000-0000-000000000000/angkor-wat.jpg"
+          placeholder={t("keyExample", { key: "general/00000000-0000-0000-0000-000000000000/angkor-wat.jpg" })}
           spellCheck={false}
           type="text"
           value={value}

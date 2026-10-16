@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { isPoint, placeDetails, roundCoordinate, type OsmAddress, type PlaceResult } from "@/features/catalog/geo";
 import { requireAdminToken } from "@/lib/api-route.server";
 
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
 
   const query = request.nextUrl.searchParams.get("q")?.trim() ?? "";
   if (query.length < 2 || query.length > 200) {
-    return NextResponse.json({ message: "Type the name of a place to search for." }, { status: 400 });
+    return NextResponse.json({ message: (await getTranslations("errors.api"))("typePlace") }, { status: 400 });
   }
 
   const url = new URL("https://nominatim.openstreetmap.org/search");
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(results);
   } catch {
     return NextResponse.json(
-      { message: "Place search is not answering right now. Drop the pin on the map instead." },
+      { message: (await getTranslations("errors.api"))("searchDown") },
       { status: 502 },
     );
   }

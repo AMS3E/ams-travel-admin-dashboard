@@ -1,3 +1,4 @@
+import english from "@locales/en/profile.json";
 import {
   canCreateResource,
   canVerifyDestinations,
@@ -10,6 +11,7 @@ import {
   DESK_LABELS,
   DESK_REVIEWERS,
   PUBLISH_DESKS,
+  type PublishDesk,
 } from "@/features/publishing/api/contracts";
 import { submissionDesk } from "@/features/publishing/workflow";
 
@@ -37,11 +39,21 @@ export type CapabilityKey =
   | "people"
   | "audit";
 
+/** Which wording a capability takes: its key under `profile.capabilities.items`. */
+export type CapabilityText = keyof typeof english.capabilities.items;
+
 export interface Capability {
   readonly key: CapabilityKey;
+  readonly text: CapabilityText;
+  /** English, as `text` reads in `profile.capabilities.items`. */
   readonly label: string;
   readonly detail: string;
   readonly granted: boolean;
+}
+
+function capability(key: CapabilityKey, text: CapabilityText, granted: boolean): Capability {
+  const { label, detail } = english.capabilities.items[text];
+  return { key, text, label, detail, granted };
 }
 
 /**
@@ -60,122 +72,57 @@ export function capabilitiesOf(grants: readonly string[]): Capability[] {
   const unpublishes = has("PERM_DESTINATION_UNPUBLISH");
   const fullControl = grants.includes("PERM_FULL_CONTROL");
 
+  const partner = grants.includes("PARTNER");
+
   return [
-    {
-      key: "create",
-      label: "Create destinations",
-      detail: "Start new places as drafts. They stay off the public site until approved.",
-      granted: canCreateResource(grants, "destinations"),
-    },
-    {
-      key: "edit",
-      label: editsAny ? "Edit any destination" : "Edit your own destinations",
-      detail: editsAny
-        ? "Correct and update every destination in the catalogue."
-        : "Keep the destinations you created up to date.",
-      granted: editsAny || editsOwn,
-    },
-    {
-      key: "publish",
-      label: publishes && unpublishes
-        ? "Publish and unpublish"
-        : unpublishes ? "Take destinations offline" : "Publish destinations",
-      detail: "Change what travellers can see on the public site.",
-      granted: publishes || unpublishes,
-    },
-    {
-      key: "approve-partners",
-      label: "Approve partner listings",
-      detail: "Answer publishing requests from partners.",
-      granted: has("PERM_PARTNER_PUBLISH_APPROVE"),
-    },
-    {
-      key: "approve-contributors",
-      label: "Approve contributor drafts",
-      detail: "Answer publishing requests from contributors.",
-      granted: has("PERM_CONTRIBUTOR_PUBLISH_APPROVE"),
-    },
-    {
-      key: "approve-staff",
-      label: "Approve editor and BDO content",
-      detail: "Decide on what the reviewing desks write themselves.",
-      granted: fullControl,
-    },
-    {
-      key: "verify",
-      label: "Verify destinations",
-      detail: "Verify any destination on evidence — an invoice or a licence — and renew or revoke it.",
-      granted: canVerifyDestinations(grants),
-    },
-    {
-      key: "listings",
-      label: editsAny
-        ? "Manage stays and food listings"
-        : grants.includes("PARTNER")
-          ? "Manage your business's stays and food"
-          : "Write your own stays and food listings",
-      detail: editsAny
-        ? "List, correct and publish the stays and food near every destination."
-        : grants.includes("PARTNER")
-          ? "Keep the stays and food listings your partner runs up to date."
-          : "List stays and places to eat, and send them to an editor to publish.",
-      granted: editsAny || has("PERM_LISTING_EDIT_OWN"),
-    },
-    {
-      key: "corridors",
-      label: "Curate corridors",
-      detail: "Build routes between destinations.",
-      granted: has("PERM_CORRIDOR_CURATE"),
-    },
-    {
-      key: "taxonomy",
-      label: "Manage regions and taxonomy",
-      detail: "Tourism regions, provinces, interests, categories and tags, and the history vocabulary: periods, monarchs, styles and religions.",
-      granted: has("PERM_TAXONOMY_MANAGE"),
-    },
-    {
-      key: "reviews",
-      label: "Moderate reviews",
-      detail: "Hide or restore what travellers write.",
-      granted: has("PERM_REVIEW_MODERATE"),
-    },
-    {
-      key: "media",
-      label: "Upload media",
-      detail: "Add photos to destinations, stays and food listings.",
-      granted: has("PERM_MEDIA_UPLOAD"),
-    },
-    {
-      key: "people",
-      label: "Manage people and roles",
-      detail: "Create back-office accounts and assign roles.",
-      granted: has("PERM_USER_MANAGE") || has("PERM_ROLE_ASSIGN"),
-    },
-    {
-      key: "audit",
-      label: "Read the audit log",
-      detail: "See who changed what, and when.",
-      granted: has("PERM_AUDIT_VIEW"),
-    },
+    capability("create", "create", canCreateResource(grants, "destinations")),
+    capability("edit", editsAny ? "editAny" : "editOwn", editsAny || editsOwn),
+    capability(
+      "publish",
+      publishes && unpublishes ? "publishBoth" : unpublishes ? "unpublish" : "publish",
+      publishes || unpublishes,
+    ),
+    capability("approve-partners", "approvePartners", has("PERM_PARTNER_PUBLISH_APPROVE")),
+    capability("approve-contributors", "approveContributors", has("PERM_CONTRIBUTOR_PUBLISH_APPROVE")),
+    capability("approve-staff", "approveStaff", fullControl),
+    capability("verify", "verify", canVerifyDestinations(grants)),
+    capability(
+      "listings",
+      editsAny ? "listingsAny" : partner ? "listingsPartner" : "listingsOwn",
+      editsAny || has("PERM_LISTING_EDIT_OWN"),
+    ),
+    capability("corridors", "corridors", has("PERM_CORRIDOR_CURATE")),
+    capability("taxonomy", "taxonomy", has("PERM_TAXONOMY_MANAGE")),
+    capability("reviews", "reviews", has("PERM_REVIEW_MODERATE")),
+    capability("media", "media", has("PERM_MEDIA_UPLOAD")),
+    capability("people", "people", has("PERM_USER_MANAGE") || has("PERM_ROLE_ASSIGN")),
+    capability("audit", "audit", has("PERM_AUDIT_VIEW")),
   ];
 }
 
 export interface Workspace {
   readonly role: BusinessRole | null;
   readonly fullControl: boolean;
-  /** The desks whose requests this account decides, as the screens name them. */
+  /** The desks whose requests this account decides. */
+  readonly reviewDesks: readonly PublishDesk[];
+  /** The desk this account submits to, or null when nobody else decides. */
+  readonly submitDesk: PublishDesk | null;
+  /** The desks whose requests this account decides, as the screens name them (English). */
   readonly reviews: readonly string[];
-  /** Who decides what this account submits — "a BDO", "an editor" — or null when nobody else does. */
+  /** Who decides what this account submits — "a BDO", "an editor" — or null when nobody else does (English). */
   readonly submitsTo: string | null;
 }
 
 export function workspaceOf(grants: readonly string[]): Workspace {
   const fullControl = grants.includes("PERM_FULL_CONTROL");
   const desk = fullControl ? null : submissionDesk(grants);
+  const reviewDesks = PUBLISH_DESKS.filter((each) => reviewsDesk(grants, each));
   return {
     role: primaryRole(grants),
     fullControl,
-    reviews: PUBLISH_DESKS.filter((each) => reviewsDesk(grants, each)).map((each) => DESK_LABELS[each]),
+    reviewDesks,
+    submitDesk: desk,
+    reviews: reviewDesks.map((each) => DESK_LABELS[each]),
     submitsTo: desk ? DESK_REVIEWERS[desk] : null,
   };
 }

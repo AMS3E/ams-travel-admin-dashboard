@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ interface SearchFieldProps {
 }
 
 export function SearchField({ value, onChange, label, placeholder, className }: SearchFieldProps) {
+  const t = useTranslations("common");
   return (
     <div className={cn("relative min-w-48 flex-1", className)}>
       <Search aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" />
@@ -36,7 +38,7 @@ export function SearchField({ value, onChange, label, placeholder, className }: 
       />
       {value ? (
         <button
-          aria-label="Clear the search"
+          aria-label={t("clearSearch")}
           className="absolute top-1/2 right-1.5 grid size-5 -translate-y-1/2 place-items-center rounded-sm text-muted hover:bg-sand-deep hover:text-ink"
           onClick={() => onChange("")}
           type="button"
