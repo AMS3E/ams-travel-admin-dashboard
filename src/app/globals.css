@@ -421,6 +421,11 @@
   to { opacity: 1; transform: translateX(0); }
 }
 
+/* Any other right-hand drawer, such as an audit event's details. */
+.side-dialog[open] .side-drawer {
+  animation: verify-enter 180ms var(--ease-out-soft);
+}
+
 /* --- maps ------------------------------------------------------------------ */
 
 /* Street tiles follow the theme; satellite imagery is left as photographed. */

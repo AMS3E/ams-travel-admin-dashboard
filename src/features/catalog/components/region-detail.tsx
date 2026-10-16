@@ -1,11 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import { mediaPath } from "@/features/catalog/resource";
 import Link from "next/link";
-import { ArrowUpRight, ImageIcon, LoaderCircle, Pencil } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, ImageIcon, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from "@/components/ui/table";
@@ -13,17 +12,6 @@ import { useGetCatalogQuery, useGetCatalogRecordQuery } from "@/features/catalog
 import type { CatalogRecord } from "@/features/catalog/api/contracts";
 import { byName } from "@/features/catalog/resources";
 import { QueryState } from "@/features/cms/components/query-state";
-import type { MapPlace } from "./region-places-map";
-
-const RegionPlacesMap = dynamic(() => import("./region-places-map"), {
-  ssr: false,
-  loading: () => (
-    <p className="flex h-80 items-center justify-center gap-2 text-sm text-muted">
-      <LoaderCircle aria-hidden className="size-4 animate-spin" />
-      Loading the map…
-    </p>
-  ),
-});
 
 const STATUS: Readonly<Record<string, { label: string; tone: "active" | "neutral" | "inactive" }>> = {
   PUBLISHED: { label: "Published", tone: "active" },
@@ -41,8 +29,8 @@ const count = (value: number) => value.toLocaleString();
 
 /**
  * Content Management → Tourism Regions → one region: what its page in the
- * app shows. Its overview, its own categories and search filters, a map of
- * the destinations shelved in it, and the list of them. Read-only: the
+ * app shows. Its overview, its own categories and search filters, and the
+ * destinations shelved in it. Read-only: the
  * region's words are edited on its form, its lists in Taxonomy.
  */
 export function RegionDetail({ id }: { readonly id: string }) {
@@ -62,15 +50,11 @@ export function RegionDetail({ id }: { readonly id: string }) {
     [destinations.data, id],
   );
   const provinceName = useMemo(() => new Map((provinces.data ?? []).map((each) => [each.id, text(each.name)])), [provinces.data]);
-  const pins = useMemo<MapPlace[]>(
-    () => places.flatMap((place) => (typeof place.latitude === "number" && typeof place.longitude === "number"
-      ? [{ id: place.id, name: text(place.name), lat: place.latitude, lng: place.longitude, href: `/destination-stats/${place.id}` }]
-      : [])),
-    [places],
-  );
   const overview = text(row?.description);
   const coverKey = text(row?.coverKey);
   const cover = text(row?.coverUrl) || (coverKey ? mediaPath(coverKey) : "");
+  const mapKey = text(row?.mapKey);
+  const mapPicture = text(row?.mapUrl) || (mapKey ? mediaPath(mapKey) : "");
 
   return (
     <div className="flex flex-col gap-4">
@@ -82,7 +66,16 @@ export function RegionDetail({ id }: { readonly id: string }) {
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <Surface aria-label="Overview">
-          <SurfaceHeader description="Its cover picture and the lines under its name on its Discover page." title="Overview" />
+          <SurfaceHeader
+            actions={row?.amsRecommended === true ? (
+              <Badge tone="success">
+                <BadgeCheck aria-hidden className="size-3" />
+                Recommended by AMS Travel
+              </Badge>
+            ) : null}
+            description="Its cover picture and the lines under its name on its Discover page."
+            title="Overview"
+          />
           <div className="p-4">
             {cover ? (
               <Image alt="" className="mb-4 aspect-[2/1] w-full rounded-md object-cover ring-1 ring-line" data-field="cover" height={320} src={cover} unoptimized width={640} />
@@ -90,6 +83,14 @@ export function RegionDetail({ id }: { readonly id: string }) {
               <p className="mb-4 text-xs text-muted" data-field="cover">No cover picture yet: choose one on its form.</p>
             )}
             {overview ? <div className={STORY_CLASSES} dangerouslySetInnerHTML={{ __html: overview }} /> : <p className="text-sm text-muted">Nothing written yet.</p>}
+            <div className="mt-4 border-t border-line pt-4" data-field="map">
+              <p className="mb-2 text-xs font-medium text-muted">Map picture · the Map panel in the app, where the interactive map was</p>
+              {mapPicture ? (
+                <Image alt="" className="w-full rounded-md object-contain ring-1 ring-line" height={400} src={mapPicture} unoptimized width={480} />
+              ) : (
+                <p className="text-xs text-muted">No map picture yet: upload one on its form.</p>
+              )}
+            </div>
           </div>
         </Surface>
 
@@ -111,37 +112,20 @@ export function RegionDetail({ id }: { readonly id: string }) {
         </Surface>
       </div>
 
-      <Surface aria-label="Map">
-        <SurfaceHeader
-          description={places.length ? `${count(pins.length)} of ${count(places.length)} ${places.length === 1 ? "destination has" : "destinations have"} a pin.` : "No destination is shelved here yet."}
-          title="Map"
-        />
-        <div className="p-4">
-          <div className="relative isolate overflow-hidden rounded-lg border border-line bg-sand">
-            <RegionPlacesMap places={pins} />
-          </div>
-          <p className="mt-1 text-right text-2xs text-muted">
-            Map data ©{" "}
-            <a className="hover:text-ink hover:underline" href="https://www.openstreetmap.org/copyright" rel="noreferrer" target="_blank">
-              OpenStreetMap contributors
-            </a>
-          </p>
-        </div>
-      </Surface>
-
-      <Surface aria-label="Destinations">
-        <SurfaceHeader
-          actions={destinations.data ? <span className="text-xs text-muted tabular-nums">{count(places.length)}</span> : null}
-          description="Every attraction shelved in this region, as its page lists them. A name opens the destination's detail; the pencil its form."
-          title="Destinations"
-        />
-        {destinations.isLoading || destinations.error ? (
-          <div className="p-3">
-            <QueryState error={destinations.error} loading={destinations.isLoading} retry={destinations.refetch} />
-          </div>
-        ) : null}
-        {destinations.data ? (
-          places.length ? (
+      {/* Shown once an attraction picks this region; a failed read still shows, so it is never mistaken for empty. */}
+      {destinations.error || places.length ? (
+        <Surface aria-label="Destinations">
+          <SurfaceHeader
+            actions={destinations.data ? <span className="text-xs text-muted tabular-nums">{count(places.length)}</span> : null}
+            description="Every attraction shelved in this region, as its page lists them. A name opens the destination's detail; the pencil its form."
+            title="Destinations"
+          />
+          {destinations.error ? (
+            <div className="p-3">
+              <QueryState error={destinations.error} retry={destinations.refetch} />
+            </div>
+          ) : null}
+          {places.length ? (
             <Table>
               <TableHead>
                 <TableRow className="hover:bg-transparent">
@@ -189,11 +173,9 @@ export function RegionDetail({ id }: { readonly id: string }) {
                 })}
               </TableBody>
             </Table>
-          ) : (
-            <p className="px-4 py-6 text-center text-sm text-muted">No destination is shelved in this region yet.</p>
-          )
-        ) : null}
-      </Surface>
+          ) : null}
+        </Surface>
+      ) : null}
     </div>
   );
 }

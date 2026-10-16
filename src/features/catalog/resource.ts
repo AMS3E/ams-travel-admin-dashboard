@@ -257,6 +257,8 @@ export interface ResourceField {
   readonly chips?: boolean;
   /** For `text` — an icon name, chosen from the icons the website draws. */
   readonly iconPicker?: boolean;
+  /** For `boolean` — a bordered box with its hint inside: a choice travellers see the result of. */
+  readonly boxed?: boolean;
   /**
    * For `textarea` — written with a toolbar (bold, lists, links…) and saved
    * as Markdown, which the app draws. A plain text is Markdown already.

@@ -15,7 +15,8 @@ import type { ResourceKey } from "@/features/catalog/resource";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
-import { initials } from "@/features/auth/types";
+import { ProfileAvatar } from "@/features/profile/components/avatar-picker";
+import { cn } from "@/lib/utils";
 import { QueryState } from "./query-state";
 
 /**
@@ -89,9 +90,11 @@ export function RolesPage({ grants }: { readonly grants: readonly string[] }) {
                   return (
                     <li key={person.id}>
                       <Link className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-sand" href={"/people/" + person.id}>
-                        <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-sand-deep text-xs font-semibold text-ink-soft">
-                          {initials(name)}
-                        </span>
+                        <ProfileAvatar
+                          className={cn("size-8 text-xs", !person.enabled && "opacity-60 grayscale")}
+                          name={name}
+                          src={person.avatarUrl ?? ""}
+                        />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium text-ink">{name}</span>
                           <span className="block truncate text-xs text-muted">{person.email || person.username}</span>

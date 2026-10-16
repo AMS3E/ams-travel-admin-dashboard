@@ -50,7 +50,7 @@ Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Redux Toolkit + RTK Qu
 
 - `src/app/`: routes, including the `/api` handlers that forward requests to Spring
 - `src/features/<feature>/`: each feature's screens, API endpoints (`injectEndpoints`) and helpers
-- `src/store/`: one `baseApi` for caching and tags, plus slices for UI preferences only
+- `src/store/`: one `baseApi` for caching and tags, plus three small slices: the session, the sidebar and UI preferences
 - `src/components/ui/`: shared UI building blocks
 
 ## Checks

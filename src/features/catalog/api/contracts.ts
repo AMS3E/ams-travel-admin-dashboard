@@ -35,12 +35,17 @@ export interface RegionResponse {
   /** Its cover picture: its Explore card and the banner of its page. */
   readonly coverKey: string | null;
   readonly coverUrl: string | null;
+  /** Its map picture: one image in the Map panel of its page in the app, where the interactive map was. */
+  readonly mapKey: string | null;
+  readonly mapUrl: string | null;
   /** A tourism region's shelves, and the filter chips its page offers. Empty on a zone. */
   readonly categoryIds: readonly string[];
   readonly tagIds: readonly string[];
   /** The interests an attraction of its theme is offered. */
   readonly interestIds: readonly string[];
   readonly isActive: boolean;
+  /** Recommended by AMS Travel: the badge on its card and its page in the app. */
+  readonly amsRecommended: boolean;
   /** Its place among the regions of its kind, 0 first. */
   readonly sortOrder: number | null;
   /** Its centre, the marker on the app's Map screen: the one an editor set, else the middle of its places. */
@@ -106,7 +111,11 @@ export interface InterestResponse {
   readonly description: string | null;
   /** What the website's Interests tab lists it under; null keeps it off those lists. */
   readonly groupName: string | null;
+  /** An icon's name; no longer edited here, kept for the website and app until they show pictures. */
   readonly iconKey: string | null;
+  /** Its uploaded picture (folder `interest`). */
+  readonly coverKey: string | null;
+  readonly coverUrl: string | null;
   readonly isActive: boolean;
 }
 
@@ -140,9 +149,6 @@ export interface DestinationResponse {
   readonly categoryIds: readonly string[] | null;
   readonly tagIds: readonly string[] | null;
   readonly interestIds: readonly string[] | null;
-  /** Its heritage ties, written with the rest of the row. */
-  readonly architectureStyleIds: readonly string[] | null;
-  readonly religionIds: readonly string[] | null;
 }
 
 export type MediaType = "IMAGE" | "VIDEO";

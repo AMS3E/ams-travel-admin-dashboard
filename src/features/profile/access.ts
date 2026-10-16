@@ -130,7 +130,7 @@ export function capabilitiesOf(grants: readonly string[]): Capability[] {
     {
       key: "taxonomy",
       label: "Manage regions and taxonomy",
-      detail: "Tourism regions, provinces, interests, categories and tags, and the history vocabulary: periods, monarchs, styles and religions.",
+      detail: "Tourism regions, provinces, interests, categories and tags, and amenities.",
       granted: has("PERM_TAXONOMY_MANAGE"),
     },
     {

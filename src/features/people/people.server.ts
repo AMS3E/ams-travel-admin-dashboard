@@ -23,14 +23,23 @@ interface StaffResponse {
   readonly enabled: boolean;
   readonly roles: readonly BusinessRole[];
   readonly createdAt: string | null;
+  readonly phone: string | null;
+  readonly avatarKey: string | null;
+  readonly avatarUrl: string | null;
 }
 
 /** One back-office account, as the people screens show it. */
 export interface Person {
   readonly id: string;
   readonly name: string;
+  readonly firstName: string;
+  readonly lastName: string;
   readonly username: string;
   readonly email: string | null;
+  readonly phone: string | null;
+  /** The stored photo's key, which a form sends back to keep it. */
+  readonly avatarKey: string | null;
+  readonly avatarUrl: string | null;
   readonly enabled: boolean;
   readonly roles: readonly BusinessRole[];
 }
@@ -40,8 +49,13 @@ function toPerson(user: StaffResponse): Person {
   return {
     id: user.id,
     name: full || user.username,
+    firstName: user.firstName ?? "",
+    lastName: user.lastName ?? "",
     username: user.username,
     email: user.email,
+    phone: user.phone ?? null,
+    avatarKey: user.avatarKey ?? null,
+    avatarUrl: user.avatarUrl ?? null,
     enabled: user.enabled,
     roles: user.roles,
   };

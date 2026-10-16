@@ -1532,7 +1532,16 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       },
       { ...description, label: "Overview", rich: true, hint: "The lines under its name on its Discover page, under Overview." },
       { ...cover("region", "Cover picture"), hint: "Its card on Explore and the banner of its page in the app. A wide photograph of the region's best-known place reads best." },
-      ...centre("region", { blankUnless: "centreSet", whenEmpty: "Empty: the app uses the middle of the region's places." }),
+      {
+        name: "mapKey",
+        urlField: "mapUrl",
+        label: "Map picture",
+        kind: "image",
+        imageCategory: "region",
+        span: 2,
+        section: "Media",
+        hint: "The Map panel on its page in the app: one picture where the interactive map of its places used to be. A map of the region with its places marked reads best.",
+      },
       {
         name: "categoryIds",
         label: "Categories",
@@ -1552,6 +1561,15 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         section: "Its own lists",
         ordered: true,
         hint: "The tags its page offers as filters, in the order it shows them, and the only ones its attractions are offered. A tag is a plain label with nothing under it.",
+      },
+      {
+        name: "amsRecommended",
+        label: "Recommended by AMS Travel",
+        kind: "boolean",
+        boxed: true,
+        span: 2,
+        section: "Recommendation",
+        hint: "Shows the AMS Travel badge on its card on Explore and at the top of its page in the app.",
       },
     ],
   },
@@ -1682,7 +1700,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { name: "createdBy", label: "Created by", kind: "ref", ref: "users", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
-    /* Compact, with a live preview beside it: name, group, its place in the group, icon. */
+    /* Compact, with a live preview beside it: name, group, its place in the group, picture. */
     preview: "interest",
     fields: [
       { ...name(), span: 2, hint: "For example: Waterfalls." },
@@ -1704,13 +1722,8 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         span: 2,
         hint: "Click between two, or use the arrows. The others move to make room.",
       },
-      {
-        name: "iconKey",
-        label: "Icon",
-        kind: "text",
-        iconPicker: true,
-      },
       { ...description, hint: "Optional. The line under its name on its page." },
+      { ...cover("interest", "Cover picture"), hint: "Its picture on its shelf and at the top of its page. A clear photograph of the activity reads best." },
     ],
   },
 

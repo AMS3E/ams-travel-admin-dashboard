@@ -25,6 +25,7 @@ import {
 } from "@/features/catalog/components/fields/field-control";
 import {
   isShown,
+  mediaPath,
   resourceSchema,
   statusChoices,
   statusOption,
@@ -162,10 +163,20 @@ export function ResourceForm({
   }
 
   const text = (name: string) => (typeof watched[name] === "string" ? String(watched[name]).trim() : "");
-  /* The form's icon field, when it has one: an interest's. */
+  /* The form's icon field, when it has one. */
   const iconField = definition.fields.find((field) => field.iconPicker)?.name;
+  /* Rows shown by their picture rather than an icon: an interest's. */
+  const pictured = definition.fields.some((field) => field.name === "coverKey" && field.kind === "image");
 
-  /** For `spots`: the row being placed and the icons of the others, as the list shows them. */
+  /** A row's picture link, from its URL or else its key; empty when it has none. */
+  function pictureOf(row: Readonly<Record<string, unknown>> | undefined): string {
+    const url = row?.coverUrl;
+    if (typeof url === "string" && url) return url;
+    const key = row?.coverKey;
+    return typeof key === "string" && key ? mediaPath(key) : "";
+  }
+
+  /** For `spots`: the row being placed and the icons or pictures of the others, as the list shows them. */
   function spotOf(field: ResourceField): SpotContext | undefined {
     if (!field.spots) return undefined;
     const title = text(definition.titleField);
@@ -173,6 +184,8 @@ export function ResourceForm({
       title,
       iconKey: iconField ? text(iconField) : undefined,
       icons: iconField ? othersOf(field)?.map((row) => String(row[iconField] ?? "")) : undefined,
+      image: pictured ? pictureOf(watched) : undefined,
+      images: pictured ? (othersOf(field) ?? []).map((row) => pictureOf(row)) : undefined,
       clash: title ? placesOf(field)?.find((place) => place.toLowerCase() === title.toLowerCase()) : undefined,
     };
   }
@@ -183,10 +196,10 @@ export function ResourceForm({
     const others = (placeField ? othersOf(placeField) : undefined) ?? [];
     return {
       group: placeField?.placeAmong ? text(placeField.placeAmong) : "",
-      others: others.map((row) => ({ name: String(row[definition.titleField]).trim(), iconKey: iconField ? String(row[iconField] ?? "") : "" })),
+      others: others.map((row) => ({ name: String(row[definition.titleField]).trim(), image: pictureOf(row) })),
       position: spotIndex(placeField ? watched[placeField.name] : "", others.length),
       name: text(definition.titleField),
-      iconKey: iconField ? text(iconField) : "",
+      image: pictureOf(watched),
       description: text("description"),
       editing,
     };

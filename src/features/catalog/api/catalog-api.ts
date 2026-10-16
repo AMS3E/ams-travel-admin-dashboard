@@ -34,6 +34,19 @@ export interface CatalogPage {
   totalPages: number;
 }
 
+/**
+ * What a write to a resource makes stale. A category's or tag's region links live on
+ * the REGION (`categoryIds`, `tagIds`), so a term saved, retired or deleted changes the
+ * regions too; without this the taxonomy tree showed a new term only after a reload.
+ */
+function staleAfter(resource: ResourceKey): ReadonlyArray<"Dashboard" | { type: "Catalog"; id: ResourceKey }> {
+  return [
+    { type: "Catalog", id: resource },
+    ...(resource === "categories" || resource === "tags" ? [{ type: "Catalog" as const, id: "regions" as const }] : []),
+    "Dashboard",
+  ];
+}
+
 export const catalogApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getCatalog: builder.query<CatalogRecord[], ResourceKey>({
@@ -71,10 +84,7 @@ export const catalogApi = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: (_result, _error, { resource }) => [
-        { type: "Catalog", id: resource },
-        "Dashboard",
-      ],
+      invalidatesTags: (_result, _error, { resource }) => staleAfter(resource),
     }),
     deleteRecord: builder.mutation<void, { resource: ResourceKey; id: string }>(
       {
@@ -83,8 +93,7 @@ export const catalogApi = baseApi.injectEndpoints({
           method: "DELETE",
         }),
         invalidatesTags: (_result, _error, { resource }) => [
-          { type: "Catalog", id: resource },
-          "Dashboard",
+          ...staleAfter(resource),
           ...(resource === "destinations" ? ["PublishRequest" as const] : []),
         ],
       },
@@ -99,10 +108,7 @@ export const catalogApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: { status },
       }),
-      invalidatesTags: (_result, _error, { resource }) => [
-        { type: "Catalog", id: resource },
-        "Dashboard",
-      ],
+      invalidatesTags: (_result, _error, { resource }) => staleAfter(resource),
     }),
   }),
 });
