@@ -27,6 +27,7 @@ export type ResourceKey =
   | "food-menu-items"
   | "food-media"
   | "corridors"
+  | "corridor-media"
   | "regions"
   | "provinces"
   | "interests"
@@ -115,6 +116,19 @@ export interface ResourceField {
   readonly step?: number;
   /** For text — the most characters the API's column takes. */
   readonly maxLength?: number;
+  /**
+   * Filled only together with this other field, or not at all: a centre's
+   * latitude and longitude, which the API refuses one without the other.
+   */
+  readonly pairedWith?: string;
+  /**
+   * The row's flag that says this value was set by hand. A row can carry a
+   * value nobody set — a region's centre is the middle of its places until an
+   * editor types one — and sending it back would fix it there. So while the
+   * flag is false the box starts empty, and an empty value is sent as null,
+   * which the API reads as "keep following".
+   */
+  readonly blankUnless?: string;
   /**
    * For text — the shape the API insists on, checked before sending: an empty
    * box always passes. The expression is its source text, since a definition
@@ -243,6 +257,8 @@ export interface ResourceField {
   readonly chips?: boolean;
   /** For `text` — an icon name, chosen from the icons the website draws. */
   readonly iconPicker?: boolean;
+  /** For `boolean` — a bordered box with its hint inside: a choice travellers see the result of. */
+  readonly boxed?: boolean;
   /**
    * For `textarea` — written with a toolbar (bold, lists, links…) and saved
    * as Markdown, which the app draws. A plain text is Markdown already.
@@ -367,15 +383,19 @@ export function withoutField(definition: ResourceDefinition, name: string): Reso
   };
 }
 
-/** The three galleries are one API table, `/media`, told apart by whose photos they are. */
-const MEDIA_OWNERS: Partial<Record<ResourceKey, "DESTINATION" | "STAY" | "FOOD">> = {
+/** Whose photos a gallery holds: the API's `ownerType`. */
+export type GalleryOwnerType = "DESTINATION" | "STAY" | "FOOD" | "CORRIDOR";
+
+/** The four galleries are one API table, `/media`, told apart by whose photos they are. */
+const MEDIA_OWNERS: Partial<Record<ResourceKey, GalleryOwnerType>> = {
   "destination-media": "DESTINATION",
   "stay-media": "STAY",
   "food-media": "FOOD",
+  "corridor-media": "CORRIDOR",
 };
 
 /** The `ownerType` a gallery's rows carry, or null for any other resource. */
-export function mediaOwnerType(key: ResourceKey): "DESTINATION" | "STAY" | "FOOD" | null {
+export function mediaOwnerType(key: ResourceKey): GalleryOwnerType | null {
   return MEDIA_OWNERS[key] ?? null;
 }
 
@@ -431,7 +451,7 @@ export function isResourceOrder(value: unknown): value is ResourceOrder {
  * group, the corridors. Every other list opens A to Z.
  */
 const ARRANGED: ReadonlySet<ResourceKey> = new Set([
-  "destination-media", "stay-media", "food-media", "food-menu-items", "stay-rooms",
+  "destination-media", "stay-media", "food-media", "corridor-media", "food-menu-items", "stay-rooms",
   "regions", "interests", "corridors", "amenities",
 ]);
 
@@ -648,7 +668,9 @@ export function toFormValues(
   const values: FormValues = {};
 
   for (const field of definition.fields) {
-    const raw = record?.[field.name];
+    /* A value the row carries without anyone having set it starts empty: see `blankUnless`. */
+    const unset = Boolean(record && field.blankUnless && record[field.blankUnless] !== true);
+    const raw = unset ? null : record?.[field.name];
 
     switch (field.kind) {
       case "boolean":
@@ -812,7 +834,21 @@ export function resourceSchema(definition: ResourceDefinition) {
   for (const field of definition.fields) {
     shape[field.name] = fieldSchema(field);
   }
-  return z.object(shape);
+  /* A pair is filled together or left empty together: the API refuses half a centre. */
+  const paired = definition.fields.filter((field) => field.pairedWith);
+  if (!paired.length) return z.object(shape);
+  return z.object(shape).superRefine((values, context) => {
+    const filled = (name: string) => typeof values[name] === "string" && (values[name] as string).trim().length > 0;
+    for (const field of paired) {
+      const other = definition.fields.find((each) => each.name === field.pairedWith);
+      if (!other || filled(field.name) || !filled(other.name)) continue;
+      context.addIssue({
+        code: "custom",
+        path: [field.name],
+        message: `${field.label} goes with ${other.label.toLowerCase()}: fill in both, or neither`,
+      });
+    }
+  });
 }
 
 /* -------------------------------------------------------------------------- */

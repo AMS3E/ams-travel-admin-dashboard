@@ -45,8 +45,24 @@ export interface CorridorSummary {
   readonly routeCalculatedAt: string | null;
   readonly routeError: string | null;
   readonly publishedAt: string | null;
+  readonly createdBy: string | null;
   readonly createdAt: string | null;
   readonly updatedAt: string | null;
+  /** True when `status` is PUBLISHED. */
+  readonly isActive: boolean | null;
+  /** Tourism Corridors interests, whose pages on the website list it. */
+  readonly interestIds: readonly string[] | null;
+  /** Its place in the list, 0 first. */
+  readonly sortOrder: number | null;
+  /*
+   * For the app, read-only here: the whole road as Google encodes it, and the
+   * stops in travel order with the provinces and regions they fall in.
+   */
+  readonly encodedPolyline: string | null;
+  readonly stopNames: readonly string[] | null;
+  readonly stopDestinationIds: readonly string[] | null;
+  readonly stopProvinceIds: readonly string[] | null;
+  readonly stopRegionIds: readonly string[] | null;
 }
 
 export interface ItineraryDestination {

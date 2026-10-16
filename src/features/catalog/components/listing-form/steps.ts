@@ -42,6 +42,15 @@ export const LISTING_GALLERIES: Readonly<Record<ListingKey, ResourceKey>> = {
   foods: "food-media",
 };
 
+/** A row with a photo set of its own: the three listings, and a tourism corridor. */
+export type GalleryOwner = ListingKey | "corridors";
+
+/** Every gallery the photos box fills: the listings' and the corridor's. */
+export const GALLERIES: Readonly<Record<GalleryOwner, ResourceKey>> = {
+  ...LISTING_GALLERIES,
+  corridors: "corridor-media",
+};
+
 export interface StepGroup {
   readonly title?: string;
   readonly description?: string;

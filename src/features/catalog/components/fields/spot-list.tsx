@@ -2,13 +2,17 @@
 
 import { ChevronDown, ChevronUp, Plus, TriangleAlert } from "lucide-react";
 import { KeyIcon } from "@/features/catalog/components/fields/choice-tiles";
+import { PictureThumb } from "@/features/catalog/components/fields/picture-thumb";
 import { cn } from "@/lib/utils";
 
-/** What the form knows about the row being placed: its name and icon so far, and a name it clashes with. */
+/** What the form knows about the row being placed: its name and icon or picture so far, and a name it clashes with. */
 export interface SpotContext {
   readonly title: string;
   readonly iconKey?: string;
   readonly icons?: readonly string[];
+  /** Set when the rows have pictures rather than icons: its own, then the others top to bottom. */
+  readonly image?: string;
+  readonly images?: readonly string[];
   readonly clash?: string;
 }
 
@@ -29,7 +33,7 @@ interface SpotListProps extends SpotContext {
 }
 
 /** The list shown once, with the row being placed in it; click between two rows to move it there. */
-export function SpotList({ places, value, onChange, title, iconKey, icons, clash, editing = false, labelledBy, describedBy }: SpotListProps) {
+export function SpotList({ places, value, onChange, title, iconKey, icons, image, images, clash, editing = false, labelledBy, describedBy }: SpotListProps) {
   const at = spotIndex(value, places.length);
   const move = (to: number) => onChange(String(to));
 
@@ -56,7 +60,7 @@ export function SpotList({ places, value, onChange, title, iconKey, icons, clash
   const own = (
     <li className="flex items-center gap-2.5 rounded-md border border-teal bg-teal-soft/50 px-2.5 py-1.5 ring-1 ring-teal" key="own">
       <span className="w-5 text-right text-xs font-semibold text-teal tabular-nums">{at + 1}</span>
-      <KeyIcon aria-hidden className="size-4 shrink-0 text-teal" iconKey={iconKey} strokeWidth={1.75} />
+      {images ? <PictureThumb className="size-5" src={image} /> : <KeyIcon aria-hidden className="size-4 shrink-0 text-teal" iconKey={iconKey} strokeWidth={1.75} />}
       <span className={cn("min-w-0 flex-1 truncate text-sm font-medium", title ? "text-ink" : "text-muted italic")}>{title || "Its name"}</span>
       <span className="rounded-full bg-teal px-1.5 py-px text-2xs font-semibold text-white">{editing ? "This one" : "New"}</span>
       <span className="flex items-center">
@@ -82,7 +86,7 @@ export function SpotList({ places, value, onChange, title, iconKey, icons, clash
       >
         {spot !== at ? gap(spot, "top") : null}
         <span className="w-5 text-right text-xs text-muted tabular-nums">{spot < at ? spot + 1 : spot + 2}</span>
-        <KeyIcon aria-hidden className="size-4 shrink-0 text-muted" iconKey={icons?.[spot]} strokeWidth={1.75} />
+        {images ? <PictureThumb className="size-5" src={images[spot]} /> : <KeyIcon aria-hidden className="size-4 shrink-0 text-muted" iconKey={icons?.[spot]} strokeWidth={1.75} />}
         <span className={cn("min-w-0 flex-1 truncate text-sm", name === clash ? "font-medium text-heritage" : "text-ink-soft")}>{name}</span>
         {last && at !== places.length ? gap(places.length, "bottom") : null}
       </li>,

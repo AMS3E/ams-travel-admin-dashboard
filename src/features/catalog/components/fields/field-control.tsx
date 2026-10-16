@@ -264,6 +264,20 @@ export function FieldControl({ field, options, locked = false, siblings, places,
   }
 
   /* A checkbox reads as "label after control", not as a labelled field. */
+  if (field.kind === "boolean" && field.boxed) {
+    return (
+      <div className={span}>
+        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-line-strong bg-paper p-3.5 transition-colors hover:border-line-hover has-checked:border-teal has-checked:bg-teal-soft/40">
+          <Checkbox className="mt-0.5" {...register(field.name)} />
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-ink select-none">{field.label}</span>
+            {field.hint ? <span className="mt-0.5 block text-xs text-muted">{field.hint}</span> : null}
+          </span>
+        </label>
+      </div>
+    );
+  }
+
   if (field.kind === "boolean") {
     return (
       <div className={span}>

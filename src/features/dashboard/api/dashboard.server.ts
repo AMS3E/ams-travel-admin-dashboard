@@ -37,22 +37,17 @@ export interface AuditFilters {
   readonly limit: number;
 }
 
-/**
- * The audit feed. ADMIN only in practice: the endpoint needs `PERM_AUDIT_VIEW`.
- *
- * The API caps `limit` whatever is asked for — the table only grows, and a
- * screen that could ask for all of it would eventually ask for all of it.
- */
+/** The audit feed (`PERM_AUDIT_VIEW`), newest first; null when the API did not answer. */
 export async function getAuditEntries(
   filters: AuditFilters,
-): Promise<readonly AuditLogResponse[]> {
+): Promise<readonly AuditLogResponse[] | null> {
   const query = new URLSearchParams({ limit: String(filters.limit) });
   if (filters.entityType) query.set("entityType", filters.entityType);
   if (filters.entityId) query.set("entityId", filters.entityId);
   if (filters.action) query.set("action", filters.action);
   if (filters.userId) query.set("userId", filters.userId);
 
-  return (await read<AuditLogResponse[]>(`/admin/audit?${query}`)) ?? [];
+  return read<AuditLogResponse[]>(`/admin/audit?${query}`);
 }
 
 /**

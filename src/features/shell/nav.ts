@@ -12,7 +12,7 @@ import { canManageResource, hasAnyPermission, primaryRole, type BusinessRole } f
 
 const ICONS: Readonly<Record<ResourceKey, LucideIcon>> = {
   destinations: MapPin, "destination-media": Images, stays: BedDouble,
-  "stay-media": Images, "stay-rooms": BedSingle, foods: UtensilsCrossed, "food-media": Images, "food-menu-items": ChefHat, corridors: Route, regions: Map,
+  "stay-media": Images, "stay-rooms": BedSingle, foods: UtensilsCrossed, "food-media": Images, "food-menu-items": ChefHat, corridors: Route, "corridor-media": Images, regions: Map,
   provinces: Building2, interests: Compass, categories: Shapes, tags: Tag, amenities: ConciergeBell,
   "badge-definitions": Award,
   "badge-periods": CalendarRange, seasons: SunMedium,

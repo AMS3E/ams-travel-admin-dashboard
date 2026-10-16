@@ -1,332 +1,644 @@
 "use client";
 
-import { Fragment, useState } from "react";
-import Link from "next/link";
+import { Fragment, useEffect, useEffectEvent, useId, useMemo, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleAlert, FileClock, Info, RotateCcw, RotateCw, Search, SearchX, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from "@/components/ui/table";
-import { Toolbar } from "@/components/ui/toolbar";
-import type { AuditAction } from "@/features/dashboard/api/contracts";
+import type { AuditAction, AuditLogResponse } from "@/features/dashboard/api/contracts";
 import {
   AUDIT_ACTION_LABELS,
   AUDIT_ACTION_TONES,
-  AUDIT_LIMITS,
+  AUDIT_ACTIONS,
+  AUDIT_DEFAULT_PAGE_SIZE,
+  AUDIT_FETCH_LIMIT,
+  AUDIT_PAGE_SIZES,
+  auditCountsOf,
+  auditRowsOf,
+  formatCount,
+  matchesSearch,
+  plural,
   type AuditEntityOption,
+  type AuditPerson,
   type AuditRow,
+  type AuditServerFilters,
+  type AuditSummary,
 } from "@/features/dashboard/audit";
+import { AuditEventDrawer } from "@/features/dashboard/components/audit-event-drawer";
+import { isUuid } from "@/lib/ids";
 import { cn } from "@/lib/utils";
 
-const ACTIONS: readonly AuditAction[] = ["CREATE", "UPDATE", "DELETE", "PURGE"];
-/* Longer values (route lines, JSON) fold behind "Show all". */
-const CLAMP = 140;
-
 interface AuditLogProps {
-  readonly rows: readonly AuditRow[];
+  /** Null when the API did not answer. */
+  readonly entries: readonly AuditLogResponse[] | null;
+  readonly filters: AuditServerFilters;
+  /** The server's clock, so server and browser agree on "Today". */
+  readonly now: string;
+  /** Everyone who made a change, for the By filter. */
+  readonly people: readonly AuditPerson[];
   readonly typeOptions: readonly AuditEntityOption[];
-  readonly entityType: string;
-  readonly action: string;
-  readonly limit: number;
-  /** Set when the feed is narrowed to one person or one record from a row link. */
-  readonly userLabel: string | null;
-  readonly recordLabel: string | null;
 }
 
-/** Filters live in the URL, so a filtered view can be shared and reloaded. */
-function useQueryLink() {
-  const pathname = usePathname();
+/** Everything the URL holds: the API's filters plus the browser's search and page size. */
+interface AuditQuery extends AuditServerFilters {
+  readonly q: string;
+  readonly size: number;
+}
+
+const SERVER_KEYS = ["entityType", "action", "userId", "entityId"] as const;
+const CLEARED: Pick<AuditQuery, "entityType" | "action" | "userId" | "entityId" | "q"> = {
+  entityType: "",
+  action: "",
+  userId: "",
+  entityId: "",
+  q: "",
+};
+/* Time, action, record, by, what changed, view; below xl only time, record and view show. */
+const COLUMNS = 6;
+const NARROW_COLUMNS = 3;
+
+function urlOf(pathname: string, query: AuditQuery): string {
+  const params = new URLSearchParams();
+  if (query.entityType) params.set("entityType", query.entityType);
+  if (query.action) params.set("action", query.action);
+  if (query.userId) params.set("user", query.userId);
+  if (query.entityId) params.set("record", query.entityId);
+  if (query.q) params.set("q", query.q);
+  if (query.size !== AUDIT_DEFAULT_PAGE_SIZE) params.set("size", String(query.size));
+  const text = params.toString();
+  return text ? `${pathname}?${text}` : pathname;
+}
+
+function sizeOf(value: string | null): number {
+  const size = Number(value);
+  return (AUDIT_PAGE_SIZES as readonly number[]).includes(size) ? size : AUDIT_DEFAULT_PAGE_SIZE;
+}
+
+function summaryText(summary: AuditSummary): string {
+  if (summary.note) return summary.note;
+  return summary.more ? `${summary.fields.join(", ")} +${summary.more} more` : summary.fields.join(", ");
+}
+
+/** The browser-side part of the URL: the search and the page size. */
+function useViewParams(): { readonly q: string; readonly size: number } {
   const params = useSearchParams();
-  return (changes: Readonly<Record<string, string | null>>) => {
-    const next = new URLSearchParams(params.toString());
-    for (const [key, value] of Object.entries(changes)) {
-      if (value) next.set(key, value);
-      else next.delete(key);
-    }
-    const query = next.toString();
-    return query ? `${pathname}?${query}` : pathname;
-  };
+  return { q: (params.get("q") ?? "").trim(), size: sizeOf(params.get("size")) };
 }
 
-export function AuditLog({ rows, typeOptions, entityType, action, limit, userLabel, recordLabel }: AuditLogProps) {
+export function AuditLog({ entries, filters, now, people, typeOptions }: AuditLogProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const linkTo = useQueryLink();
-  const [open, setOpen] = useState<ReadonlySet<number>>(new Set());
-  const filtered = Boolean(entityType || action || userLabel || recordLabel);
+  const { q, size } = useViewParams();
+  const [pending, startTransition] = useTransition();
+  const surface = useRef<HTMLElement>(null);
 
-  function toggle(id: number) {
-    setOpen((current) => {
-      const next = new Set(current);
-      if (!next.delete(id)) next.add(id);
-      return next;
-    });
+  const applied: AuditQuery = { ...filters, q, size };
+  const filtered = SERVER_KEYS.some((key) => Boolean(filters[key])) || Boolean(q);
+
+  const rows = useMemo(() => (entries ? auditRowsOf(entries, new Date(now)) : []), [entries, now]);
+  const { visible, counts } = useMemo(() => {
+    const matching = q ? rows.filter((row) => matchesSearch(row, q)) : rows;
+    return { visible: matching, counts: auditCountsOf(matching) };
+  }, [rows, q]);
+  const capped = (entries?.length ?? 0) >= AUDIT_FETCH_LIMIT;
+
+  /* The page goes back to 1 whenever the list itself changes. */
+  const listKey = `${entries?.length ?? "none"}:${entries?.[0]?.id ?? ""}:${q}:${size}:${SERVER_KEYS.map((key) => filters[key]).join("|")}`;
+  const [paging, setPaging] = useState({ key: listKey, page: 1 });
+  const pageCount = Math.max(1, Math.ceil(visible.length / size));
+  const page = Math.min(paging.key === listKey ? paging.page : 1, pageCount);
+  const pageRows = visible.slice((page - 1) * size, page * size);
+
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const selectedIndex = selectedId == null ? -1 : visible.findIndex((row) => row.id === selectedId);
+  const selected = selectedIndex === -1 ? null : visible[selectedIndex];
+
+  /* The search box follows the URL when something else changes it: Clear filters, Back. */
+  const [search, setSearch] = useState(q);
+  const [searchFor, setSearchFor] = useState(q);
+  if (searchFor !== q) {
+    setSearchFor(q);
+    if (search.trim() !== q) setSearch(q);
   }
 
+  function goToPage(next: number, scroll = true) {
+    setPaging({ key: listKey, page: next });
+    const element = surface.current;
+    if (scroll && element && element.getBoundingClientRect().top < 0) element.scrollIntoView({ block: "start" });
+  }
+
+  function selectAt(index: number) {
+    const row = visible[index];
+    if (!row) return;
+    setSelectedId(row.id);
+    goToPage(Math.floor(index / size) + 1, false);
+  }
+
+  /** The API's filters go through the server; search and page size only change the URL. */
+  function apply(changes: Partial<AuditQuery>, replace = false) {
+    const next = { ...applied, ...changes };
+    const url = urlOf(pathname, next);
+    setSelectedId(null);
+    if (SERVER_KEYS.some((key) => next[key] !== filters[key])) {
+      startTransition(() => router.push(url, { scroll: false }));
+    } else if (replace) {
+      window.history.replaceState(null, "", url);
+    } else {
+      window.history.pushState(null, "", url);
+    }
+  }
+
+  /* Typing searches after a short pause; a pasted record ID opens that record's whole history. */
+  const commitSearch = useEffectEvent((text: string) => {
+    if (isUuid(text)) {
+      setSearch("");
+      apply({ entityId: text.toLowerCase(), q: "" });
+    } else {
+      apply({ q: text }, true);
+    }
+  });
+  useEffect(() => {
+    const text = search.trim();
+    if (text === q) return;
+    const timer = window.setTimeout(() => commitSearch(text), 300);
+    return () => window.clearTimeout(timer);
+  }, [search, q]);
+
+  const reset = () => {
+    setSearch("");
+    apply(CLEARED);
+  };
+  const retry = () => startTransition(() => router.refresh());
+  const recordName = rows.find((row) => row.entityId === filters.entityId && row.name)?.name ?? "This record";
+
   return (
-    <section className="panel min-w-0 overflow-hidden">
-      <Toolbar>
-        <Select
-          aria-label="Filter by record type"
-          className="h-8 w-48 text-sm"
-          onChange={(event) => router.push(linkTo({ entityType: event.target.value || null }))}
-          value={entityType}
-        >
-          <option value="">All records</option>
-          {typeOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </Select>
+    <>
+      <section aria-label="Changes" className="panel min-w-0 scroll-mt-20 overflow-hidden" ref={surface}>
+        <div className="flex flex-col gap-2 border-b border-line p-3" role="search">
+          <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-[minmax(14rem,1fr)_11rem_10rem_12rem_auto]">
+            <div className="relative sm:col-span-3 xl:col-span-1">
+              <Search aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" />
+              <Input
+                aria-label="Search changes"
+                className="h-8 pr-8 pl-8 text-sm [&::-webkit-search-cancel-button]:hidden"
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search by record or person"
+                type="search"
+                value={search}
+              />
+              {search ? (
+                <button
+                  aria-label="Clear the search"
+                  className="absolute top-1/2 right-1.5 grid size-5 -translate-y-1/2 place-items-center rounded-sm text-muted hover:bg-sand-deep hover:text-ink"
+                  onClick={() => setSearch("")}
+                  type="button"
+                >
+                  <X aria-hidden className="size-3.5" />
+                </button>
+              ) : null}
+            </div>
 
-        <Select
-          aria-label="Filter by action"
-          className="h-8 w-36 text-sm"
-          onChange={(event) => router.push(linkTo({ action: event.target.value || null }))}
-          value={action}
-        >
-          <option value="">All actions</option>
-          {ACTIONS.map((value) => (
-            <option key={value} value={value}>
-              {AUDIT_ACTION_LABELS[value]}
-            </option>
-          ))}
-        </Select>
+            <Select aria-label="Record type" className="h-8 text-sm" onChange={(event) => apply({ entityType: event.target.value })} value={filters.entityType}>
+              <option value="">All records</option>
+              {typeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
 
-        <Select
-          aria-label="How many entries"
-          className="h-8 w-32 text-sm"
-          onChange={(event) => router.push(linkTo({ limit: event.target.value === "50" ? null : event.target.value }))}
-          value={String(limit)}
-        >
-          {AUDIT_LIMITS.map((value) => (
-            <option key={value} value={value}>
-              Latest {value}
-            </option>
-          ))}
-        </Select>
+            <Select
+              aria-label="Action"
+              className="h-8 text-sm"
+              onChange={(event) => apply({ action: event.target.value as AuditAction | "" })}
+              value={filters.action}
+            >
+              <option value="">All actions</option>
+              {AUDIT_ACTIONS.map((value) => (
+                <option key={value} value={value}>
+                  {AUDIT_ACTION_LABELS[value]}
+                </option>
+              ))}
+            </Select>
 
-        {userLabel ? <FilterChip href={linkTo({ user: null })} label={`By ${userLabel}`} /> : null}
-        {recordLabel ? <FilterChip href={linkTo({ record: null })} label={recordLabel} /> : null}
+            <Select aria-label="By" className="h-8 text-sm" onChange={(event) => apply({ userId: event.target.value })} value={filters.userId}>
+              <option value="">By: anyone</option>
+              {people.map((person) => (
+                <option key={person.id} value={person.id}>
+                  By: {person.name}
+                </option>
+              ))}
+            </Select>
 
-        <p aria-live="polite" className="ml-auto text-xs text-muted tabular-nums">
-          {rows.length.toLocaleString()} {rows.length === 1 ? "entry" : "entries"}
-        </p>
-      </Toolbar>
+            {filtered ? (
+              <Button className="justify-self-start" disabled={pending} onClick={reset} size="sm" type="button" variant="ghost">
+                <RotateCcw aria-hidden className="size-3.5" />
+                Clear filters
+              </Button>
+            ) : null}
+          </div>
 
-      {rows.length ? (
-        <Table>
-          <TableHead>
-            <TableRow className="hover:bg-transparent">
-              <TableHeaderCell className="w-20">Time</TableHeaderCell>
-              <TableHeaderCell className="w-32">Action</TableHeaderCell>
-              <TableHeaderCell>Record</TableHeaderCell>
-              <TableHeaderCell>By</TableHeaderCell>
-              <TableHeaderCell className="w-12">
-                <span className="sr-only">Details</span>
-              </TableHeaderCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {rows.map((row, index) => {
-              const expanded = open.has(row.id);
-              const expandable = row.changes.length > 0 || row.entityId != null;
-              const newDay = index === 0 || rows[index - 1].day !== row.day;
-              return (
-                <Fragment key={row.id}>
-                  {newDay ? (
-                    <tr className="bg-sand">
-                      <th className="px-4 py-1.5 text-xs font-medium text-muted" colSpan={5} scope="colgroup">
-                        {row.day}
-                      </th>
-                    </tr>
-                  ) : null}
-
-                  <TableRow
-                    className={cn(expandable && "cursor-pointer", expanded && "bg-sand/60")}
-                    onClick={(event) => {
-                      /* Links and the toggle do their own thing. */
-                      if (expandable && !(event.target as HTMLElement).closest("a, button")) toggle(row.id);
-                    }}
-                  >
-                    <TableCell className="whitespace-nowrap text-muted tabular-nums" title={row.at}>
-                      {row.time}
-                    </TableCell>
-                    <TableCell>
-                      <Badge dot tone={AUDIT_ACTION_TONES[row.action]}>
-                        {AUDIT_ACTION_LABELS[row.action]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="max-w-72">
-                      <RecordName row={row} />
-                      <span className="block truncate text-xs text-muted">{row.typeLabel}</span>
-                    </TableCell>
-                    <TableCell className="max-w-56">
-                      {row.userId ? (
-                        <Link
-                          className="block truncate text-ink hover:text-teal-deep hover:underline"
-                          href={linkTo({ user: row.userId })}
-                          title={`Only changes by ${row.actor}`}
-                        >
-                          {row.actor}
-                        </Link>
-                      ) : (
-                        <span className="block text-muted" title="An automatic change: seed data, route calculation or a scheduled job">
-                          {row.actor}
-                        </span>
-                      )}
-                      {row.actorEmail ? <span className="block truncate text-xs text-muted">{row.actorEmail}</span> : null}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {expandable ? (
-                        <button
-                          aria-expanded={expanded}
-                          aria-label={expanded ? "Hide the changes" : "Show the changes"}
-                          className="inline-grid size-7 place-items-center rounded-md text-muted hover:bg-sand-deep hover:text-ink"
-                          onClick={() => toggle(row.id)}
-                          type="button"
-                        >
-                          <ChevronDown
-                            aria-hidden
-                            className={cn("size-4 transition-transform", expanded && "rotate-180")}
-                          />
-                        </button>
-                      ) : null}
-                    </TableCell>
-                  </TableRow>
-
-                  {expanded ? (
-                    <tr className="bg-sand/60">
-                      <td className="px-4 pt-1 pb-4" colSpan={5}>
-                        <AuditDetails linkTo={linkTo} row={row} />
-                      </td>
-                    </tr>
-                  ) : null}
-                </Fragment>
-              );
-            })}
-          </TableBody>
-        </Table>
-      ) : (
-        <div className="px-4 py-10 text-center text-sm text-muted">
-          <p>No changes match these filters.</p>
-          {filtered ? (
-            <Link className="mt-2 inline-block text-xs font-medium text-teal-deep hover:underline" href={pathname}>
-              Clear filters
-            </Link>
+          {filters.entityId ? (
+            <div className="flex items-center gap-2 text-xs text-muted">
+              Showing every change to
+              <button
+                aria-label={`Show changes to every record, not only ${recordName}`}
+                className="inline-flex h-6 max-w-72 items-center gap-1 rounded-md border border-line-strong bg-sand pr-1 pl-2 font-medium text-ink-soft hover:border-line-hover hover:text-ink"
+                onClick={() => apply({ entityId: "" })}
+                type="button"
+              >
+                <span className="truncate">{recordName}</span>
+                <X aria-hidden className="size-3 shrink-0" />
+              </button>
+            </div>
           ) : null}
         </div>
-      )}
-    </section>
+
+        {entries && visible.length && !pending ? (
+          <p aria-live="polite" className="border-b border-line px-4 py-2 text-xs text-muted tabular-nums">
+            <span className="font-medium text-ink-soft">{plural(counts.total, "change", "changes")}</span>
+            {q ? `${counts.total === 1 ? " matches" : " match"} “${q}”` : null}
+            <span aria-hidden> · </span>
+            {formatCount(counts.CREATE)} created
+            <span aria-hidden> · </span>
+            {formatCount(counts.UPDATE)} updated
+            <span aria-hidden> · </span>
+            {formatCount(counts.DELETE)} deleted
+          </p>
+        ) : null}
+
+        {pending ? (
+          <AuditTable busy onOpen={() => undefined} rows={[]} selectedId={null} skeleton={Math.min(Math.max(pageRows.length, 6), 10)} />
+        ) : entries === null ? (
+          <LoadFailed onRetry={retry} />
+        ) : visible.length === 0 ? (
+          rows.length === 0 && !filtered ? (
+            <EmptyState
+              description="Changes to destinations, stays, photos and every other record appear here as they are made."
+              icon={FileClock}
+              title="No changes yet"
+            />
+          ) : rows.length === 0 ? (
+            <EmptyState
+              action={
+                <Button onClick={reset} size="sm" type="button" variant="secondary">
+                  <RotateCcw aria-hidden className="size-3.5" />
+                  Clear filters
+                </Button>
+              }
+              description="Try another record type, action or person."
+              icon={SearchX}
+              title="No changes match these filters"
+            />
+          ) : (
+            <EmptyState
+              action={
+                <Button onClick={() => setSearch("")} size="sm" type="button" variant="secondary">
+                  <X aria-hidden className="size-3.5" />
+                  Clear search
+                </Button>
+              }
+              description="Check the spelling, or search for a person's name or another record."
+              icon={SearchX}
+              title={`Nothing matches “${q}”`}
+            />
+          )
+        ) : (
+          <>
+            <AuditTable onOpen={setSelectedId} rows={pageRows} selectedId={selected?.id ?? null} />
+            <footer className="flex flex-col gap-2 border-t border-line px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-muted tabular-nums">
+                Showing{" "}
+                <span className="font-medium text-ink-soft">
+                  {formatCount((page - 1) * size + 1)}–{formatCount((page - 1) * size + pageRows.length)}
+                </span>{" "}
+                of <span className="font-medium text-ink-soft">{formatCount(visible.length)}</span>{" "}
+                {visible.length === 1 ? "change" : "changes"}
+              </p>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <PageSize onChange={(next) => apply({ size: next })} value={size} />
+                <Pagination onPage={goToPage} page={page} pageCount={pageCount} />
+              </div>
+            </footer>
+          </>
+        )}
+
+        {capped && !pending ? (
+          <p className="flex items-start gap-2 border-t border-line bg-sand px-3 py-2 text-xs text-muted">
+            <Info aria-hidden className="mt-px size-3.5 shrink-0" />
+            Showing the newest {AUDIT_FETCH_LIMIT} changes. Choose a record type, action or person to see older ones.
+          </p>
+        ) : null}
+      </section>
+
+      {selected ? (
+        <AuditEventDrawer
+          onActorHistory={
+            selected.userId && selected.userId !== filters.userId
+              ? () => apply({ ...CLEARED, userId: selected.userId! })
+              : undefined
+          }
+          onClose={() => setSelectedId(null)}
+          onNewer={selectedIndex > 0 ? () => selectAt(selectedIndex - 1) : undefined}
+          onOlder={selectedIndex < visible.length - 1 ? () => selectAt(selectedIndex + 1) : undefined}
+          onRecordHistory={
+            selected.entityId && selected.entityId !== filters.entityId
+              ? () => apply({ ...CLEARED, entityId: selected.entityId! })
+              : undefined
+          }
+          position={selectedIndex + 1}
+          row={selected}
+          total={visible.length}
+        />
+      ) : null}
+    </>
   );
 }
 
-function RecordName({ row }: { readonly row: AuditRow }) {
-  const label = row.name ?? (row.entityId ? `#${row.entityId.slice(0, 8)}` : row.typeLabel);
-  const className = cn("block truncate font-medium text-ink", !row.name && "font-mono text-xs");
-  return row.href ? (
-    <Link className={cn(className, "hover:text-teal-deep hover:underline")} href={row.href} title="Open this record">
-      {label}
-    </Link>
-  ) : (
-    <span className={className}>{label}</span>
-  );
-}
-
-function FilterChip({ href, label }: { readonly href: string; readonly label: string }) {
+function AuditTable({
+  rows,
+  selectedId,
+  onOpen,
+  busy = false,
+  skeleton = 0,
+}: {
+  readonly rows: readonly AuditRow[];
+  readonly selectedId: number | null;
+  readonly onOpen: (id: number) => void;
+  readonly busy?: boolean;
+  readonly skeleton?: number;
+}) {
   return (
-    <Link
-      aria-label={`Remove the filter: ${label}`}
-      className="inline-flex h-8 max-w-64 items-center gap-1.5 rounded-md border border-line-strong bg-sand px-2.5 text-xs font-medium text-ink-soft hover:text-ink"
-      href={href}
-    >
-      <span className="truncate">{label}</span>
-      <X aria-hidden className="size-3.5 shrink-0" />
-    </Link>
+    <Table aria-busy={busy || undefined} className="table-fixed">
+      <caption className="sr-only">Changes, newest first, grouped by day. Times are Cambodia time.</caption>
+      <TableHead>
+        <TableRow className="hover:bg-transparent">
+          <TableHeaderCell className="w-16 sm:w-20" title="Cambodia time (UTC+7)">
+            Time
+          </TableHeaderCell>
+          <TableHeaderCell className="hidden w-32 xl:table-cell">Action</TableHeaderCell>
+          <TableHeaderCell>Record</TableHeaderCell>
+          <TableHeaderCell className="hidden w-[20%] xl:table-cell">By</TableHeaderCell>
+          <TableHeaderCell className="hidden w-[26%] xl:table-cell">What changed</TableHeaderCell>
+          <TableHeaderCell className="w-12 sm:w-20">
+            <span className="sr-only">View</span>
+          </TableHeaderCell>
+        </TableRow>
+      </TableHead>
+      <TableBody className={cn(skeleton > 0 && "animate-pulse")}>
+        {skeleton > 0
+          ? Array.from({ length: skeleton }, (_, index) => <SkeletonRow key={index} />)
+          : rows.map((row, index) => (
+              <Fragment key={row.id}>
+                {index === 0 || rows[index - 1].day !== row.day ? (
+                  <tr className="bg-sand">
+                    {/* Spanning hidden columns would make the table keep room for them. */}
+                    <th className="px-4 py-1.5 text-left text-xs font-semibold text-ink-soft xl:hidden" colSpan={NARROW_COLUMNS} scope="colgroup">
+                      {row.day}
+                    </th>
+                    <th className="hidden px-4 py-1.5 text-left text-xs font-semibold text-ink-soft xl:table-cell" colSpan={COLUMNS} scope="colgroup">
+                      {row.day}
+                    </th>
+                  </tr>
+                ) : null}
+                <AuditTableRow onOpen={onOpen} row={row} selected={row.id === selectedId} />
+              </Fragment>
+            ))}
+      </TableBody>
+    </Table>
   );
 }
 
-function AuditDetails({
+function AuditTableRow({
   row,
-  linkTo,
+  selected,
+  onOpen,
 }: {
   readonly row: AuditRow;
-  readonly linkTo: (changes: Readonly<Record<string, string | null>>) => string;
+  readonly selected: boolean;
+  readonly onOpen: (id: number) => void;
 }) {
-  const showBefore = row.changes.some((change) => change.before !== undefined);
-  const showAfter = row.changes.some((change) => change.after !== undefined);
+  const purge = row.action === "PURGE";
+  const primary = purge ? "Audit log" : (row.name ?? row.typeLabel);
+  const secondary = purge ? "Every entry" : row.name ? row.typeLabel : null;
+  const badge = (
+    <Badge dot tone={AUDIT_ACTION_TONES[row.action]}>
+      {AUDIT_ACTION_LABELS[row.action]}
+    </Badge>
+  );
 
   return (
-    <div className="rounded-md border border-line bg-paper">
-      {row.changes.length ? (
-        <table className="w-full table-fixed text-left text-xs">
-          <thead className="border-b border-line text-muted">
-            <tr>
-              <th className="w-48 px-3 py-2 font-medium">Field</th>
-              {showBefore ? <th className="px-3 py-2 font-medium">Before</th> : null}
-              {showAfter ? <th className="px-3 py-2 font-medium">After</th> : null}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line">
-            {row.changes.map((change) => (
-              <tr className="align-top" key={change.field}>
-                <th className="px-3 py-2 font-medium text-ink-soft" scope="row" title={change.field}>
-                  {change.label}
-                </th>
-                {showBefore ? (
-                  <td className="px-3 py-2 text-muted">
-                    <AuditValue value={change.before} />
-                  </td>
-                ) : null}
-                {showAfter ? (
-                  <td className="px-3 py-2 text-ink">
-                    <AuditValue value={change.after} />
-                  </td>
-                ) : null}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : null}
+    <TableRow
+      aria-selected={selected || undefined}
+      className={cn("cursor-pointer", selected && "bg-teal-soft hover:bg-teal-soft")}
+      onClick={(event) => {
+        if (!(event.target as HTMLElement).closest("a, button")) onOpen(row.id);
+      }}
+    >
+      <TableCell className="py-2.5 align-top">
+        <time className="text-sm text-ink tabular-nums" dateTime={row.iso} title={row.at}>
+          {row.time}
+        </time>
+      </TableCell>
 
-      <div
-        className={cn(
-          "flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 text-xs text-muted",
-          row.changes.length && "border-t border-line",
-        )}
-      >
-        <span title={row.at}>{row.at}</span>
-        {row.entityId ? (
-          <>
-            <span className="font-mono">{row.entityId}</span>
-            <Link className="font-medium text-teal-deep hover:underline" href={linkTo({ record: row.entityId })}>
-              All changes to this record
-            </Link>
-          </>
+      <TableCell className="hidden py-2.5 align-top xl:table-cell">{badge}</TableCell>
+
+      <TableCell className="py-2.5 align-top">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="shrink-0 xl:hidden">{badge}</span>
+          <span className="truncate font-medium text-ink" title={primary}>
+            {primary}
+          </span>
+        </span>
+        {secondary ? <span className="block truncate text-xs text-muted">{secondary}</span> : null}
+        <span className="block truncate text-xs text-muted xl:hidden" title={row.summary.title || undefined}>
+          {summaryText(row.summary)} · by {row.actor}
+        </span>
+      </TableCell>
+
+      <TableCell className="hidden py-2.5 align-top xl:table-cell">
+        <span className={cn("block truncate text-sm", row.userId ? "text-ink-soft" : "text-muted")} title={row.actor}>
+          {row.actor}
+        </span>
+        {row.actorEmail ? (
+          <span className="block truncate text-xs text-muted" title={row.actorEmail}>
+            {row.actorEmail}
+          </span>
+        ) : !row.userId ? (
+          <span className="block text-xs text-muted">Automatic change</span>
         ) : null}
-        {row.ipAddress ? <span title={row.userAgent ?? undefined}>IP {row.ipAddress}</span> : null}
-      </div>
+      </TableCell>
+
+      <TableCell className="hidden py-2.5 align-top xl:table-cell">
+        <ChangeSummary summary={row.summary} />
+      </TableCell>
+
+      <TableCell className="py-2 text-right align-top">
+        <Button
+          aria-haspopup="dialog"
+          aria-label={`View the change to ${primary} at ${row.time}`}
+          onClick={() => onOpen(row.id)}
+          className="px-2"
+          size="sm"
+          type="button"
+          variant="ghost"
+        >
+          <span className="hidden sm:inline">View</span>
+          <ChevronRight aria-hidden className="size-4 sm:hidden" />
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function ChangeSummary({ summary }: { readonly summary: AuditSummary }) {
+  if (summary.note) {
+    return <span className="block truncate text-sm text-muted">{summary.note}</span>;
+  }
+  return (
+    <span className="flex min-w-0 items-center gap-1.5" title={summary.title}>
+      <span className="truncate text-sm text-ink-soft">{summary.fields.join(", ")}</span>
+      {summary.more ? (
+        <span className="shrink-0 rounded-sm bg-sand-deep px-1.5 text-2xs leading-5 font-medium text-muted tabular-nums">
+          +{summary.more} more
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+function SkeletonRow() {
+  const bar = "rounded-sm bg-sand-deep";
+  return (
+    <tr>
+      <td className="px-4 py-3">
+        <div className={cn(bar, "h-3.5 w-11")} />
+      </td>
+      <td className="hidden px-4 py-3 xl:table-cell">
+        <div className="h-5 w-20 rounded-full bg-sand-deep" />
+      </td>
+      <td className="px-4 py-3">
+        <div className={cn(bar, "h-3.5 w-3/5")} />
+        <div className={cn(bar, "mt-1.5 h-3 w-2/5")} />
+      </td>
+      <td className="hidden px-4 py-3 xl:table-cell">
+        <div className={cn(bar, "h-3.5 w-3/4")} />
+      </td>
+      <td className="hidden px-4 py-3 xl:table-cell">
+        <div className={cn(bar, "h-3.5 w-2/3")} />
+      </td>
+      <td className="px-4 py-3">
+        <div className={cn(bar, "ml-auto h-6 w-6 sm:w-12")} />
+      </td>
+    </tr>
+  );
+}
+
+function LoadFailed({ onRetry }: { readonly onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center px-6 py-10 text-center" role="alert">
+      <span className="mb-3 grid size-9 place-items-center rounded-lg border border-heritage/20 bg-heritage-soft text-heritage">
+        <CircleAlert aria-hidden className="size-4" />
+      </span>
+      <p className="text-sm font-semibold text-ink">The changes could not be loaded</p>
+      <p className="mt-1 max-w-sm text-sm text-muted">The API did not answer. Check that it is running, then try again.</p>
+      <Button className="mt-4" onClick={onRetry} size="sm" type="button" variant="secondary">
+        <RotateCw aria-hidden className="size-3.5" />
+        Try again
+      </Button>
     </div>
   );
 }
 
-function AuditValue({ value }: { readonly value: string | undefined }) {
-  const [full, setFull] = useState(false);
-  if (value === undefined) return <span>—</span>;
-  const long = value.length > CLAMP;
+function PageSize({ value, onChange }: { readonly value: number; readonly onChange: (size: number) => void }) {
+  const id = useId();
   return (
-    <span className="block font-mono break-all whitespace-pre-wrap">
-      {long && !full ? `${value.slice(0, CLAMP)}…` : value}
-      {long ? (
-        <button
-          className="ml-1.5 font-sans font-medium text-teal-deep hover:underline"
-          onClick={() => setFull((shown) => !shown)}
-          type="button"
-        >
-          {full ? "Show less" : "Show all"}
-        </button>
-      ) : null}
+    <span className="flex items-center gap-2">
+      <label className="text-xs text-muted" htmlFor={id}>
+        Rows per page
+      </label>
+      <Select className="h-8 w-19 text-sm" id={id} onChange={(event) => onChange(Number(event.target.value))} value={String(value)}>
+        {AUDIT_PAGE_SIZES.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </Select>
     </span>
+  );
+}
+
+/** Page numbers with gaps: 1 … 4 5 6 … 8. */
+function pageWindow(page: number, count: number): readonly (number | "gap")[] {
+  if (count <= 7) return Array.from({ length: count }, (_, index) => index + 1);
+  const pages = new Set([1, count, page - 1, page, page + 1]);
+  if (page <= 3) [2, 3, 4].forEach((value) => pages.add(value));
+  if (page >= count - 2) [count - 3, count - 2, count - 1].forEach((value) => pages.add(value));
+  const sorted = [...pages].filter((value) => value >= 1 && value <= count).sort((a, b) => a - b);
+  return sorted.flatMap((value, index) => (index > 0 && value - sorted[index - 1] > 1 ? ["gap" as const, value] : [value]));
+}
+
+function Pagination({
+  page,
+  pageCount,
+  onPage,
+}: {
+  readonly page: number;
+  readonly pageCount: number;
+  readonly onPage: (page: number) => void;
+}) {
+  return (
+    <nav aria-label="Pagination" className="flex items-center gap-1">
+      <Button
+        aria-label="Previous page"
+        disabled={page <= 1}
+        onClick={() => onPage(page - 1)}
+        size="icon-sm"
+        type="button"
+        variant="secondary"
+      >
+        <ChevronLeft aria-hidden className="size-4" />
+      </Button>
+      <span className="px-1.5 text-xs text-muted tabular-nums sm:hidden">
+        Page {page} of {pageCount}
+      </span>
+      <span className="hidden items-center gap-0.5 sm:flex">
+        {pageWindow(page, pageCount).map((item, index) =>
+          item === "gap" ? (
+            <span aria-hidden className="px-1 text-xs text-muted" key={`gap-${index}`}>
+              …
+            </span>
+          ) : (
+            <button
+              aria-current={item === page ? "page" : undefined}
+              aria-label={`Page ${item}`}
+              className={cn(
+                "h-8 min-w-8 rounded-md px-2 text-xs font-medium tabular-nums transition-colors",
+                item === page ? "bg-teal-soft text-teal-deep" : "text-ink-soft hover:bg-sand-deep hover:text-ink",
+              )}
+              key={item}
+              onClick={() => onPage(item)}
+              type="button"
+            >
+              {item}
+            </button>
+          ),
+        )}
+      </span>
+      <Button
+        aria-label="Next page"
+        disabled={page >= pageCount}
+        onClick={() => onPage(page + 1)}
+        size="icon-sm"
+        type="button"
+        variant="secondary"
+      >
+        <ChevronRight aria-hidden className="size-4" />
+      </Button>
+    </nav>
   );
 }

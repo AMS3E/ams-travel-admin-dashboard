@@ -814,6 +814,44 @@ const location: readonly ResourceField[] = [
 ];
 
 /**
+ * Where the app puts a region's or a province's marker on its Map screen: a
+ * centre, asked as two numbers that go together. The API keeps the current
+ * centre when neither is sent and refuses one without the other; every seeded
+ * province starts on its capital town.
+ *
+ * `blankUnless`: the row's flag that says an editor set the centre. A region's
+ * answer carries the middle of its places until then, and sending that back
+ * would fix it; so the boxes start empty and the API goes on following the
+ * places. `whenEmpty` says so under the box.
+ */
+const centre = (noun: string, follows: { readonly blankUnless?: string; readonly whenEmpty?: string } = {}): readonly ResourceField[] => [
+  {
+    name: "latitude",
+    label: "Latitude",
+    kind: "decimal",
+    min: -90,
+    max: 90,
+    step: 0.000001,
+    section: "Map",
+    pairedWith: "longitude",
+    blankUnless: follows.blankUnless,
+    hint: `Both or neither: the marker the app puts on the ${noun}. Decimal degrees, north positive.${follows.whenEmpty ? ` ${follows.whenEmpty}` : ""}`,
+  },
+  {
+    name: "longitude",
+    label: "Longitude",
+    kind: "decimal",
+    min: -180,
+    max: 180,
+    step: 0.000001,
+    section: "Map",
+    pairedWith: "latitude",
+    blankUnless: follows.blankUnless,
+    hint: "Decimal degrees, east positive. Cambodia lies between 102 and 108.",
+  },
+];
+
+/**
  * The tourism regions a category or a tag belongs to. Each region keeps its own
  * list (`categoryIds`, `tagIds`), which its Discover page and the destination
  * form follow, so this field is read from the regions and saved onto them.
@@ -1495,6 +1533,16 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { ...description, label: "Overview", rich: true, hint: "The lines under its name on its Discover page, under Overview." },
       { ...cover("region", "Cover picture"), hint: "Its card on Explore and the banner of its page in the app. A wide photograph of the region's best-known place reads best." },
       {
+        name: "mapKey",
+        urlField: "mapUrl",
+        label: "Historical maps",
+        kind: "image",
+        imageCategory: "region",
+        span: 2,
+        section: "Media",
+        hint: "The Historical Map on its page in the app. A picture of the region's map with its places marked reads best.",
+      },
+      {
         name: "categoryIds",
         label: "Categories",
         kind: "refs",
@@ -1513,6 +1561,15 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         section: "Its own lists",
         ordered: true,
         hint: "The tags its page offers as filters, in the order it shows them, and the only ones its attractions are offered. A tag is a plain label with nothing under it.",
+      },
+      {
+        name: "amsRecommended",
+        label: "Recommended by AMS Travel",
+        kind: "boolean",
+        boxed: true,
+        span: 2,
+        section: "Recommendation",
+        hint: "Shows the AMS Travel badge on its card on Explore and at the top of its page in the app.",
       },
     ],
   },
@@ -1582,22 +1639,46 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     ],
   },
 
+  "corridor-media": {
+    key: "corridor-media",
+    label: "Corridor photo",
+    labelPlural: "Corridor media",
+    group: "Catalogue",
+    description: "The photographs shown on a tourism corridor's page in the app, one of them its cover.",
+    titleField: "caption",
+    searchFields: ["caption"],
+    orderField: "sortOrder",
+    columns: [
+      { name: "mediaUrl", label: "Media", kind: "image" },
+      { name: "ownerId", label: "Tourism corridor", kind: "ref", ref: "corridors" },
+      { name: "caption", label: "Caption", secondary: true },
+      { name: "sortOrder", label: "#", kind: "number", secondary: true },
+      { name: "isCover", label: "Cover", kind: "boolean", secondary: true },
+    ],
+    fields: mediaFields(ref("ownerId", "Tourism corridor", "corridors", { required: true }), "corridor"),
+  },
+
   provinces: {
     key: "provinces",
     label: "Province",
     labelPlural: "Provinces",
     group: "Places",
-    description: "Cambodia's provinces. A destination is placed by its province.",
+    description: "Cambodia's provinces. A destination is placed by its province; the app lists them with a cover and puts each on its map by its centre.",
     titleField: "name",
     searchFields: ["name", "slug"],
     status: ACTIVE_FLAG,
     columns: [
       { name: "name", label: "Name" },
+      { name: "placeCount", label: "Places", kind: "number", secondary: true },
       { name: "createdBy", label: "Created by", kind: "ref", ref: "users", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
-    /* Its name alone: no zone, the API makes its address, and the country is always Cambodia. */
-    fields: [{ ...name(), hint: "For example: Kampot." }],
+    /* Its name, its picture and its centre: no zone, the API makes its address, and the country is always Cambodia. */
+    fields: [
+      { ...name(), hint: "For example: Kampot." },
+      { ...cover("province", "Cover picture"), hint: "Its card on the app's list of provinces and the top of its page. A wide photograph of its best-known place reads best." },
+      ...centre("province"),
+    ],
   },
 
   interests: {
@@ -1619,7 +1700,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { name: "createdBy", label: "Created by", kind: "ref", ref: "users", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
-    /* Compact, with a live preview beside it: name, group, its place in the group, icon. */
+    /* Compact, with a live preview beside it: name, group, its place in the group, picture. */
     preview: "interest",
     fields: [
       { ...name(), span: 2, hint: "For example: Waterfalls." },
@@ -1641,13 +1722,8 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         span: 2,
         hint: "Click between two, or use the arrows. The others move to make room.",
       },
-      {
-        name: "iconKey",
-        label: "Icon",
-        kind: "text",
-        iconPicker: true,
-      },
       { ...description, hint: "Optional. The line under its name on its page." },
+      { ...cover("interest", "Cover picture"), hint: "Its picture on its shelf and at the top of its page. A clear photograph of the activity reads best." },
     ],
   },
 

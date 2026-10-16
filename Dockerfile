@@ -15,7 +15,8 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+# The repo has no public/ folder yet; the runner stage copies it, so make sure it exists.
+RUN mkdir -p public && npm run build
 
 FROM node:24-alpine AS runner
 WORKDIR /app

@@ -1,131 +1,166 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Trash2, TriangleAlert } from "lucide-react";
+import { CircleCheck, Loader2, Trash2, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useClearAuditLogMutation } from "@/features/dashboard/api/dashboard-api";
+import { plural } from "@/features/dashboard/audit";
 import { hasStatus } from "@/store/api/api-error";
 
-/**
- * Clears the whole audit log.
- *
- * <p>Two steps rather than one, and the second says what is about to happen in
- * plain words: this is the only control in the dashboard that destroys a record
- * rather than a row, and the log is what everything else is answerable to.</p>
- *
- * Rendered only for `PERM_FULL_CONTROL`. The API enforces the same thing — the
- * button being absent is a courtesy, not the boundary.
- */
+/* Typed to confirm: this is the one control that destroys the record everything else answers to. */
+const CONFIRM_WORD = "CLEAR";
+
+/** Clears the whole audit log. Shown only for `PERM_FULL_CONTROL`; the API enforces the same. */
 export function ClearAuditLog() {
   const router = useRouter();
-  const [confirming, setConfirming] = useState(false);
-  const [pending, startClearing] = useTransition();
-  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [refreshing, startRefresh] = useTransition();
+
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-3">
+      {notice ? (
+        <p className="inline-flex items-center gap-1.5 text-xs text-muted" role="status">
+          <CircleCheck aria-hidden className="size-3.5 text-success" />
+          {notice}
+          {refreshing ? " Refreshing…" : null}
+        </p>
+      ) : null}
+      <Button
+        aria-haspopup="dialog"
+        className="border-heritage/30 text-heritage hover:border-heritage/50 hover:bg-heritage-soft hover:text-heritage"
+        onClick={() => setOpen(true)}
+        size="sm"
+        type="button"
+        variant="secondary"
+      >
+        <Trash2 aria-hidden className="size-3.5" />
+        Clear logs
+      </Button>
+      {open ? (
+        <ClearDialog
+          onCleared={(removed) => {
+            setOpen(false);
+            setNotice(removed == null ? "Cleared the log." : `Cleared ${plural(removed, "entry", "entries")}.`);
+            /* The table is server-rendered, so the page is asked again. */
+            startRefresh(() => router.refresh());
+          }}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function ClearDialog({
+  onClose,
+  onCleared,
+}: {
+  readonly onClose: () => void;
+  readonly onCleared: (removed: number | null) => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [typed, setTyped] = useState("");
   const [failure, setFailure] = useState<string | null>(null);
-  /* `count` is null when the API answered 204 and did not say how many went. */
-  const [cleared, setCleared] = useState<{ readonly count: number | null } | null>(null);
-  const [clearAuditLog] = useClearAuditLogMutation();
+  const [clearAuditLog, { isLoading }] = useClearAuditLogMutation();
+  const titleId = useId();
+  const textId = useId();
+  const inputId = useId();
+  const confirmed = typed.trim().toUpperCase() === CONFIRM_WORD;
 
-  function clear() {
+  useEffect(() => {
+    const element = dialog.current;
+    if (!element) return;
+    element.showModal();
+    return () => element.close();
+  }, []);
+
+  async function clear() {
+    if (!confirmed || isLoading) return;
     setFailure(null);
-    setBusy(true);
-    void (async () => {
-      try {
-        /* The API answers the PURGE entry it left, which says in `newData` how many went. */
-        const entry = await clearAuditLog().unwrap();
-        const removed = entry?.newData?.removed;
-        setCleared({ count: typeof removed === "number" ? removed : null });
-        setConfirming(false);
-        /* The table is server-rendered, so the page has to be asked again. */
-        startClearing(() => router.refresh());
-      } catch (error) {
-        setFailure(hasStatus(error, 403) ? "Clearing the log needs full control." : "The log could not be cleared. Try again.");
-      } finally {
-        setBusy(false);
-      }
-    })();
-  }
-
-  if (cleared !== null && !confirming) {
-    return (
-      <p className="text-xs text-muted">
-        {cleared.count === null
-          ? "Cleared the log."
-          : `Cleared ${cleared.count} ${cleared.count === 1 ? "entry" : "entries"}.`}
-        {pending ? " Refreshing…" : null}
-      </p>
-    );
-  }
-
-  if (!confirming) {
-    return (
-      <div className="flex flex-col items-end gap-1">
-        <Button
-          onClick={() => setConfirming(true)}
-          size="sm"
-          type="button"
-          variant="secondary"
-        >
-          <Trash2 aria-hidden className="size-4" />
-          Clear log
-        </Button>
-        {failure ? (
-          <p className="text-xs text-heritage" role="alert">
-            {failure}
-          </p>
-        ) : null}
-      </div>
-    );
+    try {
+      /* The API answers the PURGE entry it left; `newData.removed` says how many went. */
+      const entry = await clearAuditLog().unwrap();
+      const removed = entry?.newData?.removed;
+      onCleared(typeof removed === "number" ? removed : null);
+    } catch (error) {
+      setFailure(
+        hasStatus(error, 403) ? "Clearing the log needs full control." : "The log could not be cleared. Nothing was removed. Try again.",
+      );
+    }
   }
 
   return (
-    <div
-      className="flex flex-col gap-3 rounded-lg bg-heritage-soft p-4 text-heritage sm:max-w-md"
+    <dialog
+      aria-describedby={textId}
+      aria-labelledby={titleId}
+      className="glass fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-xl border border-line p-0 text-ink shadow-pop backdrop:bg-scrim"
+      onCancel={(event) => {
+        event.preventDefault();
+        if (!isLoading) onClose();
+      }}
+      ref={dialog}
       role="alertdialog"
-      aria-label="Clear the audit log"
     >
-      <div className="flex gap-3">
-        <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
-        <div className="text-sm">
-          <p className="font-semibold">Delete every entry in the audit log?</p>
-          <p className="mt-1 text-xs leading-relaxed">
-            This cannot be undone. All that survives is a single entry recording
-            that you cleared it, and how many entries went.
-          </p>
+      <form
+        className="flex flex-col gap-4 p-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void clear();
+        }}
+      >
+        <div className="flex gap-3">
+          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-heritage-soft text-heritage">
+            <TriangleAlert aria-hidden className="size-4" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="heading text-lg font-semibold text-ink" id={titleId}>
+              Clear the entire audit log?
+            </h2>
+            <div className="mt-1.5 flex flex-col gap-2 text-sm text-muted" id={textId}>
+              <p>
+                Every entry is permanently deleted: who created, changed or deleted each record, when, and from where.
+                Past changes can no longer be investigated, and this cannot be undone.
+              </p>
+              <p>One new entry will record that you cleared the log and how many entries were removed.</p>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {failure ? (
-        <p className="text-xs font-semibold" role="alert">
-          {failure}
-        </p>
-      ) : null}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-ink-soft" htmlFor={inputId}>
+            Type <span className="font-mono font-semibold text-ink">{CONFIRM_WORD}</span> to confirm
+          </label>
+          <Input
+            autoCapitalize="characters"
+            autoComplete="off"
+            className="h-9"
+            disabled={isLoading}
+            id={inputId}
+            onChange={(event) => setTyped(event.target.value)}
+            spellCheck={false}
+            value={typed}
+          />
+        </div>
 
-      <div className="flex gap-2">
-        <Button
-          disabled={busy}
-          onClick={clear}
-          size="sm"
-          type="button"
-          variant="destructive"
-        >
-          {busy ? <Loader2 aria-hidden className="size-4 animate-spin" /> : null}
-          Yes, clear it
-        </Button>
-        <Button
-          disabled={busy}
-          onClick={() => {
-            setConfirming(false);
-            setFailure(null);
-          }}
-          size="sm"
-          type="button"
-          variant="ghost"
-        >
-          Cancel
-        </Button>
-      </div>
-    </div>
+        {failure ? (
+          <p className="rounded-md bg-heritage-soft px-3 py-2 text-sm text-heritage" role="alert">
+            {failure}
+          </p>
+        ) : null}
+
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button autoFocus disabled={isLoading} onClick={onClose} type="button" variant="secondary">
+            Cancel
+          </Button>
+          <Button disabled={!confirmed || isLoading} type="submit" variant="destructive">
+            {isLoading ? <Loader2 aria-hidden className="size-4 animate-spin" /> : <Trash2 aria-hidden className="size-4" />}
+            Clear all entries
+          </Button>
+        </div>
+      </form>
+    </dialog>
   );
 }
