@@ -41,9 +41,7 @@ export const IMAGE_CATEGORIES = [
   /**
    * Everything with no feature of its own, and the photographs that ship with
    * the product (`general/{SYSTEM_UUID}/{file}`): the same picture can be a
-   * destination cover and a gallery frame, so it is filed once, here. The
-   * heritage vocabulary — period covers, monarch portraits, style photographs —
-   * has no folder of its own and is filed here too.
+   * destination cover and a gallery frame, so it is filed once, here.
    */
   "general",
 ] as const;

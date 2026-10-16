@@ -37,7 +37,13 @@ const ICONS: Readonly<Record<CapabilityKey, LucideIcon>> = {
   audit: ScrollText,
 };
 
-export function ProfileCapabilities({ capabilities }: { readonly capabilities: readonly Capability[] }) {
+export function ProfileCapabilities({
+  capabilities,
+  permissions,
+}: {
+  readonly capabilities: readonly Capability[];
+  readonly permissions: readonly string[];
+}) {
   const granted = capabilities.filter((capability) => capability.granted);
   const withheld = capabilities.filter((capability) => !capability.granted);
 
@@ -65,8 +71,8 @@ export function ProfileCapabilities({ capabilities }: { readonly capabilities: r
         })}
       </ul>
 
-      {withheld.length ? (
-        <div className="px-4 py-3">
+      <div className="flex flex-col gap-2 px-4 py-3">
+        {withheld.length ? (
           <details className="group">
             <summary className="cursor-pointer text-sm text-ink-soft select-none hover:text-ink">
               Not part of your role ({withheld.length})
@@ -81,8 +87,22 @@ export function ProfileCapabilities({ capabilities }: { readonly capabilities: r
             </ul>
             <p className="mt-2 text-xs text-muted">Need one of these? An administrator can change your role.</p>
           </details>
-        </div>
-      ) : null}
+        ) : null}
+
+        <details>
+          <summary className="cursor-pointer text-sm text-ink-soft select-none hover:text-ink">
+            Technical permissions ({permissions.length})
+          </summary>
+          <p className="mt-2 text-xs text-muted">The grants on your sign-in, as support and the API name them.</p>
+          <ul className="mt-2 flex flex-wrap gap-1">
+            {permissions.map((permission) => (
+              <li key={permission}>
+                <code className="rounded-sm border border-line bg-sand px-1.5 py-0.5 font-mono text-2xs text-ink-soft">{permission}</code>
+              </li>
+            ))}
+          </ul>
+        </details>
+      </div>
     </Surface>
   );
 }

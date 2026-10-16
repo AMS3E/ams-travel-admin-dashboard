@@ -49,7 +49,7 @@ export default async function ProfilePage(props: PageProps<"/profile">) {
       <Suspense fallback={<ContributionsSkeleton />}>
         <ProfileContributions grants={grants} submitsTo={workspace.submitsTo} userId={user.id} />
       </Suspense>
-      <ProfileCapabilities capabilities={capabilitiesOf(grants)} />
+      <ProfileCapabilities capabilities={capabilitiesOf(grants)} permissions={workspace.permissions} />
     </ProfileEditor>
   );
 }

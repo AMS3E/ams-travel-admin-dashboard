@@ -35,7 +35,7 @@ export interface RegionResponse {
   /** Its cover picture: its Explore card and the banner of its page. */
   readonly coverKey: string | null;
   readonly coverUrl: string | null;
-  /** Its map picture: the Historical Map panel of its page in the app. */
+  /** Its map picture: one image in the Map panel of its page in the app, where the interactive map was. */
   readonly mapKey: string | null;
   readonly mapUrl: string | null;
   /** A tourism region's shelves, and the filter chips its page offers. Empty on a zone. */
@@ -149,9 +149,6 @@ export interface DestinationResponse {
   readonly categoryIds: readonly string[] | null;
   readonly tagIds: readonly string[] | null;
   readonly interestIds: readonly string[] | null;
-  /** Its heritage ties, written with the rest of the row. */
-  readonly architectureStyleIds: readonly string[] | null;
-  readonly religionIds: readonly string[] | null;
 }
 
 export type MediaType = "IMAGE" | "VIDEO";

@@ -1535,12 +1535,12 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       {
         name: "mapKey",
         urlField: "mapUrl",
-        label: "Historical maps",
+        label: "Map picture",
         kind: "image",
         imageCategory: "region",
         span: 2,
         section: "Media",
-        hint: "The Historical Map on its page in the app. A picture of the region's map with its places marked reads best.",
+        hint: "The Map panel on its page in the app: one picture where the interactive map of its places used to be. A map of the region with its places marked reads best.",
       },
       {
         name: "categoryIds",
@@ -1924,8 +1924,10 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     status: SEASON_STATUS,
     columns: [
       { name: "name", label: "Name" },
+      { name: "kind", label: "Kind", kind: "enum", options: SEASON_KINDS, secondary: true },
       { name: "startsOn", label: "Starts" },
       { name: "endsOn", label: "Ends" },
+      { name: "status", label: "Status", kind: "status" },
     ],
     fields: [
       name("Season name"),

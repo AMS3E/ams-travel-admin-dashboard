@@ -84,11 +84,11 @@ export function RegionDetail({ id }: { readonly id: string }) {
             )}
             {overview ? <div className={STORY_CLASSES} dangerouslySetInnerHTML={{ __html: overview }} /> : <p className="text-sm text-muted">Nothing written yet.</p>}
             <div className="mt-4 border-t border-line pt-4" data-field="map">
-              <p className="mb-2 text-xs font-medium text-muted">Historical maps · the Historical Map panel in the app</p>
+              <p className="mb-2 text-xs font-medium text-muted">Map picture · the Map panel in the app, where the interactive map was</p>
               {mapPicture ? (
                 <Image alt="" className="w-full rounded-md object-contain ring-1 ring-line" height={400} src={mapPicture} unoptimized width={480} />
               ) : (
-                <p className="text-xs text-muted">No historical map yet: upload one on its form.</p>
+                <p className="text-xs text-muted">No map picture yet: upload one on its form.</p>
               )}
             </div>
           </div>
