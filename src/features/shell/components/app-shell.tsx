@@ -83,7 +83,7 @@ export function AppShell({ admin, children }: AppShellProps) {
 
   return (
     <div
-      style={{ "--sidebar-width": rail ? "3.5rem" : "16rem" } as CSSProperties}
+      style={{ "--sidebar-width": rail ? "3.5rem" : "17rem" } as CSSProperties}
       className="cms-shell min-h-dvh md:grid md:grid-cols-[var(--sidebar-width)_minmax(0,1fr)]"
     >
       <a
@@ -110,7 +110,7 @@ export function AppShell({ admin, children }: AppShellProps) {
           tabIndex={-1}
           type="button"
         />
-        <div className="sidebar-drawer relative h-full w-64 max-w-[calc(100vw-3rem)] shadow-pop">
+        <div className="sidebar-drawer relative h-full w-[17rem] max-w-[calc(100vw-3rem)] shadow-pop">
           <SidebarPanel
             admin={account}
             onClose={() => dispatch(setMobileOpen(false))}

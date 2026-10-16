@@ -475,7 +475,7 @@ export function LocationMap({ disabled = false, provinces = [], fills = { provin
     >
       <div className="relative">
         <div className="flex flex-wrap gap-2">
-          <div className="relative min-w-0 flex-1 basis-64">
+          <div className="relative min-w-0 flex-1 basis-full">
             <Search aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" />
             <Input
               aria-label={t("find")}

@@ -97,7 +97,7 @@ export function SidebarNav({
             <button
               aria-controls={id}
               aria-expanded={open}
-              className="group/head flex h-7 w-full items-center gap-1.5 rounded-md px-2 text-left text-xs font-medium text-muted transition-colors hover:bg-sand-deep hover:text-ink-soft"
+              className="group/head flex min-h-8 w-full items-center gap-1.5 rounded-md px-2 text-left text-sm font-medium text-muted transition-colors hover:bg-sand-deep hover:text-ink-soft"
               onClick={() => dispatch(setGroupOpen({ title: stateKey, open: !open }))}
               type="button"
             >
@@ -109,7 +109,7 @@ export function SidebarNav({
               {!open && holdsCurrent ? (
                 <span aria-hidden className="size-1.5 rounded-full bg-teal" title={t("currentInGroup")} />
               ) : !open ? (
-                <span className="text-2xs text-muted/80 tabular-nums opacity-0 transition-opacity group-hover/head:opacity-100">
+                <span className="text-xs text-muted/80 tabular-nums opacity-0 transition-opacity group-hover/head:opacity-100">
                   {group.items.length}
                 </span>
               ) : null}

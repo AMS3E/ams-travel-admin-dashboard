@@ -437,7 +437,7 @@ function StopCard({
           )}
           <span
             className={cn(
-              "absolute top-1 left-1 grid h-5 min-w-5 place-items-center rounded-full border border-white px-1 text-2xs font-semibold",
+              "absolute top-1 left-1 grid h-5 min-w-5 place-items-center rounded-full border border-white px-1 text-[11px] font-semibold",
               selected ? "bg-inverse text-inverse-foreground" : "bg-primary text-primary-foreground",
             )}
           >

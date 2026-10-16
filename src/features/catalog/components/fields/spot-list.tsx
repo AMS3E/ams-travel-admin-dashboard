@@ -44,7 +44,7 @@ export function SpotList({ places, value, onChange, title, iconKey, icons, image
     <button
       aria-label={spot === 0 ? t("first", { name: places[0] }) : t("after", { name: places[spot - 1] })}
       className={cn(
-        "absolute inset-x-0 z-10 flex h-3 items-center gap-2 px-2 text-2xs font-medium text-teal opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100",
+        "absolute inset-x-0 z-10 flex h-3 items-center gap-2 px-2 text-[11px] font-medium text-teal opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100",
         edge === "top" ? "-top-2" : "-bottom-2",
       )}
       onClick={() => move(spot)}

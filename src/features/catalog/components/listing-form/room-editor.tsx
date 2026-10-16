@@ -224,7 +224,7 @@ export function RoomEditor({
               {chosenPhotos.map((key, at) => (
                 <div className="group relative aspect-4/3 w-28 overflow-hidden rounded-md border border-line bg-sand-deep" key={key}>
                   <Image alt="" className="object-cover" fill sizes="112px" src={urlOf(key)} unoptimized />
-                  <span className="absolute top-1 left-1 grid size-5 place-items-center rounded-full bg-teal text-2xs font-semibold text-white tabular-nums">
+                  <span className="absolute top-1 left-1 grid size-5 place-items-center rounded-full bg-teal text-[11px] font-semibold text-white tabular-nums">
                     {at + 1}
                   </span>
                   <button
