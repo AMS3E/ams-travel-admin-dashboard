@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
 import { useSaveRecordMutation } from "@/features/catalog/api/catalog-api";
 import { GalleryManager, type CoverPhoto, type PendingPhoto } from "@/features/catalog/components/listing-form/gallery-manager";
 import { toFormValues } from "@/features/catalog/resource";
-import { getResource } from "@/features/catalog/resources";
+import { useResource } from "@/features/catalog/use-resource";
 import type { CorridorSummary } from "@/features/corridors/api/contracts";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
 
 interface CorridorGalleryProps {
   readonly corridor: CorridorSummary;
@@ -31,6 +32,9 @@ interface CorridorGalleryProps {
  */
 export function CorridorGallery({ corridor, canAdd, canDelete }: CorridorGalleryProps) {
   const router = useRouter();
+  const t = useTranslations("corridors.gallery");
+  const apiErrorMessage = useApiErrorMessage();
+  const definition = useResource("corridors");
   const [saveRecord] = useSaveRecordMutation();
   const [cover, setCover] = useState<CoverPhoto | null>(
     corridor.coverKey ? { key: corridor.coverKey, url: corridor.coverUrl ?? "" } : null,
@@ -43,7 +47,6 @@ export function CorridorGallery({ corridor, canAdd, canDelete }: CorridorGallery
     setCover(photo);
     setProblem(null);
     if (!saved) {
-      const definition = getResource("corridors");
       const values = toFormValues(definition, { ...corridor });
       values.coverKey = photo?.key ?? "";
       values.coverUrl = photo?.url ?? "";
@@ -61,9 +64,9 @@ export function CorridorGallery({ corridor, canAdd, canDelete }: CorridorGallery
   return (
     <Surface aria-labelledby="corridor-photos-title" id="corridor-photos">
       <SurfaceHeader
-        description="What travellers page through on the corridor's page in the app. The cover is its card on Explore and on the Tourism Corridors shelf."
+        description={t("description")}
         id="corridor-photos-title"
-        title="Photos"
+        title={t("title")}
       />
       <div className="flex flex-col gap-2 p-4">
         <GalleryManager
@@ -79,7 +82,7 @@ export function CorridorGallery({ corridor, canAdd, canDelete }: CorridorGallery
         />
         {problem ? (
           <p className="text-xs text-heritage" role="alert">
-            The photos changed, but the corridor&apos;s cover could not be: {problem}
+            {t("coverFailed", { problem })}
           </p>
         ) : null}
       </div>

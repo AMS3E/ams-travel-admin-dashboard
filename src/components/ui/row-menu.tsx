@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Ellipsis } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ interface RowMenuProps {
  * nothing in the page until someone asks.
  */
 export function RowMenu({ label, items, className }: RowMenuProps) {
+  const t = useTranslations("common.rowMenu");
   const [open, setOpen] = useState(false);
   const container = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -76,7 +78,7 @@ export function RowMenu({ label, items, className }: RowMenuProps) {
         aria-controls={open ? menuId : undefined}
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label={`Actions for ${label}`}
+        aria-label={t("actionsFor", { label })}
         className={cn("size-7 text-muted hover:text-ink", open && "bg-sand-deep text-ink")}
         onClick={() => setOpen(!open)}
         onKeyDown={(event) => {
@@ -87,7 +89,7 @@ export function RowMenu({ label, items, className }: RowMenuProps) {
         }}
         ref={trigger}
         size="icon-sm"
-        title="Actions"
+        title={t("actions")}
         type="button"
         variant="ghost"
       >
@@ -96,7 +98,7 @@ export function RowMenu({ label, items, className }: RowMenuProps) {
 
       {open ? (
         <div
-          aria-label={`Actions for ${label}`}
+          aria-label={t("actionsFor", { label })}
           className="glass absolute top-full right-0 z-50 mt-1 w-44 rounded-lg border border-line p-1 text-left shadow-pop"
           id={menuId}
           onKeyDown={onMenuKeyDown}

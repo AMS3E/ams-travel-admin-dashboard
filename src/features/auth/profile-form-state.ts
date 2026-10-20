@@ -9,12 +9,26 @@ import type { BackendUserResponse } from "@/features/auth/types";
 const MEDIA_KEY =
   /^[a-z]+\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[\w.-]+$/i;
 
-export const profileSchema = z.object({
-  fullName: z.string().trim().min(1, "Display name is required.").max(255),
-  avatarKey: z.string().trim().max(512).refine(
-    (value) => !value || MEDIA_KEY.test(value),
-    "Upload a photo — a picture is saved by its media key, not by an address.",
-  ),
+/** The schema's two refusals; `common.profileForm` has them in each language. */
+export interface ProfileSchemaWords {
+  readonly nameRequired: string;
+  readonly photoKey: string;
+}
+
+/** The profile form's rules, refusing in the words given. */
+export function profileSchemaWith(words: ProfileSchemaWords) {
+  return z.object({
+    fullName: z.string().trim().min(1, words.nameRequired).max(255),
+    avatarKey: z.string().trim().max(512).refine(
+      (value) => !value || MEDIA_KEY.test(value),
+      words.photoKey,
+    ),
+  });
+}
+
+export const profileSchema = profileSchemaWith({
+  nameRequired: "Display name is required.",
+  photoKey: "Upload a photo — a picture is saved by its media key, not by an address.",
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;

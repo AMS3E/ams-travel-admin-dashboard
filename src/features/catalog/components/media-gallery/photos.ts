@@ -23,7 +23,8 @@ export type PhotoOrder = "arranged" | "newest";
 
 const text = (value: unknown): string => (typeof value === "string" ? value : "");
 
-export function toPhoto(row: CatalogRecord, names: ReadonlyMap<string, string>): Photo {
+/** `unknown` names a photo whose destination is not in `names` (the gallery passes it in the reader's language). */
+export function toPhoto(row: CatalogRecord, names: ReadonlyMap<string, string>, unknown = "Unknown destination"): Photo {
   const key = text(row.mediaKey);
   const ownerId = text(row.ownerId);
   return {
@@ -31,7 +32,7 @@ export function toPhoto(row: CatalogRecord, names: ReadonlyMap<string, string>):
     key,
     url: text(row.mediaUrl) || mediaPath(key),
     ownerId,
-    owner: names.get(ownerId) ?? "Unknown destination",
+    owner: names.get(ownerId) ?? unknown,
     caption: text(row.caption).trim(),
     order: typeof row.sortOrder === "number" ? row.sortOrder : 0,
     cover: row.isCover === true,

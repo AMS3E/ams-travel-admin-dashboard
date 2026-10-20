@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { ArrowRight, ImageIcon, Inbox } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -13,9 +14,8 @@ import { useGetCurrentUserQuery } from "@/features/auth/api/auth-api";
 import { hasAnyPermission, hasPermission, reviewsDesk } from "@/features/auth/permissions";
 import { QueryState } from "@/features/cms/components/query-state";
 import { useGetDashboardQuery } from "@/features/dashboard/api/dashboard-api";
-import { formatDateTime, formatRelative } from "@/features/dashboard/format";
+import { useDates } from "@/i18n/use-dates";
 import {
-  REQUEST_LABELS,
   REQUEST_TONES,
   isAwaitingDecision,
   type PublishDesk,
@@ -23,7 +23,7 @@ import {
   type RequesterRole,
 } from "../api/contracts";
 import { useGetPublishRequestsQuery } from "../api/publishing-api";
-import { listingLabel, listingRows, type ListingRow } from "../listings";
+import { listingRows, type ListingRow } from "../listings";
 import { PUBLISH_REQUEST_POLL_INTERVAL, decidesRequest, reviewPageOf, submissionDesk } from "../workflow";
 import { RequestDrafts } from "./request-drafts";
 
@@ -43,6 +43,7 @@ export function PublishRequestsPage({ desk, deskPage, requester, userId = null, 
   readonly userId?: string | null;
   readonly approvalsOnly?: boolean;
 }) {
+  const t = useTranslations("publishing.requests");
   const { data: user, isLoading: loadingUser } = useGetCurrentUserQuery();
   const grants = user?.roles ?? [];
   /*
@@ -90,34 +91,37 @@ export function PublishRequestsPage({ desk, deskPage, requester, userId = null, 
           userId={userId}
         />
       )}
-      {showDrafts && <h2 className="text-lg font-semibold text-ink">Submitted requests</h2>}
-      <section aria-label="Publish requests" className="panel min-w-0 overflow-hidden">
+      {showDrafts && <h2 className="text-lg font-semibold text-ink">{t("submitted")}</h2>}
+      <section aria-label={t("label")} className="panel min-w-0 overflow-hidden">
         <Toolbar>
           <Select
-            aria-label="Filter publish requests"
+            aria-label={t("filterLabel")}
             className="h-8 w-48 text-sm"
             value={tab}
             onChange={(event) => setTab(event.target.value)}
           >
-            <option value="all">All requests ({counts.get("all") ?? 0})</option>
-            <option value="PENDING_REVIEW">Pending review ({counts.get("PENDING_REVIEW") ?? 0})</option>
-            <option value="DRAFT">Changes requested ({counts.get("DRAFT") ?? 0})</option>
-            {hidesApproved ? null : <option value="PUBLISHED">Published ({counts.get("PUBLISHED") ?? 0})</option>}
-            <option value="REJECTED">Rejected ({counts.get("REJECTED") ?? 0})</option>
-            <option value="UNPUBLISHED">Unpublished ({counts.get("UNPUBLISHED") ?? 0})</option>
+            <option value="all">{t("filters.all", { count: counts.get("all") ?? 0 })}</option>
+            <option value="PENDING_REVIEW">{t("filters.PENDING_REVIEW", { count: counts.get("PENDING_REVIEW") ?? 0 })}</option>
+            <option value="DRAFT">{t("filters.DRAFT", { count: counts.get("DRAFT") ?? 0 })}</option>
+            {hidesApproved ? null : <option value="PUBLISHED">{t("filters.PUBLISHED", { count: counts.get("PUBLISHED") ?? 0 })}</option>}
+            <option value="REJECTED">{t("filters.REJECTED", { count: counts.get("REJECTED") ?? 0 })}</option>
+            <option value="UNPUBLISHED">{t("filters.UNPUBLISHED", { count: counts.get("UNPUBLISHED") ?? 0 })}</option>
           </Select>
-          <span className="text-xs text-muted tabular-nums">{rows.length} shown</span>
+          <span className="text-xs text-muted tabular-nums">{t("shown", { count: rows.length })}</span>
         </Toolbar>
         {approved ? (
           <p className="border-b border-line bg-sand px-4 py-2 text-xs text-muted">
-            {approved === 1 ? "1 approved listing is" : `${approved} approved listings are`} live on the website and{" "}
-            {approved === 1 ? "is" : "are"} no longer listed here: find {approved === 1 ? "it" : "them"} in{" "}
-            {canReview && deskPage ? (
-              <Link className="font-medium text-teal-deep hover:underline" href={`/${deskPage}-listing-approvals`}>All List Approvals</Link>
-            ) : (
-              <Link className="font-medium text-teal-deep hover:underline" href="/destinations">All Destinations</Link>
-            )}
-            .
+            {canReview && deskPage
+              ? t.rich("approvedNote", {
+                  count: approved,
+                  place: t("allListApprovals"),
+                  link: (chunks) => <Link className="font-medium text-teal-deep hover:underline" href={`/${deskPage}-listing-approvals`}>{chunks}</Link>,
+                })
+              : t.rich("approvedNote", {
+                  count: approved,
+                  place: t("allDestinations"),
+                  link: (chunks) => <Link className="font-medium text-teal-deep hover:underline" href="/destinations">{chunks}</Link>,
+                })}
           </p>
         ) : null}
         {query.isLoading || loadingUser || query.error ? (
@@ -144,17 +148,17 @@ export function PublishRequestsPage({ desk, deskPage, requester, userId = null, 
           <EmptyState
             description={
               tab === "all" && approved && canReview
-                ? "Everything sent to your desk has been answered. Approved listings are on All List Approvals."
+                ? t("empty.answered")
                 : tab === "all" && approved
-                ? "Everything you sent has been approved. Send another draft when it is ready."
+                ? t("empty.approved")
                 : tab === "all"
-                ? "Requests appear here once an attraction, a stay or a food listing is sent for review."
+                ? t("empty.none")
                 : tab === "PENDING_REVIEW" && !hidesApproved && (counts.get("PUBLISHED") ?? 0) > 0
-                  ? `Nothing is waiting for a decision. Choose Published to see the ${counts.get("PUBLISHED")} already live.`
-                  : "Nothing has this status yet. Choose another one, or All requests."
+                  ? t("empty.nothingWaiting", { count: counts.get("PUBLISHED") ?? 0 })
+                  : t("empty.noStatus")
             }
             icon={Inbox}
-            title={tab === "all" && approved ? (canReview ? "Your queue is clear" : "Nothing in progress") : tab === "PENDING_REVIEW" ? "Your queue is clear" : "No publish requests in this view"}
+            title={tab === "all" && approved ? (canReview ? t("empty.queueClear") : t("empty.nothingInProgress")) : tab === "PENDING_REVIEW" ? t("empty.queueClear") : t("empty.noneInView")}
           />
         )}
       </section>
@@ -172,7 +176,10 @@ function RequestRow({ item, listing, decides }: {
   readonly listing: ListingRow | undefined;
   readonly decides: boolean;
 }) {
+  const t = useTranslations("publishing");
+  const { relative, dateTime } = useDates();
   const href = reviewPageOf(item);
+  const noteLabel = item.status === "PENDING_REVIEW" ? t("requests.earlierFeedback") : t("requests.decision");
   return (
     <div className="flex items-start gap-3">
       <Link
@@ -192,27 +199,28 @@ function RequestRow({ item, listing, decides }: {
           <Link className="min-w-0 truncate text-sm font-medium text-ink hover:text-teal-deep hover:underline" href={href}>
             {item.targetName}
           </Link>
-          <Badge tone="neutral">{listingLabel(item.targetType)}</Badge>
+          <Badge tone="neutral">{t(`listing.${item.targetType}`)}</Badge>
         </div>
         <p className="mt-0.5 truncate text-xs text-muted">
-          {[listing?.detail, item.requestedByName ?? "Unknown account"].filter(Boolean).join(" · ")}
+          {[listing?.detail, item.requestedByName ?? t("requests.unknownAccount")].filter(Boolean).join(" · ")}
           {" · "}
-          <time dateTime={item.requestedAt} title={formatDateTime(item.requestedAt)}>sent {formatRelative(item.requestedAt)}</time>
+          <time dateTime={item.requestedAt} title={dateTime(item.requestedAt)}>{t("requests.sent", { when: relative(item.requestedAt) })}</time>
         </p>
         {item.reviewNote ? (
           <p className="mt-2 line-clamp-2 rounded-md bg-sand px-3 py-1.5 text-sm text-ink-soft">
             <span className="font-medium text-ink">
-              {item.status === "PENDING_REVIEW" ? "Earlier feedback" : "Decision"}
-              {item.reviewerName ? ` from ${item.reviewerName}` : ""}:
+              {item.reviewerName
+                ? t("requests.noteHeadingFrom", { label: noteLabel, name: item.reviewerName })
+                : t("requests.noteHeading", { label: noteLabel })}
             </span>{" "}
             {item.reviewNote}
           </p>
         ) : null}
       </div>
       <div className="flex shrink-0 flex-col items-end gap-2">
-        <Badge dot tone={REQUEST_TONES[item.status]}>{REQUEST_LABELS[item.status]}</Badge>
+        <Badge dot tone={REQUEST_TONES[item.status]}>{t(`status.${item.status}`)}</Badge>
         <Link className={buttonVariants({ size: "sm", variant: decides ? "default" : "secondary" })} href={href}>
-          {decides ? "Review" : "View"}
+          {decides ? t("requests.review") : t("requests.view")}
           <ArrowRight aria-hidden className="size-3.5" />
         </Link>
       </div>

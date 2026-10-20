@@ -4,11 +4,14 @@ import { useEffect, useRef, type ReactNode, type CSSProperties } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Menu, PanelLeft } from "lucide-react";
+import { useMessages, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import type { AdminUser } from "@/features/auth/types";
 import { AccountMenu } from "@/features/shell/components/account-menu";
 import { SidebarPanel } from "@/features/shell/components/sidebar-panel";
-import { navigationForPath } from "@/features/shell/nav";
+import { dashboardItem, navigationForPath } from "@/features/shell/nav";
+import { useNavText } from "@/features/shell/nav-text";
+import { LanguageMenu } from "@/features/shell/components/language-menu";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setMobileOpen, toggleSidebar } from "@/store/slices/sidebar-slice";
 import { useGetCurrentUserQuery } from "@/features/auth/api/auth-api";
@@ -21,6 +24,15 @@ interface AppShellProps {
   readonly children: ReactNode;
 }
 
+/** Pages outside the menu that still need a title in the top bar. */
+const NAMED_PAGES = ["profile", "publishing"] as const;
+
+/** A table's plural name in the reader's language, from the registry words already loaded. */
+function tableNameOf(messages: ReturnType<typeof useMessages>, key: string): string | null {
+  const words = (messages.resources as unknown as Readonly<Record<string, { readonly labelPlural?: unknown } | undefined>> | undefined)?.[key];
+  return typeof words?.labelPlural === "string" ? words.labelPlural : null;
+}
+
 export function AppShell({ admin, children }: AppShellProps) {
   const dispatch = useAppDispatch();
   const { mobileOpen: drawerOpen, collapsed } = useAppSelector(
@@ -31,24 +43,31 @@ export function AppShell({ admin, children }: AppShellProps) {
   /* A tablet keeps the sidebar as an icon rail; the menu button opens it in full. */
   const tablet = useMediaQuery("(min-width: 768px) and (max-width: 1023px)");
   const rail = collapsed || tablet;
+  const t = useTranslations("shell");
+  const nav = useNavText();
+  const messages = useMessages();
   const pathname = usePathname();
   const currentPage = navigationForPath(pathname, account.roles);
   const routeParts = pathname.split("/").filter(Boolean);
+  const namedPage = NAMED_PAGES.find((page) => page === routeParts[0]);
   const pageTitle =
-    currentPage?.label ??
+    (currentPage ? nav.label(currentPage.text) : null) ??
+    /* Pages outside the menu name themselves in the reader's language. */
+    (namedPage ? t(`breadcrumb.pages.${namedPage}`) : null) ??
+    (routeParts[0] ? tableNameOf(messages, routeParts[0]) : null) ??
     (routeParts[0] && routeParts[0] !== "dashboard"
       ? routeParts[0]
           .split("-")
           .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
           .join(" ")
-      : "Dashboard");
+      : nav.label(dashboardItem.text));
   const recordAction =
     routeParts.length > 1 && currentPage?.href !== pathname
       ? routeParts.at(-1) === "new"
-        ? "Create"
+        ? t("breadcrumb.create")
         : routeParts.at(-1) === "detail" || (routeParts[0] === "regions" && routeParts.length === 2)
-          ? "Detail"
-          : "Edit"
+          ? t("breadcrumb.detail")
+          : t("breadcrumb.edit")
       : null;
   const drawer = useRef<HTMLDialogElement>(null);
 
@@ -78,34 +97,34 @@ export function AppShell({ admin, children }: AppShellProps) {
 
   return (
     <div
-      style={{ "--sidebar-width": rail ? "3.5rem" : "15rem" } as CSSProperties}
+      style={{ "--sidebar-width": rail ? "3.5rem" : "17rem" } as CSSProperties}
       className="cms-shell min-h-dvh md:grid md:grid-cols-[var(--sidebar-width)_minmax(0,1fr)]"
     >
       <a
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-paper focus:px-3 focus:py-2 focus:text-sm focus:shadow-pop"
         href="#main-content"
       >
-        Skip to content
+        {t("skipToContent")}
       </a>
-      <aside aria-label="Main sidebar" className="sticky top-0 hidden h-dvh min-h-0 md:block">
+      <aside aria-label={t("sidebar.label")} className="sticky top-0 hidden h-dvh min-h-0 md:block">
         <SidebarPanel admin={account} collapsed={rail} />
       </aside>
 
       <dialog
-        aria-label="Navigation"
+        aria-label={t("sidebar.drawer")}
         className="sidebar-dialog fixed inset-0 m-0 h-dvh max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-scrim"
         id="mobile-navigation"
         onCancel={() => dispatch(setMobileOpen(false))}
         ref={drawer}
       >
         <button
-          aria-label="Close navigation"
+          aria-label={t("sidebar.close")}
           className="absolute inset-0 cursor-default"
           onClick={() => dispatch(setMobileOpen(false))}
           tabIndex={-1}
           type="button"
         />
-        <div className="sidebar-drawer relative h-full w-64 max-w-[calc(100vw-3rem)] shadow-pop">
+        <div className="sidebar-drawer relative h-full w-[17rem] max-w-[calc(100vw-3rem)] shadow-pop">
           <SidebarPanel
             admin={account}
             onClose={() => dispatch(setMobileOpen(false))}
@@ -119,7 +138,7 @@ export function AppShell({ admin, children }: AppShellProps) {
           <Button
             aria-controls="mobile-navigation"
             aria-expanded={drawerOpen}
-            aria-label="Open navigation"
+            aria-label={t("sidebar.open")}
             className="lg:hidden"
             onClick={() => dispatch(setMobileOpen(true))}
             size="icon-sm"
@@ -129,11 +148,11 @@ export function AppShell({ admin, children }: AppShellProps) {
           </Button>
           <Button
             aria-expanded={!collapsed}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
             className="hidden text-muted lg:inline-flex"
             onClick={() => dispatch(toggleSidebar())}
             size="icon-sm"
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
             variant="ghost"
           >
             <PanelLeft aria-hidden className="size-4" />
@@ -141,10 +160,10 @@ export function AppShell({ admin, children }: AppShellProps) {
 
           <span aria-hidden className="hidden h-5 w-px bg-line lg:block" />
 
-          <nav aria-label="Breadcrumb" className="flex min-w-0 flex-1 items-center gap-1.5 text-sm">
+          <nav aria-label={t("breadcrumb.label")} className="flex min-w-0 flex-1 items-center gap-1.5 text-sm">
             {currentPage && currentPage.href !== "/dashboard" ? (
               <>
-                <span className="hidden truncate text-muted lg:inline">{currentPage.group}</span>
+                <span className="hidden truncate text-muted lg:inline">{nav.group(currentPage.navGroup)}</span>
                 <ChevronRight aria-hidden className="hidden size-3.5 shrink-0 text-line-hover lg:block" />
               </>
             ) : null}
@@ -166,6 +185,7 @@ export function AppShell({ admin, children }: AppShellProps) {
           </nav>
 
           <WorkspaceTools accountId={account.id} grants={account.roles} />
+          <LanguageMenu />
           <ThemeMenu />
           <span aria-hidden className="hidden h-5 w-px bg-line sm:block" />
           <AccountMenu admin={account} />

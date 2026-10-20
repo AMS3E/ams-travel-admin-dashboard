@@ -1,7 +1,8 @@
+import { useMessages, useTranslations } from "next-intl";
 import { ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { formatDateTime } from "@/features/dashboard/format";
-import { BASIS_LABELS, decidedVerified, type DestinationVerificationResponse, type VerifiedStatusResponse } from "../api/contracts";
+import { dateTimeOf } from "@/i18n/dates";
+import { decidedVerified, type DestinationVerificationResponse, type VerifiedStatusResponse } from "../api/contracts";
 import { VerifyButton } from "./verify-button";
 
 interface VerificationPanelProps {
@@ -24,31 +25,38 @@ interface VerificationPanelProps {
  * sees the status alone.
  */
 export function VerificationPanel({ destinationId, name, resource = "destinations", status, history }: VerificationPanelProps) {
+  const t = useTranslations("verification");
+  const dates = useMessages().common.dates;
   if (!status && !history) return null;
 
   const verified = status?.verified ?? history?.[0]?.verified ?? false;
   const basis = status?.basis ?? history?.[0]?.basis ?? null;
   const latest = history?.[0];
+  const decider = latest?.decidedByName ?? t("line.deletedAccount");
   const decision = latest
-    ? [
-        `${latest.verified ? "Verified" : "Revoked"} by ${latest.decidedByName ?? "a deleted account"}`,
-        formatDateTime(latest.createdAt),
-        latest.reference,
-      ]
-        .filter(Boolean)
-        .join(" · ") + "."
+    ? t("panel.sentence", {
+        text: [
+          latest.verified ? t("line.verifiedBy", { name: decider }) : t("line.revokedBy", { name: decider }),
+          dateTimeOf(latest.createdAt, dates),
+          latest.reference,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      })
     : verified && status?.createdAt
-      ? `Verified since ${formatDateTime(status.createdAt)}.`
+      ? t("panel.verifiedSince", { date: dateTimeOf(status.createdAt, dates) })
       : history
-        ? "No decision has been recorded yet."
-        : "A BDO or an administrator verifies a destination: an official site on its standing, a partner's listing on its agreement, a paid one on its invoice.";
+        ? t("noDecision")
+        : t("panel.whoVerifies");
   const ratings = status?.ratingCount
-    ? `${status.ratingCount.toLocaleString()} ${status.ratingCount === 1 ? "rating" : "ratings"}${status.averageRating != null ? ` at ${status.averageRating}` : ""}.`
+    ? status.averageRating != null
+      ? t("panel.ratingsAt", { count: status.ratingCount, average: String(status.averageRating) })
+      : t("panel.ratings", { count: status.ratingCount })
     : null;
   const detail = [
-    basis === "TRAVELER_SCORE" ? "Verified by the travellers' reviews." : null,
+    basis === "TRAVELER_SCORE" ? t("panel.byTravellers") : null,
     decision,
-    verified ? "Shows as Recommended by AMS Travel in the app." : null,
+    verified ? t("panel.recommended") : null,
     ratings,
   ]
     .filter(Boolean)
@@ -61,11 +69,11 @@ export function VerificationPanel({ destinationId, name, resource = "destination
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-sm font-semibold">Verification</h2>
-          <Badge tone={verified ? "gold" : "neutral"}>
-            {verified && basis ? `Verified · ${BASIS_LABELS[basis]}` : verified ? "Verified" : "Not verified"}
+          <h2 className="text-sm font-semibold">{t("title")}</h2>
+          <Badge tone={verified ? "success" : "neutral"}>
+            {verified && basis ? t("badge.verifiedBasis", { basis: t(`basis.${basis}`) }) : verified ? t("badge.verified") : t("badge.notVerified")}
           </Badge>
-          {status?.travelerRecommended ? <Badge tone="success">Recommended by Traveler</Badge> : null}
+          {status?.travelerRecommended ? <Badge tone="success">{t("badge.travelerRecommended")}</Badge> : null}
         </div>
         <p className="mt-1 text-xs text-muted">{detail}</p>
       </div>

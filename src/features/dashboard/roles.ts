@@ -1,3 +1,5 @@
+import { useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { primaryRole, type BusinessRole } from "@/features/auth/permissions";
 
 /**
@@ -13,6 +15,7 @@ export interface RoleProfile {
   readonly blurb: string;
 }
 
+/** In English; `common.roleProfiles` has the same words in each language (see `useRoleProfile`). */
 export const ROLE_PROFILES: Readonly<Record<BusinessRole, RoleProfile>> = {
   PARTNER: {
     title: "Partner dashboard",
@@ -44,4 +47,10 @@ export const ROLE_PROFILES: Readonly<Record<BusinessRole, RoleProfile>> = {
 export function dashboardTitle(roles: readonly string[]): string {
   const role = primaryRole(roles);
   return role ? ROLE_PROFILES[role].title : "Overview";
+}
+
+/** A role's profile in the reader's language, for server and client components alike. */
+export function useRoleProfile(): (role: BusinessRole) => RoleProfile {
+  const t = useTranslations("common.roleProfiles");
+  return useCallback((role: BusinessRole) => ({ title: t(`${role}.title`), blurb: t(`${role}.blurb`) }), [t]);
 }

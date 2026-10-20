@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Check, Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import type { AmenityOption } from "@/features/catalog/amenities";
 import { AMENITY_ICONS } from "@/features/catalog/amenity-icons";
@@ -27,12 +28,15 @@ interface Amenity {
   readonly icon?: string;
 }
 
+/** The group of an amenity filed under none; named in the reader's language where it is shown. */
+const OTHER = "Other";
+
 /** The registry labels an amenity `Group · Name`; the group is how it is laid out here. */
 function split(option: AmenityOption): Amenity {
   const [group, ...rest] = option.label.split(" · ");
   return rest.length
     ? { value: option.value, group, label: rest.join(" · "), icon: option.icon }
-    : { value: option.value, group: "Other", label: option.label, icon: option.icon };
+    : { value: option.value, group: OTHER, label: option.label, icon: option.icon };
 }
 
 interface AmenityPickerProps {
@@ -42,8 +46,8 @@ interface AmenityPickerProps {
   readonly labelledBy: string;
   /** Offered first; the property's most requested unless a list says otherwise. */
   readonly popular?: readonly string[];
-  /** What the list holds, for its search box: "facilities" unless it holds something else. */
-  readonly noun?: string;
+  /** What the list holds, for its search box: facilities, or `list` for any other list. */
+  readonly noun?: "facilities" | "list";
   /**
    * The list is written in the order it should read — what only this kind of
    * place has, group by group, each group a scale or a sequence — so it is
@@ -66,6 +70,7 @@ export function AmenityPicker({
   noun = "facilities",
   ordered = false,
 }: AmenityPickerProps) {
+  const t = useTranslations("forms.amenities");
   const [term, setTerm] = useState("");
   const selected = useMemo(() => new Set(value), [value]);
   /*
@@ -97,25 +102,25 @@ export function AmenityPicker({
         <div className="relative min-w-48 flex-1 sm:max-w-xs">
           <Search aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" />
           <Input
-            aria-label={`Search ${noun}`}
+            aria-label={t("search", { noun })}
             className="h-8 pl-8 text-sm"
             onChange={(event) => setTerm(event.target.value)}
-            placeholder={`Search ${noun}…`}
+            placeholder={t("searchPlaceholder", { noun })}
             type="search"
             value={term}
           />
         </div>
-        <span className="text-xs text-muted tabular-nums">{value.length} selected</span>
+        <span className="text-xs text-muted tabular-nums">{t("selected", { count: value.length })}</span>
         {value.length ? (
           <button className="text-xs font-medium text-teal-deep hover:underline" onClick={() => onChange([])} type="button">
-            Clear all
+            {t("clearAll")}
           </button>
         ) : null}
       </div>
 
       {!needle && popular.length ? (
         <div>
-          <p className="mb-2 text-xs font-medium text-muted">Most requested by guests</p>
+          <p className="mb-2 text-xs font-medium text-muted">{t("popular")}</p>
           <ul className="flex flex-wrap gap-1.5">
             {popular.map((amenity) => {
               const Icon = AMENITY_ICONS[amenity.icon ?? ""] ?? Check;
@@ -147,8 +152,8 @@ export function AmenityPicker({
           return (
             <fieldset className="border-line px-3 py-3 not-last:border-b" key={group}>
               <legend className="float-left mb-2 flex w-full items-baseline justify-between text-xs font-medium text-muted">
-                <span>{group}</span>
-                {chosen ? <span className="text-teal-deep tabular-nums">{chosen} selected</span> : null}
+                <span>{group === OTHER ? t("otherGroup") : group}</span>
+                {chosen ? <span className="text-teal-deep tabular-nums">{t("selected", { count: chosen })}</span> : null}
               </legend>
               <ul className="clear-left grid gap-x-4 gap-y-0.5 sm:grid-cols-2 2xl:grid-cols-3">
                 {entries.map((amenity) => {
@@ -175,7 +180,7 @@ export function AmenityPicker({
           );
         })}
         {groups.length === 0 ? (
-          <p className="px-3 py-6 text-center text-sm text-muted">Nothing matches “{term}”.</p>
+          <p className="px-3 py-6 text-center text-sm text-muted">{t("noMatch", { term })}</p>
         ) : null}
       </div>
     </div>

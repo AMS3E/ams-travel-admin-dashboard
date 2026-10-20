@@ -35,7 +35,7 @@ export interface RegionResponse {
   /** Its cover picture: its Explore card and the banner of its page. */
   readonly coverKey: string | null;
   readonly coverUrl: string | null;
-  /** Its map picture: one image in the Map panel of its page in the app, where the interactive map was. */
+  /** Its map picture: the Historical Map panel of its page in the app. */
   readonly mapKey: string | null;
   readonly mapUrl: string | null;
   /** A tourism region's shelves, and the filter chips its page offers. Empty on a zone. */
@@ -149,6 +149,15 @@ export interface DestinationResponse {
   readonly categoryIds: readonly string[] | null;
   readonly tagIds: readonly string[] | null;
   readonly interestIds: readonly string[] | null;
+  /** Its heritage ties, written with the rest of the row. */
+  /** The Khmer twins of its text, typed by hand; null until written. */
+  readonly nameKm: string | null;
+  readonly descriptionKm: string | null;
+  readonly sloganKm: string | null;
+  readonly sloganByKm: string | null;
+  readonly addressKm: string | null;
+  /** The Khmer fields still empty while their English says something: publishing waits until there are none. */
+  readonly missingKhmer: readonly string[];
 }
 
 export type MediaType = "IMAGE" | "VIDEO";
@@ -296,10 +305,7 @@ export interface PartnerUserResponse {
 
 export type BadgeCriteria = "BROWSES" | "REVIEWS" | "STAMPS" | "DESTINATION_STAMPS";
 
-/** Which of the three ladders a badge climbs. */
-export type BadgeTrack = "BROWSER" | "REVIEWER" | "ADVENTURE";
-
-/** Its rung on that ladder. */
+/** Its rung on a badge's ladder. */
 export type BadgeTier = "SILVER" | "GOLDEN" | "PLATINUM";
 
 export interface BadgeDefinitionResponse {
@@ -308,17 +314,15 @@ export interface BadgeDefinitionResponse {
   readonly name: string;
   readonly description: string | null;
   readonly iconKey: string | null;
-  readonly criteriaType: BadgeCriteria;
-  readonly criteriaValue: number;
-  /**
-   * Worked out by the API from the criteria, never written. Both are null for
-   * a destination-collection badge (DESTINATION_STAMPS), which is known by
-   * its name alone.
-   */
-  readonly track: BadgeTrack | null;
-  readonly tier: BadgeTier | null;
-  readonly isActive: boolean;
+  /** `GET /badges`: how it is earned, how many it takes, and its tier. */
+  readonly type: BadgeCriteria;
+  readonly threshold: number;
+  readonly level: BadgeTier | null;
+  readonly status: "ACTIVE" | "INACTIVE";
+  /** The places that count, for DESTINATION_STAMPS. */
+  readonly destinationIds: readonly string[];
   readonly createdAt: string | null;
+  readonly updatedAt: string | null;
 }
 
 /**
@@ -339,7 +343,7 @@ export interface BadgePeriodResponse {
 }
 
 /** High season, or the green (rainy) season. */
-export type SeasonKind = "HIGH" | "GREEN";
+export type SeasonKind = "HIGH_SEASON" | "GREEN_SEASON";
 
 /**
  * `GET /seasons` — the tourist calendar. Saving one creates or moves one badge
@@ -348,7 +352,7 @@ export type SeasonKind = "HIGH" | "GREEN";
 export interface SeasonResponse {
   readonly id: string;
   readonly name: string;
-  readonly kind: SeasonKind;
+  readonly type: SeasonKind;
   readonly startsOn: string;
   readonly endsOn: string;
   readonly isActive: boolean;

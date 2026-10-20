@@ -1,19 +1,15 @@
 "use client";
 
+import { useCallback } from "react";
+import { useMessages, useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/toolbar";
-import { formatDay } from "@/features/dashboard/format";
+import { datePartsOf, fillDate, type DateWords } from "@/i18n/dates";
 import type { DestinationStatsPeriod } from "../api/contracts";
 
 export type Period = "all" | "today" | "week" | "month" | "custom";
 
-const PERIODS: readonly { readonly value: Period; readonly label: string }[] = [
-  { value: "all", label: "All time" },
-  { value: "today", label: "Today" },
-  { value: "week", label: "This week" },
-  { value: "month", label: "This month" },
-  { value: "custom", label: "Custom" },
-];
+const PERIODS: readonly Period[] = ["all", "today", "week", "month", "custom"];
 
 /** A calendar date as the API takes it, in the viewer's own day. */
 function isoDate(date: Date): string {
@@ -42,12 +38,27 @@ export function windowOf(period: Period, custom: DestinationStatsPeriod): Destin
   }
 }
 
+/** "9 Oct 2026" for a `YYYY-MM-DD` day, which carries no zone. */
+function dayText(value: string | undefined, dates: DateWords): string {
+  const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return "—";
+  const at = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  return fillDate(dates.date, datePartsOf(at, "UTC"), dates);
+}
+
 /** The days a window covers, in plain words: "9 Oct 2026", "6 Oct 2026 to 9 Oct 2026"; empty for all time. */
-export function periodDates(window: DestinationStatsPeriod): string {
-  if (!window.from && !window.to) return "";
-  return window.from && window.to && window.from !== window.to
-    ? `${formatDay(window.from)} to ${formatDay(window.to)}`
-    : formatDay(window.from ?? window.to);
+export function usePeriodDates(): (window: DestinationStatsPeriod) => string {
+  const t = useTranslations("stats.period");
+  const dates = useMessages().common.dates as DateWords;
+  return useCallback(
+    (window: DestinationStatsPeriod) => {
+      if (!window.from && !window.to) return "";
+      return window.from && window.to && window.from !== window.to
+        ? t("range", { from: dayText(window.from, dates), to: dayText(window.to, dates) })
+        : dayText(window.from ?? window.to, dates);
+    },
+    [t, dates],
+  );
 }
 
 /** Whether a moment falls in the window, by its calendar day in Cambodia. */
@@ -70,23 +81,29 @@ interface PeriodControlProps {
  * toolbar.
  */
 export function PeriodControl({ period, custom, onPeriod, onCustom }: PeriodControlProps) {
-  const dates = periodDates(windowOf(period, custom));
+  const t = useTranslations("stats.period");
+  const dates = usePeriodDates()(windowOf(period, custom));
   return (
     <>
-      <SegmentedControl label="Period" onChange={onPeriod} options={PERIODS} value={period} />
+      <SegmentedControl
+        label={t("label")}
+        onChange={onPeriod}
+        options={PERIODS.map((value) => ({ value, label: t(`options.${value}`) }))}
+        value={period}
+      />
       {period === "custom" ? (
         <span className="flex items-center gap-1.5 text-xs text-muted" data-field="custom-period">
           <Input
-            aria-label="From"
+            aria-label={t("from")}
             className="h-8 w-36 text-sm"
             max={custom.to}
             onChange={(event) => onCustom({ ...custom, from: event.target.value || undefined })}
             type="date"
             value={custom.from ?? ""}
           />
-          to
+          {t("between")}
           <Input
-            aria-label="To"
+            aria-label={t("to")}
             className="h-8 w-36 text-sm"
             min={custom.from}
             onChange={(event) => onCustom({ ...custom, to: event.target.value || undefined })}

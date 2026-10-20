@@ -1,5 +1,6 @@
 import type { ListingRow } from "@/features/publishing/listings";
 import type { PublishRequestResponse } from "@/features/publishing/api/contracts";
+import { ENGLISH_DATES, datePartsOf, fillDate, type DateWords } from "@/i18n/dates";
 
 function timeOf(value: string | null | undefined): number {
   const parsed = value ? Date.parse(value) : Number.NaN;
@@ -31,12 +32,12 @@ export function contentSummary(
     else counts.Draft++;
   }
   return [
-    /* Status colours: green live, amber waiting, grey draft, red refused. */
+    /* Status colours: green live, amber waiting, grey draft, red refused. `name` is a key: the screen says it. */
     { name: "Published", value: counts.Published, color: "var(--success)" },
     { name: "Pending", value: counts.Pending, color: "var(--warning-accent)" },
     { name: "Draft", value: counts.Draft, color: "var(--border-hover)" },
     { name: "Rejected", value: counts.Rejected, color: "var(--destructive)" },
-  ];
+  ] as const;
 }
 
 export type GrowthRange = "7d" | "30d" | "3m" | "6m" | "12m" | "custom";
@@ -49,14 +50,25 @@ export interface GrowthWindow {
   readonly unit: GrowthUnit;
 }
 
-export const GROWTH_RANGES: readonly { readonly value: GrowthRange; readonly label: string }[] = [
-  { value: "7d", label: "Last 7 days" },
-  { value: "30d", label: "Last 30 days" },
-  { value: "3m", label: "Last 3 months" },
-  { value: "6m", label: "Last 6 months" },
-  { value: "12m", label: "Last 12 months" },
-  { value: "custom", label: "Custom range" },
-];
+/* Their names are in dashboard.json, under growth.ranges. */
+export const GROWTH_RANGES: readonly GrowthRange[] = ["7d", "30d", "3m", "6m", "12m", "custom"];
+
+/** How the chart writes its days and months: the patterns are in dashboard.json, under chartDates. */
+export interface ChartDates {
+  readonly dates: DateWords;
+  readonly tickDay: string;
+  readonly tickMonth: string;
+  readonly labelDay: string;
+  readonly labelMonth: string;
+}
+
+export const ENGLISH_CHART_DATES: ChartDates = {
+  dates: ENGLISH_DATES,
+  tickDay: "{monthShort} {day}",
+  tickMonth: "{monthShort}",
+  labelDay: "{monthShort} {day}, {year}",
+  labelMonth: "{month} {year}",
+};
 
 const DAY = 86_400_000;
 
@@ -126,7 +138,6 @@ export function growthWindow(
   }
 }
 
-const utc = (date: Date, options: Intl.DateTimeFormatOptions) => date.toLocaleDateString("en", { ...options, timeZone: "UTC" });
 
 /**
  * Listings created in each day, week or month of the period — attractions,
@@ -136,20 +147,23 @@ const utc = (date: Date, options: Intl.DateTimeFormatOptions) => date.toLocaleDa
 export function destinationGrowth(
   listings: readonly { readonly createdAt: string | null }[],
   window: GrowthWindow,
+  chart: ChartDates = ENGLISH_CHART_DATES,
 ) {
   const { from, to, unit } = window;
+  /* The buckets are UTC days, so their parts are read in UTC. */
+  const write = (pattern: string, date: Date) => fillDate(pattern, datePartsOf(date, "UTC"), chart.dates);
   const points: { key: string; tick: string; label: string; count: number }[] = [];
   for (let start = bucketStart(from, unit); start <= to; start = nextBucket(start, unit)) {
     const first = start < from ? from : start;
     const lastOfBucket = addDays(nextBucket(start, unit), -1);
     const last = lastOfBucket > to ? to : lastOfBucket;
-    const tick = unit === "month" ? utc(start, { month: "short" }) : utc(first, { month: "short", day: "numeric" });
+    const tick = unit === "month" ? write(chart.tickMonth, start) : write(chart.tickDay, first);
     const label =
       unit === "day"
-        ? utc(start, { month: "short", day: "numeric", year: "numeric" })
+        ? write(chart.labelDay, start)
         : unit === "week"
-          ? `${utc(first, { month: "short", day: "numeric" })} – ${utc(last, { month: "short", day: "numeric", year: "numeric" })}`
-          : utc(start, { month: "long", year: "numeric" });
+          ? `${write(chart.tickDay, first)} – ${write(chart.labelDay, last)}`
+          : write(chart.labelMonth, start);
     points.push({ key: dayValue(start), tick, label, count: 0 });
   }
   const byKey = new Map(points.map((point) => [point.key, point]));

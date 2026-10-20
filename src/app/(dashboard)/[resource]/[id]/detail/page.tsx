@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Pencil } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { requireAdmin } from "@/features/auth/session";
@@ -16,21 +17,23 @@ type Params = {
 };
 
 const RESOURCES: readonly PlaceResource[] = ["destinations", "stays", "foods"];
-const EDIT: Readonly<Record<PlaceResource, string>> = { destinations: "Edit destination", stays: "Edit stay", foods: "Edit food listing" };
+/** The pencil's words, `stats.detail`, by kind. */
+const EDIT: Readonly<Record<PlaceResource, "edit" | "editStay" | "editFood">> = { destinations: "edit", stays: "editStay", foods: "editFood" };
 
+type BackLabel = "backAll" | "back" | "backRegion";
 /** Where the page was opened from, and so where Back goes: a tab of All Destinations, Destination Stats or a region's page; All Destinations otherwise. */
-const BACK: Readonly<Record<string, { readonly href: string; readonly label: string }>> = {
-  attractions: { href: "/destinations?type=attractions", label: "Back to All Destinations" },
-  food: { href: "/destinations?type=food", label: "Back to All Destinations" },
-  stays: { href: "/destinations?type=stays", label: "Back to All Destinations" },
-  stats: { href: "/destination-stats", label: "Back to Destination Stats" },
+const BACK: Readonly<Record<string, { readonly href: string; readonly label: BackLabel }>> = {
+  attractions: { href: "/destinations?type=attractions", label: "backAll" },
+  food: { href: "/destinations?type=food", label: "backAll" },
+  stays: { href: "/destinations?type=stays", label: "backAll" },
+  stats: { href: "/destination-stats", label: "back" },
 };
-const BACK_DEFAULT = { href: "/destinations", label: "Back to All Destinations" };
+const BACK_DEFAULT = { href: "/destinations", label: "backAll" } as const;
 
-function backOf(from: string | string[] | undefined): { readonly href: string; readonly label: string } {
+function backOf(from: string | string[] | undefined): { readonly href: string; readonly label: BackLabel } {
   if (typeof from !== "string") return BACK_DEFAULT;
   const region = from.startsWith("region:") ? from.slice("region:".length) : null;
-  if (region && isUuid(region)) return { href: `/regions/${region}`, label: "Back to the region" };
+  if (region && isUuid(region)) return { href: `/regions/${region}`, label: "backRegion" };
   return BACK[from] ?? BACK_DEFAULT;
 }
 
@@ -51,7 +54,8 @@ const nameOf = cache(async (resource: PlaceResource, id: string): Promise<string
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { resource, id } = await params;
   const kind = placeResource(resource);
-  return { title: (kind && isUuid(id) ? await nameOf(kind, id) : null) ?? "Not found" };
+  const t = await getTranslations("stats.detail");
+  return { title: (kind && isUuid(id) ? await nameOf(kind, id) : null) ?? t("notFound") };
 }
 
 /**
@@ -71,6 +75,7 @@ export default async function DestinationDetailPage({ params, searchParams }: Pa
   const name = await nameOf(kind, id);
   if (!name) notFound();
   const back = backOf(from);
+  const t = await getTranslations("stats.detail");
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-5">
@@ -78,11 +83,11 @@ export default async function DestinationDetailPage({ params, searchParams }: Pa
         actions={
           <Link className={buttonVariants({ variant: "secondary" })} href={`/${kind}/${id}`}>
             <Pencil aria-hidden className="size-4" />
-            {EDIT[kind]}
+            {t(EDIT[kind])}
           </Link>
         }
         backHref={back.href}
-        backLabel={back.label}
+        backLabel={t(back.label)}
         title={name}
       />
       <DestinationInsight grants={admin.roles} id={id} resource={kind} />

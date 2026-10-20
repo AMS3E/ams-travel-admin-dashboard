@@ -1,0 +1,206 @@
+{
+  "roleCodes": {
+    "PARTNER": "PARTNER",
+    "CONTRIBUTOR": "CONTRIBUTOR",
+    "EDITOR": "EDITOR",
+    "BDO": "BDO",
+    "ADMIN": "ADMIN"
+  },
+  "workspaceAccess": {
+    "PARTNER": "Only their own listings, their business's stays and food, photos, and publishing requests.",
+    "CONTRIBUTOR": "Only their own attractions, stays and food listings, photos, and publishing requests.",
+    "EDITOR": "Editorial destinations, stays, food and corridors, contributor submissions, and review moderation. No account management or platform totals.",
+    "BDO": "Partner submissions and publishing decisions, and the catalogue. No contributor drafts or account administration.",
+    "ADMIN": "All workspaces, account management, partners, role assignment, badges, and platform statistics."
+  },
+  "validation": {
+    "firstNameRequired": "First name is required",
+    "lastNameRequired": "Last name is required",
+    "emailInvalid": "Enter a valid e-mail address",
+    "usernameShort": "Username needs at least three characters",
+    "usernameCharacters": "Use lowercase letters, digits, and . _ - @ only",
+    "passwordShort": "Use at least eight characters",
+    "phoneLong": "Use at most 50 characters",
+    "photoAgain": "Upload the photo again."
+  },
+  "writes": {
+    "createNeedsPermissions": "Creating an account requires user-management and role-assignment permissions.",
+    "editNeedsPermission": "Editing an account requires the user-management permission.",
+    "cannotAssignRoles": "This account cannot assign roles.",
+    "fieldsNeedAttention": "Some fields need attention.",
+    "alreadyInUse": "Already in use.",
+    "keycloakRejected": "Keycloak rejected this change. Check the details and try again.",
+    "editUnavailable": "Changing an account's details is not available yet: the API has no way to save them. Roles can still be changed below."
+  },
+  "photo": {
+    "label": "Profile photo",
+    "hint": "JPEG, PNG, WebP or AVIF, up to 8 MB. A square photo looks best.",
+    "empty": "Add their photo",
+    "filled": "Their profile photo",
+    "uploading": "Uploading the photo…",
+    "instructions": "Drag an image here, or choose one from this computer."
+  },
+  "fields": {
+    "firstName": "First name",
+    "lastName": "Last name",
+    "name": "Name",
+    "email": "E-mail",
+    "phone": "Phone number",
+    "phoneRemovable": "Optional. Leave empty to remove it.",
+    "username": "Username",
+    "password": "Password",
+    "status": "Status",
+    "generatePassword": "Generate a new password",
+    "shownOnce": "Shown once, after the account is created.",
+    "askNewPassword": "Ask for a new password at the first sign-in"
+  },
+  "status": {
+    "ACTIVE": "Active",
+    "INACTIVE": "Inactive",
+    "activeOption": "Active — can sign in",
+    "inactiveOption": "Inactive — sign-in blocked",
+    "disabledOption": "Disabled — sign-in blocked",
+    "disabled": "Disabled"
+  },
+  "editing": {
+    "editName": "Edit {name}",
+    "uploadingPhoto": "Uploading the photo…",
+    "unsaved": "Unsaved changes.",
+    "saved": "Saved.",
+    "noChanges": "No changes yet.",
+    "discard": "Discard",
+    "close": "Close",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "save": "Save changes"
+  },
+  "handover": {
+    "copied": "Copied",
+    "copy": "Copy credentials",
+    "createAnother": "Create another",
+    "done": "Done",
+    "staffClipboard": "Username: {username}\nPassword: {password}",
+    "customerClipboard": "E-mail: {email}\nPassword: {password}"
+  },
+  "customers": {
+    "metrics": {
+      "customers": "Customers",
+      "customersHint": "Registered on the public site",
+      "active": "Active",
+      "activeHint": "Can sign in",
+      "inactive": "Inactive",
+      "inactiveHint": "Sign-in blocked",
+      "new": "New",
+      "newHint": "Joined in the last {days} days"
+    },
+    "label": "Customers",
+    "search": "Search customers",
+    "searchPlaceholder": "Search name, e-mail or phone…",
+    "statusLabel": "Status",
+    "filters": {
+      "ALL": "All",
+      "ACTIVE": "Active",
+      "INACTIVE": "Inactive"
+    },
+    "sortLabel": "Sort customers",
+    "sort": {
+      "newest": "Newest first",
+      "oldest": "Oldest first",
+      "name": "Name A–Z"
+    },
+    "newCustomer": "New customer",
+    "loading": "Loading customers",
+    "columns": {
+      "customer": "Customer",
+      "phone": "Phone",
+      "joined": "Joined",
+      "status": "Status"
+    },
+    "showing": "Showing {shown} of {count, plural, one {# customer} other {# customers}}",
+    "empty": {
+      "clearFilters": "Clear filters",
+      "create": "Create customer",
+      "filteredTitle": "No customer matches",
+      "filteredDescription": "Try another name, e-mail or phone, or show every status.",
+      "title": "No customers yet",
+      "description": "Customers will appear here after registering."
+    },
+    "staffHeldBack": "{count, plural, one {# staff account is} other {# staff accounts are}} held back from this list. Find {count, plural, one {it} other {them}} under <link>Roles & Permissions</link>."
+  },
+  "customer": {
+    "edit": "Edit",
+    "delete": "Delete permanently",
+    "deleteName": "Delete {name}",
+    "confirmDelete": "Delete <b>{name}</b> for good? Their sign-in, reviews, favourites and badges go too. To stop them signing in but keep their history, edit them and set them to Inactive instead.",
+    "deleteCustomer": "Delete customer",
+    "emailHint": "Also what they sign in with.",
+    "statusHint": "Inactive customers cannot sign in."
+  },
+  "newCustomer": {
+    "title": "New customer",
+    "description": "Creates their sign-in in the customer realm and the profile that goes with it. The password is shown once, after the account exists.",
+    "emailHint": "Also their username — customers sign in by e-mail.",
+    "phoneHint": "Optional. Must not already belong to another customer.",
+    "creating": "Creating…",
+    "uploadingPhoto": "Uploading photo…",
+    "create": "Create customer",
+    "created": "{name} can sign in now",
+    "handover": "Hand these over now. The password is not stored and this dashboard cannot show it again. They sign in on the public site{temporary, select, yes {, where they choose their own password the first time.} other {, and can change the password from their profile.}}"
+  },
+  "accountForm": {
+    "created": "Account created",
+    "handover": "Hand these over now. The password is not stored and this dashboard cannot show it again.{temporary, select, yes { Keycloak asks for a new one at the first sign-in.} other {}} They can change it any time from Profile → Change password.",
+    "dashboard": "Dashboard",
+    "signInNote": "The new user signs in through the same dashboard login page. Use a separate browser session to try their account while keeping yours open.",
+    "whatTheySee": "What they will see",
+    "startsEmpty": "Their workspace starts empty. Records they create belong to their account.",
+    "usernameHint": "What they type at sign-in. Keycloak will not let it change later.",
+    "role": "Role",
+    "roleHint": "One role now; the rest can be granted from the account afterwards.",
+    "roleOption": "{role} — {blurb}",
+    "temporaryPassword": "Temporary password",
+    "create": "Create account"
+  },
+  "accountProfile": {
+    "emailHint": "Their sign-in code is sent to this address.",
+    "usernameHint": "Set when the account was created; it cannot be changed.",
+    "statusSelf": "You cannot disable your own account.",
+    "statusHint": "A disabled account cannot sign in."
+  },
+  "roleForm": {
+    "saved": "Roles saved.",
+    "ownAdmin": "Your own administrator role cannot be removed here.",
+    "reset": "Reset",
+    "save": "Save roles"
+  },
+  "createStaff": {
+    "title": "Create a team account",
+    "description": "Choose a role. Their login opens the dashboard for that role.",
+    "create": "Create {role}"
+  },
+  "list": {
+    "title": "People",
+    "eyebrow": "Administration",
+    "description": "Create team accounts and control which workspace each person can access.",
+    "newAccount": "New account",
+    "searchLabel": "Search accounts",
+    "searchPlaceholder": "Search every account by name, username, or e-mail",
+    "search": "Search",
+    "clear": "Clear",
+    "unreachableTitle": "The API could not reach Keycloak.",
+    "unreachable": "Accounts live in Keycloak, and the API talks to it with the Keycloak Admin Client. Check that <code>KEYCLOAK_ADMIN_ENABLED</code> is true on the API, that its credentials are valid, and that Keycloak is running.",
+    "noRole": "No back-office role",
+    "noMatch": "No account matches that search.",
+    "empty": "Nobody holds a back-office role yet. Create the first account."
+  },
+  "newAccount": {
+    "title": "New account",
+    "description": "Choose their role and sign-in details. They will start in the workspace for their role."
+  },
+  "account": {
+    "title": "Account",
+    "profile": "Profile",
+    "roles": "Roles",
+    "noRole": "This account holds no back-office role."
+  }
+}

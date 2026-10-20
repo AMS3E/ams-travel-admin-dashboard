@@ -3,6 +3,7 @@
 import { useRef, useState, type Dispatch, type DragEvent, type SetStateAction } from "react";
 import Image from "next/image";
 import { ImagePlus, Loader2, Star, Trash2, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   useDeleteRecordMutation,
   useGetCatalogQuery,
@@ -11,15 +12,15 @@ import {
 import type { CatalogRecord } from "@/features/catalog/api/contracts";
 import { IMAGE_ACCEPT } from "@/features/catalog/media-upload";
 import { galleryOf, mediaPath, toFormValues } from "@/features/catalog/resource";
-import { getResource } from "@/features/catalog/resources";
+import { useResource } from "@/features/catalog/use-resource";
 import { GALLERIES, type GalleryOwner } from "@/features/catalog/components/listing-form/steps";
 import {
-  progressLabel,
   useGalleryRows,
   useImageUpload,
+  useUploadText,
   type UploadProgress,
 } from "@/features/catalog/use-image-upload";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
 import { cn } from "@/lib/utils";
 
 /** A photo uploaded while the listing does not exist yet; its gallery row is written on save. */
@@ -98,7 +99,10 @@ export function GalleryManager({
   canDelete,
   onBusyChange,
 }: GalleryManagerProps) {
-  const definition = getResource(GALLERIES[listing]);
+  const t = useTranslations("forms.gallery");
+  const text = useUploadText();
+  const errorMessage = useApiErrorMessage();
+  const definition = useResource(GALLERIES[listing]);
   const gallery = galleryOf(definition)!;
   const order = definition.orderField;
   const input = useRef<HTMLInputElement>(null);
@@ -178,7 +182,7 @@ export function GalleryManager({
         setProgress,
       );
       nextOrder.current += written.added;
-      if (written.error) problems.push(`${written.added} of ${outcome.uploaded.length} were added to the gallery: ${written.error}`);
+      if (written.error) problems.push(t("partlyAdded", { added: written.added, total: outcome.uploaded.length, error: written.error }));
       if (becomesCover && first && written.added > 0) {
         chose.current = true;
         onCover({ key: first.key, url: first.uri || mediaPath(first.key) }, true);
@@ -196,11 +200,7 @@ export function GalleryManager({
 
     if (input.current) input.current.value = "";
     const added = outcome.uploaded.length;
-    setNotice(
-      problems.length
-        ? `${added} ${added === 1 ? "photo" : "photos"} added. ${problems.join(" ")}`
-        : `${added} ${added === 1 ? "photo" : "photos"} added.`,
-    );
+    setNotice(problems.length ? `${t("added", { count: added })} ${problems.join(" ")}` : t("added", { count: added }));
   }
 
   /** Marks a saved row as the cover; the API makes it the listing's and unmarks the others. */
@@ -236,13 +236,13 @@ export function GalleryManager({
       if (stray && canAdd) {
         const kept = await addRows(listingId, [{ key: stray.key, url: stray.url }], topOrder() + 1, () => {});
         if (kept.error) {
-          setNotice(`The cover could not be changed, because the current one could not be kept in the gallery: ${kept.error}`);
+          setNotice(t("coverNotChanged", { error: kept.error }));
           return;
         }
       }
       await mark(tile);
     } catch (error) {
-      setNotice(apiErrorMessage(error));
+      setNotice(errorMessage(error));
     } finally {
       setWorking(null);
     }
@@ -269,7 +269,7 @@ export function GalleryManager({
       try {
         await pass();
       } catch (error) {
-        setNotice(apiErrorMessage(error));
+        setNotice(errorMessage(error));
       } finally {
         setWorking(null);
       }
@@ -280,7 +280,7 @@ export function GalleryManager({
       await deleteRecord({ resource: definition.key, id: tile.id }).unwrap();
       await pass();
     } catch (error) {
-      setNotice(apiErrorMessage(error));
+      setNotice(errorMessage(error));
     } finally {
       setWorking(null);
     }
@@ -336,30 +336,26 @@ export function GalleryManager({
             </span>
             <span className="text-sm font-medium text-ink">
               {busy ? (
-                progressLabel(progress)
+                text.progress(progress)
               ) : dragging ? (
-                "Drop the photos to upload them"
+                t("dropToUpload")
               ) : (
-                <>
-                  Drag photos here, or <span className="text-teal-deep">browse</span>
-                </>
+                t.rich("dragOrBrowse", { browse: (chunks) => <span className="text-teal-deep">{chunks}</span> })
               )}
             </span>
-            <span className="max-w-sm text-xs leading-relaxed text-muted">
-              The first photo becomes the cover. You can choose another at any time.
-            </span>
+            <span className="max-w-sm text-xs leading-relaxed text-muted">{t("firstIsCover")}</span>
           </button>
         ) : (
-          <p className="text-sm text-muted">No photos yet.</p>
+          <p className="text-sm text-muted">{t("none")}</p>
         )
       ) : (
         <>
           <div className="flex items-baseline justify-between gap-3">
             <p className="text-sm font-medium text-ink tabular-nums">
-              {tiles.length} {tiles.length === 1 ? "photo" : "photos"}
-              {!listingId ? <span className="font-normal text-muted"> · saved with the listing</span> : null}
+              {t("count", { count: tiles.length })}
+              {!listingId ? <span className="font-normal text-muted"> · {t("savedWithListing")}</span> : null}
             </p>
-            <p className="hidden text-xs text-muted sm:block">Hover a photo to make it the cover or remove it.</p>
+            <p className="hidden text-xs text-muted sm:block">{t("hoverHint")}</p>
           </div>
 
           {/* The cover large, the rest beside and under it, and a tile to add more. */}
@@ -393,7 +389,7 @@ export function GalleryManager({
                   {cover ? (
                     <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-paper/95 px-2 py-1 text-xs font-medium text-ink shadow-sm">
                       <Star aria-hidden className="size-3.5 fill-gold text-gold" />
-                      Cover
+                      {t("cover")}
                     </span>
                   ) : null}
 
@@ -404,24 +400,24 @@ export function GalleryManager({
                   >
                     {!cover && canAdd ? (
                       <button
-                        className="rounded-full bg-white/95 px-2.5 py-1 text-xs font-medium text-ink shadow-sm transition-colors hover:bg-white disabled:opacity-60"
+                        className="rounded-md bg-black/65 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition-colors hover:bg-black/80 disabled:opacity-60"
                         disabled={working !== null}
                         onClick={() => void setCover(tile)}
-                        title="Make this the cover photo"
+                        title={t("makeCover")}
                         type="button"
                       >
-                        Set as cover
+                        {t("setCover")}
                       </button>
                     ) : (
                       <span />
                     )}
                     {!tile.saved || canDelete ? (
                       <button
-                        aria-label={tile.saved ? "Delete this photo" : "Remove this photo"}
-                        className="grid size-7 place-items-center rounded-full bg-white/95 text-ink shadow-sm transition-colors hover:bg-heritage hover:text-white disabled:opacity-60"
+                        aria-label={tile.saved ? t("deletePhoto") : t("removePhoto")}
+                        className="grid size-8 place-items-center rounded-md bg-black/65 text-white shadow-xs transition-colors hover:bg-destructive hover:text-destructive-foreground disabled:opacity-60"
                         disabled={working !== null}
                         onClick={() => void remove(tile)}
-                        title={tile.saved ? "Delete this photo" : "Remove"}
+                        title={tile.saved ? t("deletePhoto") : t("remove")}
                         type="button"
                       >
                         {tile.saved ? <Trash2 aria-hidden className="size-3.5" /> : <X aria-hidden className="size-3.5" />}
@@ -453,8 +449,8 @@ export function GalleryManager({
                   ) : (
                     <ImagePlus aria-hidden className="size-5 text-teal" strokeWidth={1.75} />
                   )}
-                  <span className="text-xs font-medium text-ink">{busy ? progressLabel(progress) : dragging ? "Drop to add" : "Add photos"}</span>
-                  {!busy && !dragging ? <span className="text-2xs text-muted">or drop them here</span> : null}
+                  <span className="text-xs font-medium text-ink">{busy ? text.progress(progress) : dragging ? t("dropToAdd") : t("addPhotos")}</span>
+                  {!busy && !dragging ? <span className="text-2xs text-muted">{t("orDrop")}</span> : null}
                 </button>
               </li>
             ) : null}

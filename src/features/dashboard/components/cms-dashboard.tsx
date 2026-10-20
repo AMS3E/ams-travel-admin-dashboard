@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLocale, useMessages, useTranslations } from "next-intl";
 import {
   ArrowRight,
   CircleCheck,
@@ -27,12 +28,9 @@ import {
 } from "@/features/auth/permissions";
 import { QueryState } from "@/features/cms/components/query-state";
 import { useGetDashboardQuery } from "@/features/dashboard/api/dashboard-api";
-import { cambodianDay, cambodianToday, formatDateTime, formatRelative } from "@/features/dashboard/format";
-import {
-  DESK_LABELS,
-  REQUEST_LABELS,
-  REQUEST_TONES,
-} from "@/features/publishing/api/contracts";
+import { cambodianDay, cambodianToday } from "@/features/dashboard/format";
+import { useDates } from "@/i18n/use-dates";
+import { REQUEST_TONES } from "@/features/publishing/api/contracts";
 import { publishingHref, reviewPageOf, reviewQueueHref } from "@/features/publishing/workflow";
 import { PageHeader } from "@/features/shell/components/page-header";
 import { cn } from "@/lib/utils";
@@ -41,7 +39,6 @@ import { listingRows } from "@/features/publishing/listings";
 import { LISTING_RESOURCES } from "@/features/publishing/api/contracts";
 import { ContentStatus, DestinationGrowth } from "./overview-charts";
 
-const ACTION_VERBS = { CREATE: "created", UPDATE: "updated", DELETE: "deleted", PURGE: "cleared" } as const;
 const ROWS = 6;
 
 function timeOf(value: string | null | undefined): number {
@@ -70,6 +67,13 @@ interface AttentionItem {
  * whole.
  */
 export function CmsDashboard() {
+  const t = useTranslations("dashboard");
+  const status = useTranslations("publishing");
+  const locale = useLocale();
+  const records = useMessages().audit.records as Readonly<Record<string, { readonly one: string } | undefined>>;
+  const { relative, dateTime } = useDates();
+  /* English keeps its lower-case words ("created corridor stop"); other languages name the record type. */
+  const typeWord = (entityType: string) => (locale === "en" ? words(entityType) : (records[entityType]?.one ?? words(entityType)));
   const query = useGetDashboardQuery();
   const { data: user } = useGetCurrentUserQuery();
   const grants = user?.roles ?? [];
@@ -119,22 +123,22 @@ export function CmsDashboard() {
 
   const attention: AttentionItem[] = [];
   if (canReview && pending?.length) {
-    attention.push({ id: "pending", icon: Send, tone: "warning", label: "Publish requests awaiting a decision", count: pending.length, href: requestsHref });
+    attention.push({ id: "pending", icon: Send, tone: "warning", label: t("attention.pending"), count: pending.length, href: requestsHref });
   }
   if (!canReview && returned?.length) {
-    attention.push({ id: "returned", icon: Undo2, tone: "warning", label: "Requests sent back for changes", count: returned.length, href: requestsHref });
+    attention.push({ id: "returned", icon: Undo2, tone: "warning", label: t("attention.returned"), count: returned.length, href: requestsHref });
   }
   if (canOpenContent && destinations) {
     /* An attraction's own checks: its cover, its About, its pin. */
     const noCover = destinations.filter((destination) => destination.status !== "PUBLISHED" && !destination.coverUrl).length;
     const noPitch = destinations.filter((destination) => destination.status === "PUBLISHED" && !destination.description?.trim()).length;
     const noPin = destinations.filter((destination) => destination.status === "PUBLISHED" && (destination.latitude == null || destination.longitude == null)).length;
-    if (noCover) attention.push({ id: "cover", icon: ImageOff, tone: "warning", label: "Drafts without a cover photo", count: noCover, href: "/destinations" });
-    if (noPitch) attention.push({ id: "pitch", icon: TextCursorInput, tone: "warning", label: "Published with nothing in About", count: noPitch, href: "/destinations" });
-    if (noPin) attention.push({ id: "pin", icon: MapPinOff, tone: "warning", label: "Published without a map pin", count: noPin, href: "/destinations" });
+    if (noCover) attention.push({ id: "cover", icon: ImageOff, tone: "warning", label: t("attention.cover"), count: noCover, href: "/destinations" });
+    if (noPitch) attention.push({ id: "pitch", icon: TextCursorInput, tone: "warning", label: t("attention.pitch"), count: noPitch, href: "/destinations" });
+    if (noPin) attention.push({ id: "pin", icon: MapPinOff, tone: "warning", label: t("attention.pin"), count: noPin, href: "/destinations" });
   }
   if (hasPermission(grants, "PERM_REVIEW_MODERATE") && hiddenReviews) {
-    attention.push({ id: "reviews", icon: MessageSquareWarning, tone: "danger", label: "Reviews hidden from the public site", count: hiddenReviews, href: "/reviews" });
+    attention.push({ id: "reviews", icon: MessageSquareWarning, tone: "danger", label: t("attention.reviews"), count: hiddenReviews, href: "/reviews" });
   }
 
   return (
@@ -143,38 +147,38 @@ export function CmsDashboard() {
         actions={
           <>
             <Button
-              aria-label="Refresh dashboard"
+              aria-label={t("refreshLabel")}
               disabled={query.isFetching}
               onClick={() => void query.refetch()}
               size="sm"
-              title="Refresh dashboard"
+              title={t("refreshLabel")}
               variant="secondary"
             >
               <RefreshCw aria-hidden className={cn("size-3.5", query.isFetching && "animate-spin")} />
-              Refresh
+              {t("refresh")}
             </Button>
             {canCreateResource(grants, "destinations") ? (
               <Link className={buttonVariants({ size: "sm" })} href="/create">
                 <Plus aria-hidden className="size-4" />
-                Create new
+                {t("createNew")}
               </Link>
             ) : null}
           </>
         }
         description={
           owner
-            ? "Your listings, your requests, and anything waiting on you."
+            ? t("description.owner")
             : canReview && !admin
-              ? "What is waiting for your decision, and what your desk has published."
-              : "Overview of destinations, publishing activity and tourism content."
+              ? t("description.reviewer")
+              : t("description.all")
         }
-        title="Dashboard"
+        title={t("title")}
       />
 
       <QueryState error={query.error} retry={query.refetch} />
       {data?.failures.length ? (
         <p className="rounded-lg border border-gold-deep/20 bg-gold-soft px-3 py-2 text-sm text-gold-deep" role="alert">
-          Some data could not be loaded: {data.failures.join(", ")}. Refresh to try again.
+          {t("failures", { list: data.failures.join(", ") })}
         </p>
       ) : null}
 
@@ -183,28 +187,28 @@ export function CmsDashboard() {
           <>
             {/* A partner or a contributor counts what they wrote, and nothing else. */}
             <Metric
-              hint="Attractions, stays and food listings"
+              hint={t("metrics.yourListingsHint")}
               href="/destinations"
-              label="Your listings"
+              label={t("metrics.yourListings")}
               value={loading ? null : listings?.length}
             />
             <Metric
-              hint="On the website now"
-              label="Live"
+              hint={t("metrics.liveHint")}
+              label={t("metrics.live")}
               tone={published?.length ? "success" : "neutral"}
               value={loading ? null : published?.length}
             />
             <Metric
-              hint="With a reviewer"
+              hint={t("metrics.waitingHint")}
               href={requestsHref}
-              label="Waiting on review"
+              label={t("metrics.waiting")}
               tone={pending?.length ? "warning" : "neutral"}
               value={loading ? null : pending?.length}
             />
             <Metric
-              hint="Yours to fix and send again"
+              hint={t("metrics.sentBackHint")}
               href={requestsHref}
-              label="Sent back to you"
+              label={t("metrics.sentBack")}
               tone={returned?.length ? "warning" : "neutral"}
               value={loading ? null : returned?.length}
             />
@@ -212,33 +216,33 @@ export function CmsDashboard() {
         ) : null}
         {!owner && (canOpenContent || loading) ? (
           <Metric
-            hint={published ? `${published.length.toLocaleString()} published` : undefined}
+            hint={published ? t("metrics.destinationsHint", { count: published.length }) : undefined}
             href="/destinations"
-            label="Destinations"
+            label={t("metrics.destinations")}
             value={loading ? null : total}
           />
         ) : null}
         {!owner && (canOpenContent || loading) ? (
           <Metric
-            hint={total ? `${Math.round(((published?.length ?? 0) / total) * 100)}% of the catalogue` : undefined}
-            label="Published"
+            hint={total ? t("metrics.publishedHint", { percent: Math.round(((published?.length ?? 0) / total) * 100) }) : undefined}
+            label={t("metrics.published")}
             tone={published?.length ? "success" : "neutral"}
             value={loading ? null : published?.length}
           />
         ) : null}
         {!owner && (canOpenContent || loading) ? (
           <Metric
-            hint="Off the public site"
-            label="Unpublished"
+            hint={t("metrics.unpublishedHint")}
+            label={t("metrics.unpublished")}
             value={loading ? null : unpublished?.length}
           />
         ) : null}
         {!owner ? (
           /* What was written today — a listing of any kind, by anyone whose work this board covers. */
           <Metric
-            hint={loading ? undefined : createdYesterday ? `${createdYesterday.toLocaleString()} yesterday` : "None yesterday"}
+            hint={loading ? undefined : createdYesterday ? t("metrics.createdYesterday", { count: createdYesterday }) : t("metrics.noneYesterday")}
             href="/destinations"
-            label="Created today"
+            label={t("metrics.createdToday")}
             value={loading ? null : createdToday}
           />
         ) : null}
@@ -249,13 +253,13 @@ export function CmsDashboard() {
               loading
                 ? undefined
                 : pending?.length
-                  ? `${pending.length.toLocaleString()} still waiting`
+                  ? t("metrics.stillWaiting", { count: pending.length })
                   : approvedYesterday
-                    ? `${approvedYesterday.toLocaleString()} yesterday`
-                    : "Nothing waiting"
+                    ? t("metrics.approvedYesterday", { count: approvedYesterday })
+                    : t("metrics.nothingWaiting")
             }
             href={requestsHref}
-            label="Approved today"
+            label={t("metrics.approvedToday")}
             tone={approvedToday ? "success" : "neutral"}
             value={loading ? null : approvedToday}
           />
@@ -267,13 +271,13 @@ export function CmsDashboard() {
               loading
                 ? undefined
                 : hiddenReviews
-                  ? `of ${(data?.overview?.reviews.total ?? 0).toLocaleString()} written`
+                  ? t("metrics.ofWritten", { count: data?.overview?.reviews.total ?? 0 })
                   : data?.overview?.reviews.total
-                    ? "All visible on the website"
-                    : "None written yet"
+                    ? t("metrics.allVisible")
+                    : t("metrics.noneWritten")
             }
             href="/reviews"
-            label={hiddenReviews ? "Reviews hidden" : "Reviews"}
+            label={hiddenReviews ? t("metrics.reviewsHidden") : t("metrics.reviews")}
             tone={hiddenReviews ? "danger" : "neutral"}
             value={loading ? null : hiddenReviews || (data?.overview ? data.overview.reviews.total : undefined)}
           />
@@ -286,20 +290,20 @@ export function CmsDashboard() {
             <Surface aria-labelledby="dash-requests">
               <SurfaceHeader
                 actions={<ViewAll href={requestsHref} />}
-                description={canReview ? "Submitted to your desk and not yet decided" : "Your requests still with a reviewer, or sent back to you"}
+                description={canReview ? t("requests.descriptionReview") : t("requests.descriptionOwn")}
                 id="dash-requests"
-                title={canReview ? "Waiting for your decision" : "Your open requests"}
+                title={canReview ? t("requests.titleReview") : t("requests.titleOwn")}
               />
               {recentRequests.length ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <thead className="border-b border-line bg-sand text-xs text-muted">
                       <tr>
-                        <th className="h-8 px-4 font-medium whitespace-nowrap" scope="col">Destination</th>
-                        {canReview ? <th className="h-8 px-4 font-medium whitespace-nowrap" scope="col">Submitted by</th> : null}
-                        <th className="hidden h-8 px-4 font-medium whitespace-nowrap 2xl:table-cell" scope="col">Desk</th>
-                        <th className="h-8 px-4 font-medium whitespace-nowrap" scope="col">Submitted</th>
-                        <th className="h-8 px-4 text-right font-medium whitespace-nowrap" scope="col">Status</th>
+                        <th className="h-8 px-4 font-medium whitespace-nowrap" scope="col">{t("requests.destination")}</th>
+                        {canReview ? <th className="h-8 px-4 font-medium whitespace-nowrap" scope="col">{t("requests.submittedBy")}</th> : null}
+                        <th className="hidden h-8 px-4 font-medium whitespace-nowrap 2xl:table-cell" scope="col">{t("requests.desk")}</th>
+                        <th className="h-8 px-4 font-medium whitespace-nowrap" scope="col">{t("requests.submitted")}</th>
+                        <th className="h-8 px-4 text-right font-medium whitespace-nowrap" scope="col">{t("requests.status")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-line">
@@ -310,13 +314,13 @@ export function CmsDashboard() {
                               {request.targetName}
                             </Link>
                           </td>
-                          {canReview ? <td className="px-4 py-2.5 whitespace-nowrap text-ink-soft">{request.requestedByName ?? "Unknown account"}</td> : null}
-                          <td className="hidden px-4 py-2.5 whitespace-nowrap text-muted 2xl:table-cell">{DESK_LABELS[request.desk]}</td>
-                          <td className="px-4 py-2.5 whitespace-nowrap text-muted" title={formatDateTime(request.requestedAt)}>
-                            {formatRelative(request.requestedAt)}
+                          {canReview ? <td className="px-4 py-2.5 whitespace-nowrap text-ink-soft">{request.requestedByName ?? t("requests.unknownAccount")}</td> : null}
+                          <td className="hidden px-4 py-2.5 whitespace-nowrap text-muted 2xl:table-cell">{status(`desk.${request.desk}`)}</td>
+                          <td className="px-4 py-2.5 whitespace-nowrap text-muted" title={dateTime(request.requestedAt)}>
+                            {relative(request.requestedAt)}
                           </td>
                           <td className="px-4 py-2.5 text-right">
-                            <Badge dot tone={REQUEST_TONES[request.status]}>{REQUEST_LABELS[request.status]}</Badge>
+                            <Badge dot tone={REQUEST_TONES[request.status]}>{status(`status.${request.status}`)}</Badge>
                           </td>
                         </tr>
                       ))}
@@ -325,7 +329,7 @@ export function CmsDashboard() {
                 </div>
               ) : (
                 <p className="px-4 py-6 text-center text-sm text-muted">
-                  {loading ? "Loading requests…" : canReview ? "No requests are waiting for a decision." : "You have no open requests."}
+                  {loading ? t("requests.loading") : canReview ? t("requests.noneReview") : t("requests.noneOwn")}
                 </p>
               )}
             </Surface>
@@ -335,9 +339,9 @@ export function CmsDashboard() {
             <Surface aria-labelledby="dash-updated">
               <SurfaceHeader
                 actions={<ViewAll href="/destinations" />}
-                description={owner ? "Yours, the most recently changed first" : "The listings changed most recently"}
+                description={owner ? t("listings.descriptionOwn") : t("listings.descriptionAll")}
                 id="dash-updated"
-                title={owner ? "Your listings" : "Recently updated listings"}
+                title={owner ? t("listings.titleOwn") : t("listings.titleAll")}
               />
               {recentListings.length ? (
                 <ul className="divide-y divide-line">
@@ -353,13 +357,13 @@ export function CmsDashboard() {
                           >
                             {listing.name}
                           </Link>
-                          <p className="truncate text-xs text-muted">{listing.detail || listing.summary || "Nothing written yet"}</p>
+                          <p className="truncate text-xs text-muted">{listing.detail || listing.summary || t("listings.nothingWritten")}</p>
                         </div>
                         <Badge dot tone={live ? "success" : "neutral"}>
-                          {live ? "Published" : listing.status === "ARCHIVED" ? "Archived" : "Draft"}
+                          {live ? t("listings.published") : listing.status === "ARCHIVED" ? t("listings.archived") : t("listings.draft")}
                         </Badge>
-                        <span className="hidden w-24 shrink-0 text-right text-xs text-muted tabular-nums sm:block" title={formatDateTime(changed)}>
-                          {formatRelative(changed)}
+                        <span className="hidden w-24 shrink-0 text-right text-xs text-muted tabular-nums sm:block" title={dateTime(changed)}>
+                          {relative(changed)}
                         </span>
                       </li>
                     );
@@ -367,7 +371,7 @@ export function CmsDashboard() {
                 </ul>
               ) : (
                 <p className="px-4 py-6 text-center text-sm text-muted">
-                  {loading ? "Loading listings…" : owner ? "You have not written a listing yet." : "No listings yet."}
+                  {loading ? t("listings.loading") : owner ? t("listings.noneOwn") : t("listings.none")}
                 </p>
               )}
             </Surface>
@@ -379,7 +383,7 @@ export function CmsDashboard() {
 
         <div className="flex min-w-0 flex-col gap-5">
           <Surface aria-labelledby="dash-attention">
-            <SurfaceHeader id="dash-attention" title="Needs you now" />
+            <SurfaceHeader id="dash-attention" title={t("attention.title")} />
             {attention.length ? (
               <ul className="divide-y divide-line">
                 {attention.map((item) => {
@@ -408,7 +412,7 @@ export function CmsDashboard() {
             ) : (
               <p className="flex items-center gap-2 px-4 py-4 text-sm text-muted">
                 <CircleCheck aria-hidden className="size-4 text-success" />
-                {loading ? "Checking…" : "Nothing is waiting on you."}
+                {loading ? t("attention.checking") : t("attention.none")}
               </p>
             )}
           </Surface>
@@ -419,7 +423,7 @@ export function CmsDashboard() {
             <SurfaceHeader
               actions={<ViewAll href={hasPermission(grants, "PERM_AUDIT_VIEW") ? "/audit-logs" : requestsHref} />}
               id="dash-activity"
-              title="Recent activity"
+              title={t("activity.title")}
             />
             {audit?.length ? (
               <ul className="divide-y divide-line">
@@ -431,13 +435,18 @@ export function CmsDashboard() {
                   return (
                     <li className="px-4 py-2.5" key={entry.id}>
                       <p className="text-sm text-ink-soft">
-                        <span className="font-medium text-ink">{entry.userName || "System"}</span> {ACTION_VERBS[entry.action]} {words(entry.entityType)}
+                        {t.rich("activity.line", {
+                          b: (chunks) => <span className="font-medium text-ink">{chunks}</span>,
+                          name: entry.userName || t("activity.system"),
+                          action: entry.action,
+                          type: typeWord(entry.entityType),
+                        })}
                       </p>
                       <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
                         {name ? <span className="min-w-0 truncate">{name}</span> : null}
                         {name ? <span aria-hidden>·</span> : null}
-                        <time className="shrink-0" dateTime={entry.createdAt} title={formatDateTime(entry.createdAt)}>
-                          {formatRelative(entry.createdAt)}
+                        <time className="shrink-0" dateTime={entry.createdAt} title={dateTime(entry.createdAt)}>
+                          {relative(entry.createdAt)}
                         </time>
                       </p>
                     </li>
@@ -452,14 +461,14 @@ export function CmsDashboard() {
                       {request.targetName}
                     </Link>
                     <p className="mt-0.5 text-xs text-muted">
-                      {request.requestedByName ?? "Unknown account"} · {REQUEST_LABELS[request.status]}
+                      {request.requestedByName ?? t("requests.unknownAccount")} · {status(`status.${request.status}`)}
                     </p>
                   </li>
                 ))}
               </ul>
             ) : (
               <p className="px-4 py-6 text-center text-sm text-muted">
-                {loading ? "Loading activity…" : audit ? "Your team's latest changes will appear here." : "Recent activity is unavailable."}
+                {loading ? t("activity.loading") : audit ? t("activity.empty") : t("activity.unavailable")}
               </p>
             )}
           </Surface>
@@ -471,9 +480,10 @@ export function CmsDashboard() {
 }
 
 function ViewAll({ href }: { readonly href: string }) {
+  const t = useTranslations("dashboard");
   return (
     <Link className="inline-flex items-center gap-1 text-xs font-medium text-teal-deep hover:underline" href={href}>
-      View all
+      {t("viewAll")}
       <ArrowRight aria-hidden className="size-3" />
     </Link>
   );

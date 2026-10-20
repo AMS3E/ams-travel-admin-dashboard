@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { MapPin } from "lucide-react";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
 import type { MapStop } from "@/features/corridors/api/contracts";
@@ -17,6 +18,7 @@ interface ItineraryMapPanelProps {
 
 /** The plan on the map beside it, one day or all of them; it stays in view while the list scrolls. */
 export function ItineraryMapPanel({ stops, days, maps, selection, description }: ItineraryMapPanelProps) {
+  const t = useTranslations("corridors.map");
   const { mapDay, setMapDay, selected, selectFromMap } = selection;
   // A day removed while the map showed it: show them all.
   const day = mapDay != null && mapDay <= days ? mapDay : null;
@@ -29,7 +31,7 @@ export function ItineraryMapPanel({ stops, days, maps, selection, description }:
         title={
           <span className="inline-flex items-center gap-1.5">
             <MapPin aria-hidden className="size-4 text-muted" />
-            Route map
+            {t("routeMap")}
           </span>
         }
       />

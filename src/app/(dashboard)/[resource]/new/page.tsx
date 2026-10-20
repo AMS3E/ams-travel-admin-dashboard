@@ -18,21 +18,24 @@ import { ListingForm } from "@/features/catalog/components/listing-form/listing-
 import { LISTING_GALLERIES, isListing } from "@/features/catalog/components/listing-form/steps";
 import { ResourceForm } from "@/features/catalog/components/resource-form";
 import { getResource, isResourceKey } from "@/features/catalog/resources";
+import { getTranslations } from "next-intl/server";
+import { localizeDefinition, localizedResource } from "@/features/catalog/localize.server";
 import { galleryOf, withoutField, type FieldValue, type FormValues } from "@/features/catalog/resource";
 import { PageHeader } from "@/features/shell/components/page-header";
 import { isUuid } from "@/lib/ids";
 
-/** How a type reads in a sentence, where its option label would not. */
-const TYPE_NOUNS: Readonly<Record<string, string>> = { CAFE: "cafe", STREET_FOOD: "street-food stall" };
+/** Types that read in a sentence differently from their option label; their words are in shell.json, under lists.nouns. */
+const TYPE_NOUNS: ReadonlySet<string> = new Set(["CAFE", "STREET_FOOD"]);
 
 export async function generateMetadata(
   props: PageProps<"/[resource]/new">,
 ): Promise<Metadata> {
   const { resource } = await props.params;
+  const t = await getTranslations("shell.lists");
   return {
     title: isResourceKey(resource)
-      ? `New ${getResource(resource).label.toLowerCase()}`
-      : "Not found",
+      ? t("new", { label: (await localizedResource(resource)).label.toLowerCase() })
+      : t("notFound"),
   };
 }
 
@@ -47,9 +50,11 @@ export default async function NewRecordPage(
   if (!canCreateResource(admin.roles, resource)) notFound();
 
   /* Who runs it is asked only of a desk that lists for others; an owner is their own. */
-  const definition = namesListingOwner(admin.roles, resource)
-    ? getResource(resource)
-    : withoutField(getResource(resource), "ownerUserId");
+  const t = await getTranslations("shell.lists");
+  const allDestinations = (await getTranslations("catalog"))("allDestinations.title");
+  const definition = await localizeDefinition(
+    namesListingOwner(admin.roles, resource) ? getResource(resource) : withoutField(getResource(resource), "ownerUserId"),
+  );
   const [referenceOptions, query] = await Promise.all([
     getReferenceOptions(definition, "fields"),
     props.searchParams,
@@ -84,13 +89,13 @@ export default async function NewRecordPage(
     ...(publishes && definition.status ? { status: definition.status.live } : {}),
   };
   /* Opened from the "What are you adding?" chooser: Back goes back to it. */
-  const chooser = query.from === "create" ? { href: "/create", label: "Create destination" } : null;
+  const chooser = query.from === "create" ? { href: "/create", label: t("backToCreate") } : null;
   /* A listing opened as a type says so: "List a new cafe", not "List a new food listing". */
   const typeOption = definition.fields.find((field) => field.name === "type")?.options?.find((option) => option.value === presets.type);
   const noun = typeOption && typeOption.value !== "OTHER"
-    ? (TYPE_NOUNS[typeOption.value] ?? typeOption.label.toLowerCase())
+    ? (TYPE_NOUNS.has(typeOption.value) ? t(`nouns.${typeOption.value as "CAFE" | "STREET_FOOD"}`) : typeOption.label.toLowerCase())
     : resource === "destinations"
-      ? "attraction"
+      ? t("nouns.attraction")
       : definition.label.toLowerCase();
 
   /* An attraction, a stay or a food listing goes to its desk's reviewer from the form: an editor's or a BDO's to an administrator. */
@@ -115,9 +120,9 @@ export default async function NewRecordPage(
     <div className={`mx-auto flex flex-col gap-5 ${listing ? "max-w-7xl" : "max-w-4xl"}`}>
       <PageHeader
         backHref={chooser?.href ?? listPageOf(resource)}
-        backLabel={chooser ? chooser.label : listPageLabel(resource, definition.labelPlural)}
+        backLabel={chooser ? chooser.label : listPageLabel(resource, definition.labelPlural, allDestinations)}
         description={definition.description}
-        title={listing ? `List a new ${noun}` : `New ${definition.label.toLowerCase()}`}
+        title={listing ? t("listNew", { noun }) : t("new", { label: definition.label.toLowerCase() })}
       />
 
       {gallery ? (

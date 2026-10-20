@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getTranslations } from "next-intl/server";
 import { getSessionToken } from "@/features/auth/session";
 import { getRecords } from "@/features/catalog/api/catalog.server";
 import type { CorridorItinerary, DestinationChoice } from "@/features/corridors/api/contracts";
@@ -25,17 +26,18 @@ export async function getCorridorItinerary(id: string): Promise<CorridorItinerar
 
 /** Every destination the builder may add as a stop, with its province, categories, photo, summary and position. */
 export async function getDestinationChoices(): Promise<DestinationChoice[]> {
-  const [destinations, provinces, categories] = await Promise.all([
+  const [destinations, provinces, categories, t] = await Promise.all([
     getRecords("destinations"),
     getRecords("provinces"),
     getRecords("categories"),
+    getTranslations("corridors"),
   ]);
   const provinceNames = new Map(provinces.map((province) => [province.id, String(province.name ?? "")]));
   const categoryNames = new Map(categories.map((category) => [category.id, String(category.name ?? "")]));
   return destinations
     .map((destination) => ({
       id: destination.id,
-      name: String(destination.name ?? "Untitled destination"),
+      name: String(destination.name ?? t("words.untitledDestination")),
       provinceName: provinceNames.get(String(destination.provinceId ?? "")) || null,
       status: typeof destination.status === "string" ? destination.status : null,
       coverUrl: typeof destination.coverUrl === "string" ? destination.coverUrl : null,

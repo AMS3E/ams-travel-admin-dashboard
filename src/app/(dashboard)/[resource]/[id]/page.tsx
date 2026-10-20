@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
+import { localizeDefinition, localizedResource } from "@/features/catalog/localize.server";
 import { listPageLabel, listPageOf } from "@/features/catalog/all-destinations";
 import {
   findRecord,
@@ -39,10 +41,10 @@ import { isUuid } from "@/lib/ids";
 function recordTitle(
   record: CatalogRecord,
   titleField: string,
-  fallback: string,
+  untitled: string,
 ): string {
   const value = record[titleField];
-  return typeof value === "string" && value.trim() ? value : `Untitled ${fallback.toLowerCase()}`;
+  return typeof value === "string" && value.trim() ? value : untitled;
 }
 
 async function loadRecord(resource: string, id: string) {
@@ -61,13 +63,14 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { resource, id } = await props.params;
   if (REQUEST_PAGE.test(resource)) return { title: await requestReviewTitle(id) };
-  if (!isResourceKey(resource)) return { title: "Not found" };
+  const t = await getTranslations("shell.lists");
+  if (!isResourceKey(resource)) return { title: t("notFound") };
   const admin = await requireAdmin();
   if (!canManageResource(admin.roles, resource)) notFound();
 
-  const definition = getResource(resource);
+  const definition = await localizedResource(resource);
   const record = await loadRecord(resource, id);
-  return { title: recordTitle(record, definition.titleField, definition.label) };
+  return { title: recordTitle(record, definition.titleField, t("untitled", { label: definition.label.toLowerCase() })) };
 }
 
 export default async function EditRecordPage(
@@ -82,9 +85,11 @@ export default async function EditRecordPage(
   if (!canManageResource(admin.roles, resource)) notFound();
 
   /* Who runs it is asked only of a desk that lists for others; an owner is their own. */
-  const definition = namesListingOwner(admin.roles, resource)
-    ? getResource(resource)
-    : withoutField(getResource(resource), "ownerUserId");
+  const t = await getTranslations("shell.lists");
+  const allDestinations = (await getTranslations("catalog"))("allDestinations.title");
+  const definition = await localizeDefinition(
+    namesListingOwner(admin.roles, resource) ? getResource(resource) : withoutField(getResource(resource), "ownerUserId"),
+  );
   const scoped = seesOwnRowsOnly(admin.roles, resource);
   const [record, referenceOptions, userId] = await Promise.all([
     loadRecord(resource, id),
@@ -112,7 +117,7 @@ export default async function EditRecordPage(
   /* An attraction, a stay or a food listing is sent to its desk's reviewer from the form: an editor's or a BDO's own one to an administrator. */
   const own = userId !== null && (record.createdBy === userId || record.ownerUserId === userId);
   const sendsTo = listingTypeOf(resource) && canEdit && (!canSetStatus(admin.roles, resource) || (own && sendsOwnToAdmin(admin.roles))) ? submissionDesk(admin.roles) : null;
-  const title = recordTitle(record, definition.titleField, definition.label);
+  const title = recordTitle(record, definition.titleField, t("untitled", { label: definition.label.toLowerCase() }));
 
   /*
    * A destination of any kind, an attraction, a stay or a food place, also
@@ -132,8 +137,8 @@ export default async function EditRecordPage(
     <div className={`mx-auto flex flex-col gap-5 ${isListing(resource) ? "max-w-7xl" : "max-w-4xl"}`}>
       <PageHeader
         backHref={reviewHref ?? listPageOf(resource)}
-        backLabel={reviewHref ? "Back to the review" : listPageLabel(resource, definition.labelPlural)}
-        description={reviewHref ? `${definition.label} · correcting it before you decide` : definition.label}
+        backLabel={reviewHref ? t("backToReview") : listPageLabel(resource, definition.labelPlural, allDestinations)}
+        description={reviewHref ? t("correcting", { label: definition.label }) : definition.label}
         title={title}
       />
 

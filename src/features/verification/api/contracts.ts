@@ -17,14 +17,6 @@ import type { PublishDesk } from "@/features/publishing/api/contracts";
 
 export type VerificationBasis = "OFFICIAL_SITE" | "PARTNER" | "PAID" | "TRAVELER_SCORE";
 
-/** How each basis reads in a chip or a line. */
-export const BASIS_LABELS: Readonly<Record<VerificationBasis, string>> = {
-  OFFICIAL_SITE: "Official site",
-  PARTNER: "Partner",
-  PAID: "Paid",
-  TRAVELER_SCORE: "Travellers' reviews",
-};
-
 /** Whether a desk's decision verifies the place now, rather than the travellers' seal alone. */
 export function decidedVerified(row: Pick<VerificationResponse, "verified" | "basis">): boolean {
   return row.verified && row.basis !== "TRAVELER_SCORE";
@@ -43,13 +35,6 @@ export const RESOURCE_OF_TARGET: Readonly<Record<VerificationTarget, "destinatio
   DESTINATION: "destinations",
   STAY: "stays",
   FOOD: "foods",
-};
-
-/** How a kind reads on a row. */
-export const TARGET_LABELS: Readonly<Record<VerificationTarget, string>> = {
-  DESTINATION: "Attraction",
-  STAY: "Stay",
-  FOOD: "Food",
 };
 
 export interface VerificationResponse {

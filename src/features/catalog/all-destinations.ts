@@ -1,8 +1,8 @@
 import type { BadgeTone } from "@/components/ui/badge";
 import { canCreateResource, canManageResource } from "@/features/auth/permissions";
 import type { CatalogRecord } from "@/features/catalog/api/contracts";
-import { mediaPath, statusOption, statusValueOf } from "@/features/catalog/resource";
-import { byName, getResource } from "@/features/catalog/resources";
+import { mediaPath, statusOption, statusValueOf, type ResourceDefinition } from "@/features/catalog/resource";
+import { byName } from "@/features/catalog/resources";
 
 /**
  * "All Destinations": every attraction, place to eat and stay in one list,
@@ -13,21 +13,18 @@ import { byName, getResource } from "@/features/catalog/resources";
 
 export type DestinationTypeKey = "destinations" | "foods" | "stays";
 
+/** A main type; its words (tab name, "New stay") are `catalog.types.<key>`. */
 export interface DestinationType {
   readonly key: DestinationTypeKey;
   /** The `?type=` it is opened with. */
   readonly tab: string;
-  /** The tab's name. */
-  readonly label: string;
-  /** One of them, in a sentence: "New stay". */
-  readonly one: string;
 }
 
 /** The main types, A to Z — the same ones Create Destination offers. */
 export const DESTINATION_TYPES: readonly DestinationType[] = [
-  { key: "destinations", tab: "attractions", label: "Attractions", one: "attraction" },
-  { key: "foods", tab: "food", label: "Food", one: "food listing" },
-  { key: "stays", tab: "stays", label: "Stays", one: "stay" },
+  { key: "destinations", tab: "attractions" },
+  { key: "foods", tab: "food" },
+  { key: "stays", tab: "stays" },
 ];
 
 /**
@@ -40,11 +37,11 @@ export function listPageOf(key: string): string {
   return type ? `/destinations?type=${type.tab}` : `/${key}`;
 }
 
-/** What that list is called, for a Back link: "All Destinations", or its own name. */
-export function listPageLabel(key: string, ownName: string): string {
+/** What that list is called, for a Back link: All Destinations (in the reader's language when given), or its own name. */
+export function listPageLabel(key: string, ownName: string, allDestinations = "All Destinations"): string {
   const page = listPageOf(key);
   const on = (list: string) => page === list || page.startsWith(`${list}?`);
-  return on("/destinations") ? "All Destinations" : ownName;
+  return on("/destinations") ? allDestinations : ownName;
 }
 
 /** The main types this account manages. */
@@ -77,6 +74,8 @@ export interface DestinationRow {
   readonly status: string | null;
   readonly statusLabel: string;
   readonly statusTone: BadgeTone;
+  /** How many Khmer fields an attraction still misses; null for a kind with no Khmer of its own yet. */
+  readonly khmerMissing: number | null;
   readonly createdAt: string | null;
   readonly createdBy: string | null;
   /** Who may send it for review: who wrote it, and the partner a stay or a food listing is listed for. */
@@ -89,14 +88,16 @@ export interface DestinationRow {
   readonly detailHref: string | null;
 }
 
-const SINGULAR: Readonly<Record<DestinationTypeKey, string>> = {
-  destinations: "Attraction",
-  foods: "Food",
-  stays: "Stay",
-};
-
-/** How a type reads where its option label would not. */
-const KIND_WORDS: Readonly<Record<string, string>> = { CAFE: "Cafe" };
+/** The words a type's rows are written in, from the page: its localized definition and names. */
+export interface RowWords {
+  readonly definition: ResourceDefinition;
+  /** "Attraction", "Food", "Stay". */
+  readonly typeLabel: string;
+  /** "Untitled stay". */
+  readonly untitled: string;
+  /** How a type reads where its option label would not: CAFE as "Cafe". */
+  readonly kindWords: Readonly<Record<string, string>>;
+}
 
 const text = (value: unknown): string | null => (typeof value === "string" && value.trim() ? value.trim() : null);
 
@@ -108,10 +109,11 @@ const text = (value: unknown): string | null => (typeof value === "string" && va
 export function toRows(
   type: DestinationTypeKey,
   records: readonly CatalogRecord[],
+  words: RowWords,
   provinceNames: ReadonlyMap<string, string> = new Map(),
   insight = false,
 ): DestinationRow[] {
-  const definition = getResource(type);
+  const { definition, kindWords } = words;
   const kinds = definition.fields.find((field) => field.name === "type")?.options ?? [];
   return records.map((record) => {
     const status = statusValueOf(definition, record);
@@ -121,13 +123,14 @@ export function toRows(
     return {
       id: record.id,
       type,
-      typeLabel: SINGULAR[type],
-      name: text(record[definition.titleField]) ?? `Untitled ${SINGULAR[type].toLowerCase()}`,
-      kind: kindValue ? (KIND_WORDS[kindValue] ?? kinds.find((each) => each.value === kindValue)?.label ?? null) : null,
+      typeLabel: words.typeLabel,
+      name: text(record[definition.titleField]) ?? words.untitled,
+      kind: kindValue ? (kindWords[kindValue] ?? kinds.find((each) => each.value === kindValue)?.label ?? null) : null,
       place: text(record.address) ?? province,
       status,
       statusLabel: option?.label ?? "—",
       statusTone: option?.tone ?? "neutral",
+      khmerMissing: Array.isArray(record.missingKhmer) ? record.missingKhmer.length : null,
       createdAt: text(record.createdAt),
       createdBy: text(record.createdBy),
       authors: [text(record.ownerUserId), text(record.createdBy)].filter((id): id is string => id !== null),

@@ -16,6 +16,18 @@ export function problemMessage(text: string | null | undefined): string {
   return raw;
 }
 
+/** The Khmer fields a refused publish names (`missingKhmer`): what is still to be written in Khmer. */
+export function problemMissingKhmer(text: string | null | undefined): readonly string[] {
+  const raw = (text ?? "").trim();
+  if (!raw.startsWith("{")) return [];
+  try {
+    const problem = JSON.parse(raw) as { missingKhmer?: unknown };
+    return Array.isArray(problem.missingKhmer) ? problem.missingKhmer.filter((name): name is string => typeof name === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * The fields a refused request names, by the form field they belong to: the
  * API lists them under `errors` as `{ field, label, message }`. A nested field

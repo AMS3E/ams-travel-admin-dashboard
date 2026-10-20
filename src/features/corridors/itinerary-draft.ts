@@ -295,11 +295,12 @@ export function knownLegs(itinerary: CorridorItinerary): ReadonlyMap<string, Kno
   return legs;
 }
 
-/** The draft's stops in travel order, as the map draws them. */
+/** The draft's stops in travel order, as the map draws them; `unknownName` names a place not in `places`. */
 export function mapStopsFrom(
   days: readonly DraftDay[],
   places: ReadonlyMap<string, DestinationChoice>,
   legs: ReadonlyMap<string, KnownLeg>,
+  unknownName: string,
 ): MapStop[] {
   const stops: MapStop[] = [];
   let previous: DraftStop | null = null;
@@ -312,7 +313,7 @@ export function mapStopsFrom(
         key: stop.key,
         sequence: stops.length + 1,
         dayNumber: dayIndex + 1,
-        name: place?.name ?? "Unknown destination",
+        name: place?.name ?? unknownName,
         subtitle: place?.provinceName ?? null,
         summary: stop.description.trim() || place?.shortDescription || null,
         coverUrl: place?.coverUrl ?? null,

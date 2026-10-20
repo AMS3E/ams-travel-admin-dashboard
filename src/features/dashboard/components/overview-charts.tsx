@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useMessages, useTranslations } from "next-intl";
+import type { DateWords } from "@/i18n/dates";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
 import { GROWTH_RANGES, dayValue, destinationGrowth, growthWindow, type GrowthRange } from "../summary";
 
@@ -10,13 +12,19 @@ const control =
 
 /** Listings created per day, week or month — attractions, stays and food listings. */
 export function DestinationGrowth({ listings }: { readonly listings: readonly { readonly createdAt: string | null }[] | null | undefined }) {
+  const t = useTranslations("dashboard.growth");
+  const messages = useMessages();
+  const chart = useMemo(
+    () => ({ ...messages.dashboard.chartDates, dates: messages.common.dates as DateWords }),
+    [messages.dashboard.chartDates, messages.common.dates],
+  );
   const [range, setRange] = useState<GrowthRange>("12m");
   const [custom, setCustom] = useState(() => {
     const today = new Date();
     return { from: dayValue(new Date(today.getTime() - 29 * 86_400_000)), to: dayValue(today) };
   });
   const period = useMemo(() => growthWindow(range, new Date(), custom), [range, custom]);
-  const points = useMemo(() => (period ? destinationGrowth(listings ?? [], period) : []), [listings, period]);
+  const points = useMemo(() => (period ? destinationGrowth(listings ?? [], period, chart) : []), [listings, period, chart]);
   const total = points.reduce((sum, point) => sum + point.count, 0);
   const unit = period?.unit ?? "day";
 
@@ -25,31 +33,31 @@ export function DestinationGrowth({ listings }: { readonly listings: readonly { 
       <SurfaceHeader
         actions={
           <select
-            aria-label="Destination growth period"
+            aria-label={t("period")}
             className={control}
             onChange={(event) => setRange(event.target.value as GrowthRange)}
             value={range}
           >
             {GROWTH_RANGES.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+              <option key={option} value={option}>
+                {t(`ranges.${option}`)}
               </option>
             ))}
           </select>
         }
-        description={`Attractions, stays and food listings created each ${unit}`}
-        title="Destination growth"
+        description={t("description", { unit })}
+        title={t("title")}
       />
       {listings ? (
         <div className="px-4 pt-3 pb-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-muted">
-              <span className="text-lg font-semibold text-ink tabular-nums">{total}</span> created in this period
+              {t.rich("created", { b: (chunks) => <span className="text-lg font-semibold text-ink tabular-nums">{chunks}</span>, total })}
             </p>
             {range === "custom" ? (
               <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
                 <input
-                  aria-label="From date"
+                  aria-label={t("from")}
                   className={control}
                   max={custom.to || undefined}
                   onChange={(event) => setCustom((value) => ({ ...value, from: event.target.value }))}
@@ -58,7 +66,7 @@ export function DestinationGrowth({ listings }: { readonly listings: readonly { 
                 />
                 <span aria-hidden>–</span>
                 <input
-                  aria-label="To date"
+                  aria-label={t("to")}
                   className={control}
                   min={custom.from || undefined}
                   onChange={(event) => setCustom((value) => ({ ...value, to: event.target.value }))}
@@ -70,7 +78,7 @@ export function DestinationGrowth({ listings }: { readonly listings: readonly { 
           </div>
           {period ? (
             <div
-              aria-label={`Destinations created per ${unit}: ${points.map((point) => `${point.label}: ${point.count}`).join(", ")}`}
+              aria-label={t("chartLabel", { unit, points: points.map((point) => `${point.label}: ${point.count}`).join(", ") })}
               className="mt-2 h-44 min-w-0"
               role="img"
             >
@@ -84,35 +92,36 @@ export function DestinationGrowth({ listings }: { readonly listings: readonly { 
                     cursor={{ fill: "var(--surface-hover)" }}
                     labelFormatter={(_, payload) => payload[0]?.payload?.label ?? ""}
                   />
-                  <Bar dataKey="count" fill="var(--primary-line)" maxBarSize={28} name="New destinations" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="count" fill="var(--primary-line)" maxBarSize={28} name={t("series")} radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           ) : (
-            <p className="py-10 text-center text-xs text-muted">Choose a start and end date.</p>
+            <p className="py-10 text-center text-xs text-muted">{t("chooseDates")}</p>
           )}
           {period && !total ? (
-            <p className="pb-2 text-center text-xs text-muted">Nothing was created in this period.</p>
+            <p className="pb-2 text-center text-xs text-muted">{t("nothing")}</p>
           ) : null}
         </div>
       ) : (
-        <p className="px-4 py-10 text-center text-sm text-muted">Destination growth data is unavailable.</p>
+        <p className="px-4 py-10 text-center text-sm text-muted">{t("unavailable")}</p>
       )}
     </Surface>
   );
 }
 
 /** Every destination counted once, as a single proportional bar with its legend. */
-export function ContentStatus({ rows }: { readonly rows: readonly { name: string; value: number; color: string }[] | null }) {
+export function ContentStatus({ rows }: { readonly rows: readonly { name: "Published" | "Pending" | "Draft" | "Rejected"; value: number; color: string }[] | null }) {
+  const t = useTranslations("dashboard.status");
   const total = rows?.reduce((sum, row) => sum + row.value, 0) ?? 0;
 
   return (
     <Surface>
-      <SurfaceHeader description="Each destination, by status and its latest request" title="Content status" />
+      <SurfaceHeader description={t("description")} title={t("title")} />
       {rows ? (
         <div className="px-4 py-3">
           <div
-            aria-label={rows.map((row) => `${row.name}: ${row.value}`).join(", ")}
+            aria-label={rows.map((row) => `${t(row.name)}: ${row.value}`).join(", ")}
             className="flex h-2 overflow-hidden rounded-full bg-sand-deep"
             role="img"
           >
@@ -128,7 +137,7 @@ export function ContentStatus({ rows }: { readonly rows: readonly { name: string
             {rows.map((row) => (
               <div className="flex items-center gap-2 text-sm" key={row.name}>
                 <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: row.color }} />
-                <dt className="min-w-0 flex-1 truncate text-ink-soft">{row.name}</dt>
+                <dt className="min-w-0 flex-1 truncate text-ink-soft">{t(row.name)}</dt>
                 <dd className="font-medium text-ink tabular-nums">{row.value.toLocaleString()}</dd>
                 <dd className="w-9 text-right text-xs text-muted tabular-nums">
                   {total ? Math.round((row.value / total) * 100) : 0}%
@@ -138,7 +147,7 @@ export function ContentStatus({ rows }: { readonly rows: readonly { name: string
           </dl>
         </div>
       ) : (
-        <p className="px-4 py-8 text-center text-sm text-muted">Content status data is unavailable.</p>
+        <p className="px-4 py-8 text-center text-sm text-muted">{t("unavailable")}</p>
       )}
     </Surface>
   );

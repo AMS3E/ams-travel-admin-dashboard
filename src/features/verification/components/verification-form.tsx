@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useTranslations } from "next-intl";
 import { BadgeCheck, CircleCheck, Loader2, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
@@ -8,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { PublishDesk } from "@/features/publishing/api/contracts";
 import { cn } from "@/lib/utils";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
 import { useRecordVerificationMutation } from "../api/verification-api";
 import type { DestinationVerificationResponse, VerificationBasis } from "../api/contracts";
 import { EvidenceField } from "./evidence-field";
@@ -30,43 +31,16 @@ interface VerificationFormProps {
   readonly onCancel?: () => void;
 }
 
-interface Paperwork {
-  readonly label: string;
-  readonly noun: string;
-  readonly number: string;
-  readonly placeholder: string;
-}
+/** The `verification.form.paperwork` entry each basis needs, if any. */
+type Paperwork = "partner" | "paid";
 
-/** What each basis is called, what it rests on, and what a desk checks before filing it. */
-const BASES: Readonly<
-  Record<FiledBasis, { readonly label: string; readonly description: string; readonly paperwork: Paperwork | null; readonly checks: readonly string[] }>
-> = {
-  OFFICIAL_SITE: {
-    label: "Official site",
-    description: "A national or official place. No paperwork needed.",
-    paperwork: null,
-    checks: [],
-  },
-  PARTNER: {
-    label: "Partner",
-    description: "Partnered with AMS Travel. The agreement is the evidence.",
-    paperwork: { label: "Partnership agreement", noun: "the agreement", number: "Agreement reference", placeholder: "e.g. AGR-2026-07" },
-    checks: [
-      "The business on the agreement is the one this listing is for.",
-      "The listing was written by that partner's own account.",
-      "The agreement is current.",
-    ],
-  },
-  PAID: {
-    label: "Paid",
-    description: "Paid for verification. The invoice or receipt is the evidence.",
-    paperwork: { label: "Invoice or receipt", noun: "the invoice or receipt", number: "Invoice or receipt number", placeholder: "e.g. INV-2026-0042" },
-    checks: [
-      "The business or place name on it matches this listing.",
-      "The address matches the listing's address and map pin.",
-      "It is recent, such as this year's invoice or receipt.",
-    ],
-  },
+type Check = "agreementBusiness" | "agreementAccount" | "agreementCurrent" | "invoiceName" | "invoiceAddress" | "invoiceRecent";
+
+/** What each basis rests on, and what a desk checks before filing it; the words are in `verification.form`. */
+const BASES: Readonly<Record<FiledBasis, { readonly paperwork: Paperwork | null; readonly checks: readonly Check[] }>> = {
+  OFFICIAL_SITE: { paperwork: null, checks: [] },
+  PARTNER: { paperwork: "partner", checks: ["agreementBusiness", "agreementAccount", "agreementCurrent"] },
+  PAID: { paperwork: "paid", checks: ["invoiceName", "invoiceAddress", "invoiceRecent"] },
 };
 
 const FILED: readonly FiledBasis[] = ["OFFICIAL_SITE", "PARTNER", "PAID"];
@@ -90,6 +64,8 @@ export function VerificationForm({
   onDone,
   onCancel,
 }: VerificationFormProps) {
+  const t = useTranslations("verification");
+  const errorMessage = useApiErrorMessage();
   const [recordVerification, mutation] = useRecordVerificationMutation();
   const [chosen, setDecision] = useState<VerificationDecision>(initialDecision);
   /* A partner's listing is most likely verified as a partner's; anything else is most likely paid for. */
@@ -102,7 +78,15 @@ export function VerificationForm({
   const [missing, setMissing] = useState<"proof" | "note" | null>(null);
   /* Once the destination is not verified — revoked here or elsewhere — there is nothing to revoke. */
   const revoking = verified && chosen === "revoke";
-  const paperwork = revoking ? null : BASES[basis].paperwork;
+  const paperworkKey = revoking ? null : BASES[basis].paperwork;
+  const paperwork = paperworkKey
+    ? {
+        label: t(`form.paperwork.${paperworkKey}.label`),
+        noun: t(`form.paperwork.${paperworkKey}.noun`),
+        number: t(`form.paperwork.${paperworkKey}.number`),
+        placeholder: t(`form.paperwork.${paperworkKey}.placeholder`),
+      }
+    : null;
   const hasProof = Boolean(reference.trim() || evidenceKey);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -129,25 +113,21 @@ export function VerificationForm({
       }).unwrap();
       onDone(decision);
     } catch (failure) {
-      setError(apiErrorMessage(failure));
+      setError(errorMessage(failure));
     }
   }
 
   const proofError =
     missing === "proof" && paperwork && !hasProof
-      ? `Attach ${paperwork.noun}, or type its ${basis === "PAID" ? "number" : "reference"}.`
+      ? t(basis === "PAID" ? "form.proofErrorNumber" : "form.proofErrorReference", { noun: paperwork.noun })
       : undefined;
-  const noteError = missing === "note" && !note.trim() ? "Say why the verification is being revoked." : undefined;
+  const noteError = missing === "note" && !note.trim() ? t("form.noteError") : undefined;
 
   const evidence = (
     <FormField
       error={proofError}
-      hint={
-        revoking
-          ? "A letter or notice the revocation rests on, if there is one."
-          : "Kept with this decision for the verifying desks only. It never reaches the app."
-      }
-      label={revoking ? "Supporting document" : (paperwork?.label ?? "Paperwork")}
+      hint={revoking ? t("form.evidenceHintRevoke") : t("form.evidenceHint")}
+      label={revoking ? t("form.supportingDocument") : (paperwork?.label ?? t("form.paperworkFallback"))}
       required={!revoking}
     >
       {(aria) => (
@@ -155,7 +135,7 @@ export function VerificationForm({
           describedBy={aria["aria-describedby"]}
           id={aria.id}
           invalid={Boolean(proofError)}
-          noun={revoking ? "the letter or notice" : (paperwork?.noun ?? "the paperwork")}
+          noun={revoking ? t("form.nounRevoke") : (paperwork?.noun ?? t("form.nounFallback"))}
           onChange={(key) => setEvidenceKey(key)}
           onUploadingChange={setUploading}
           value={evidenceKey}
@@ -166,8 +146,8 @@ export function VerificationForm({
 
   const number = (
     <FormField
-      hint={revoking ? "The letter's or notice's reference." : "As printed on the paperwork. Enough on its own when there is no copy to attach."}
-      label={revoking ? "Reference number" : (paperwork?.number ?? "Reference")}
+      hint={revoking ? t("form.numberHintRevoke") : t("form.numberHint")}
+      label={revoking ? t("form.referenceNumber") : (paperwork?.number ?? t("form.reference"))}
     >
       {(aria) => (
         <Input
@@ -175,7 +155,7 @@ export function VerificationForm({
           aria-invalid={proofError ? true : undefined}
           maxLength={120}
           onChange={(event) => setReference(event.target.value)}
-          placeholder={revoking ? "e.g. INV-2026-0042" : paperwork?.placeholder}
+          placeholder={revoking ? t("form.referencePlaceholderRevoke") : paperwork?.placeholder}
           value={reference}
         />
       )}
@@ -187,12 +167,12 @@ export function VerificationForm({
       error={noteError}
       hint={
         revoking
-          ? "Kept in the verification history, so whoever checks it next knows why."
+          ? t("form.reasonHintRevoke")
           : basis === "OFFICIAL_SITE"
-            ? "Which list or decree names it, if you know. Kept for the next person to check this."
-            : "Anything the next person to check this should know."
+            ? t("form.reasonHintOfficial")
+            : t("form.reasonHint")
       }
-      label={revoking ? "Why is it being revoked?" : "Note"}
+      label={revoking ? t("form.reasonLabelRevoke") : t("form.note")}
       required={revoking}
     >
       {(aria) => (
@@ -200,7 +180,7 @@ export function VerificationForm({
           {...aria}
           maxLength={2000}
           onChange={(event) => setNote(event.target.value)}
-          placeholder={revoking ? "e.g. The business has closed, or the invoice turned out not to match." : undefined}
+          placeholder={revoking ? t("form.reasonPlaceholderRevoke") : undefined}
           rows={revoking ? 4 : 3}
           value={note}
         />
@@ -212,24 +192,24 @@ export function VerificationForm({
     <form className="panel flex flex-col gap-5 p-4" noValidate onSubmit={submit}>
       <div>
         <h2 className="font-semibold">
-          {verified ? "Renew or revoke this verification" : "Verify this destination"}
+          {verified ? t("form.headingRenew") : t("form.headingVerify")}
         </h2>
         <p className="mt-1 text-sm text-muted">
           {revoking
-            ? "The app stops showing it as verified, and as Recommended by AMS Travel, straight away."
+            ? t("form.introRevoke")
             : verified
-              ? "Renew it when new paperwork comes in, such as next year's invoice, or when what it rests on changes."
-              : "A verified destination shows as Recommended by AMS Travel in the app, with the Verified tag on its photo."}
+              ? t("form.introRenew")
+              : t("form.introVerify")}
         </p>
       </div>
 
       {verified ? (
         <fieldset className="grid gap-3 sm:grid-cols-2">
-          <legend className="sr-only">Decision</legend>
+          <legend className="sr-only">{t("form.decision")}</legend>
           <ChoiceOption
             checked={!revoking}
-            description="File new paperwork, such as this year's invoice."
-            label="Renew verification"
+            description={t("form.renewDescription")}
+            label={t("form.renewLabel")}
             name="decision"
             onSelect={() => {
               setDecision("verify");
@@ -239,8 +219,8 @@ export function VerificationForm({
           <ChoiceOption
             checked={revoking}
             danger
-            description="It shows as not verified in the app."
-            label="Revoke verification"
+            description={t("form.revokeDescription")}
+            label={t("form.revokeLabel")}
             name="decision"
             onSelect={() => {
               setDecision("revoke");
@@ -261,17 +241,17 @@ export function VerificationForm({
       ) : (
         <>
           <fieldset className="grid gap-3 sm:grid-cols-3" data-field="basis">
-            <legend className="mb-2 text-sm font-medium text-ink">What does it rest on?</legend>
+            <legend className="mb-2 text-sm font-medium text-ink">{t("form.basisLegend")}</legend>
             {FILED.map((each) => {
               /* The queue knows whose listing it is; a partner's verification is only for a partner's own. */
               const notTheirs = each === "PARTNER" && desk !== undefined && desk !== "PARTNER";
               return (
                 <ChoiceOption
                   checked={basis === each}
-                  description={notTheirs ? "Only for a listing written by a partner's own account." : BASES[each].description}
+                  description={notTheirs ? t("form.notTheirs") : t(`form.bases.${each}`)}
                   disabled={notTheirs}
                   key={each}
-                  label={BASES[each].label}
+                  label={t(`basis.${each}`)}
                   name="basis"
                   onSelect={() => {
                     setBasis(each);
@@ -283,19 +263,19 @@ export function VerificationForm({
           </fieldset>
           {BASES[basis].checks.length ? (
             <div className="rounded-lg border border-line bg-surface-muted p-3">
-              <p className="text-sm font-medium text-ink">Before you verify, check the paperwork</p>
+              <p className="text-sm font-medium text-ink">{t("form.checksTitle")}</p>
               <ul className="mt-2 flex flex-col gap-1.5">
                 {BASES[basis].checks.map((check) => (
                   <li className="flex items-start gap-2 text-sm text-ink-soft" key={check}>
                     <CircleCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-teal" strokeWidth={1.75} />
-                    {check}
+                    {t(`form.checks.${check}`)}
                   </li>
                 ))}
               </ul>
             </div>
           ) : (
             <p className="rounded-lg border border-line bg-surface-muted p-3 text-sm text-ink-soft">
-              An official site is verified on its standing alone. Say in the note which list or decree names it, so the next person knows.
+              {t("form.officialNote")}
             </p>
           )}
           {paperwork ? (
@@ -317,7 +297,7 @@ export function VerificationForm({
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
         {onCancel ? (
           <Button onClick={onCancel} type="button" variant="ghost">
-            Cancel
+            {t("form.cancel")}
           </Button>
         ) : null}
         <Button
@@ -333,12 +313,12 @@ export function VerificationForm({
             <BadgeCheck aria-hidden className="size-4" />
           )}
           {uploading
-            ? "Waiting for the upload…"
+            ? t("form.waitingUpload")
             : revoking
-              ? "Revoke verification"
+              ? t("form.submitRevoke")
               : verified
-                ? "Renew verification"
-                : "Verify destination"}
+                ? t("form.submitRenew")
+                : t("form.submitVerify")}
         </Button>
       </div>
     </form>

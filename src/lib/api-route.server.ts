@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { oidcConfig } from "@/features/auth/oidc";
 import { getCurrentAdmin, getSessionToken } from "@/features/auth/session";
 import { BackendApiError } from "@/lib/backend-api.server";
-import { problemMessage } from "@/lib/problem";
+import { problemMessage, problemMissingKhmer } from "@/lib/problem";
 
 /**
  * Docker may give Next.js an internal request origin such as 0.0.0.0:3001.
@@ -68,18 +68,25 @@ export function fieldsOf(body: unknown): Readonly<Record<string, unknown>> {
 /**
  * Turns a backend failure into the same JSON shape every mutation hook reads.
  * The API answers errors as problem documents, so their `detail` sentence is
- * passed through as `message` rather than the raw JSON.
+ * passed through as `message` rather than the raw JSON. Our own sentences
+ * carry a `code` the screen words in the reader's language.
  */
 export function toErrorResponse(error: unknown): NextResponse {
   if (error instanceof BackendApiError) {
+    const detail = problemMessage(error.detail);
+    /* A publish refused for want of Khmer keeps the list of what is missing, so the screen can say so in its own words. */
+    const missingKhmer = problemMissingKhmer(error.detail);
     return NextResponse.json(
-      { message: problemMessage(error.detail) || "The request was rejected." },
+      {
+        ...(detail ? { message: detail } : { message: "The request was rejected.", code: "rejected" }),
+        ...(missingKhmer.length ? { missingKhmer } : {}),
+      },
       { status: error.status },
     );
   }
 
   return NextResponse.json(
-    { message: "The catalogue API could not be reached." },
+    { message: "The catalogue API could not be reached.", code: "unreachable" },
     { status: 502 },
   );
 }

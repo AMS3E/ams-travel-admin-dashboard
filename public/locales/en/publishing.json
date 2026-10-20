@@ -1,0 +1,226 @@
+{
+  "status": {
+    "DRAFT": "Changes requested",
+    "PENDING_REVIEW": "Pending",
+    "APPROVED": "Approved",
+    "REJECTED": "Rejected",
+    "PUBLISHED": "Published",
+    "UNPUBLISHED": "Unpublished"
+  },
+  "desk": {
+    "PARTNER": "Partner listing",
+    "CONTRIBUTOR": "Contributor draft",
+    "STAFF": "Staff content"
+  },
+  "deskPlural": {
+    "PARTNER": "Partner listings",
+    "CONTRIBUTOR": "Contributor drafts",
+    "STAFF": "Editor and BDO submissions"
+  },
+  "reviewer": {
+    "PARTNER": "a BDO",
+    "CONTRIBUTOR": "an editor",
+    "STAFF": "an administrator"
+  },
+  "listing": {
+    "DESTINATION": "Attraction",
+    "STAY": "Stay",
+    "FOOD": "Food listing"
+  },
+  "listingNoun": {
+    "DESTINATION": "attraction",
+    "STAY": "stay",
+    "FOOD": "food listing"
+  },
+  "page": {
+    "title": "Publishing",
+    "eyebrow": "Workflow",
+    "description": "An attraction, a stay or a food listing goes live when the desk responsible for it says so. Partners are answered by a BDO, contributors by an editor, and editors and BDOs by an administrator.",
+    "awaiting": {
+      "title": "Awaiting your decision",
+      "description": "Approving publishes the listing in the same step.",
+      "empty": "Your queue is clear."
+    },
+    "changes": {
+      "title": "Waiting on changes",
+      "description": "Sent back to their author, and off your queue until they answer.",
+      "empty": "Nothing is waiting on its author."
+    },
+    "decided": {
+      "title": "Recently decided",
+      "empty": "Nothing has been decided yet."
+    },
+    "submit": {
+      "title": "Submit for publishing",
+      "description": "What you own that is not live and not already with a reviewer — including anything sent back for changes."
+    },
+    "mine": {
+      "title": "Your requests",
+      "description": "Where each of your asks stands, and what the reviewer said.",
+      "empty": "You have not submitted anything yet."
+    }
+  },
+  "rows": {
+    "submittedBy": "Submitted by {name}",
+    "goneAccount": "an account that no longer exists",
+    "decidedBy": "{status} by {reviewer}",
+    "aReviewer": "a reviewer",
+    "resubmitted": "Resubmitted · {reviewer} asked for:"
+  },
+  "submit": {
+    "nothing": "Nothing of yours is waiting to be submitted. Everything you own is either live or already with a reviewer.",
+    "choose": "Choose which one to submit.",
+    "done": "Submitted. It is now with a reviewer.",
+    "listing": "Listing",
+    "placeholder": "Choose one…",
+    "option": "{name} ({type})",
+    "button": "Submit for publishing"
+  },
+  "decision": {
+    "title": "Decision",
+    "noteLabel": "Decision note",
+    "notePlaceholder": "Note — required to reject or send back",
+    "approve": "Approve",
+    "approveAndPublish": "Approve and publish",
+    "requestChanges": "Request changes",
+    "reject": "Reject",
+    "noteRequired": {
+      "reject": "Add a reason before rejecting this request.",
+      "requestChanges": "Say what needs changing before sending this back."
+    },
+    "done": {
+      "approve": "Approved. {name} is live on the website.",
+      "requestChanges": "Sent back. {author} has your note and can send it again.",
+      "reject": "Rejected. {author} has your reason."
+    },
+    "theAuthor": "The author",
+    "aReviewer": "A reviewer",
+    "from": "From",
+    "what": "What",
+    "sent": "Sent",
+    "answered": "Answered",
+    "earlierFeedback": "Earlier feedback",
+    "note": "Note",
+    "checklist": "Checklist",
+    "checklistCount": "{done} of {total}",
+    "required": "required",
+    "own": "Your own submission: you publish it yourself, without waiting for an administrator.",
+    "noteTo": "Note to {author}",
+    "notePrompt": "Needed to send it back or reject it: what to change, or why.",
+    "requiredMissing": "{count, plural, one {A required detail is} other {# required details are}} missing. Send it back rather than publish it.",
+    "editPrompt": "Something to correct first? Edit it yourself and you come back here to decide.",
+    "editBeforeApproving": "Edit before approving",
+    "openInEditor": "Open it in the editor",
+    "backTo": "Back to {label}"
+  },
+  "reviewPage": {
+    "title": "Review · {name}",
+    "notFound": "Not found",
+    "requests": "Requests"
+  },
+  "listingReview": {
+    "photos": "Photos",
+    "photosSummary": "{cover, select, yes {A cover photo} other {No cover photo}} and {count, plural, =0 {no other photos} one {# more photo} other {# more photos}}",
+    "coverAlt": "Cover photo",
+    "noCover": "No cover photo",
+    "cover": "Cover",
+    "openPhoto": "Open the photo",
+    "noOtherPhotos": "No other photos yet.",
+    "openPin": "Open the pin on a map",
+    "notGivenCount": "{missing} of {total} not given",
+    "allAnswered": "Everything answered",
+    "missingRequired": "Missing — required",
+    "notGiven": "Not given",
+    "added": "{count} added",
+    "noneAdded": "None added",
+    "noRooms": "No rooms added yet. A stay is booked by its rooms."
+  },
+  "answers": {
+    "yes": "Yes",
+    "no": "No",
+    "gone": "An entry no longer listed",
+    "closed": "Closed",
+    "days": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    }
+  },
+  "requests": {
+    "submitted": "Submitted requests",
+    "label": "Publish requests",
+    "filterLabel": "Filter publish requests",
+    "filters": {
+      "all": "All requests ({count})",
+      "PENDING_REVIEW": "Pending review ({count})",
+      "DRAFT": "Changes requested ({count})",
+      "PUBLISHED": "Published ({count})",
+      "REJECTED": "Rejected ({count})",
+      "UNPUBLISHED": "Unpublished ({count})"
+    },
+    "shown": "{count} shown",
+    "approvedNote": "{count, plural, one {# approved listing is live on the website and is no longer listed here: find it in} other {# approved listings are live on the website and are no longer listed here: find them in}} <link>{place}</link>.",
+    "allListApprovals": "All List Approvals",
+    "allDestinations": "All Destinations",
+    "empty": {
+      "answered": "Everything sent to your desk has been answered. Approved listings are on All List Approvals.",
+      "approved": "Everything you sent has been approved. Send another draft when it is ready.",
+      "none": "Requests appear here once an attraction, a stay or a food listing is sent for review.",
+      "nothingWaiting": "Nothing is waiting for a decision. Choose Published to see the {count} already live.",
+      "noStatus": "Nothing has this status yet. Choose another one, or All requests.",
+      "queueClear": "Your queue is clear",
+      "nothingInProgress": "Nothing in progress",
+      "noneInView": "No publish requests in this view"
+    },
+    "unknownAccount": "Unknown account",
+    "sent": "sent {when}",
+    "earlierFeedback": "Earlier feedback",
+    "decision": "Decision",
+    "noteHeading": "{label}:",
+    "noteHeadingFrom": "{label} from {name}:",
+    "review": "Review",
+    "view": "View"
+  },
+  "drafts": {
+    "title": "Ready to submit",
+    "intro": "New attractions, stays and food listings appear here as drafts.",
+    "introOwn": "Submit one when it is ready, then approve it yourself.",
+    "introTo": "Submit to {reviewer} when your content is ready.",
+    "newDestination": "New destination",
+    "submittedOwn": "{name} submitted. Open it below to approve and publish it.",
+    "submittedTo": "{name} submitted to {reviewer} for review.",
+    "profileError": "Your content profile could not be loaded. Reload this page to try again.",
+    "archived": "Archived",
+    "draft": "Draft",
+    "feedback": "Reviewer feedback: {note}",
+    "reviewContent": "Review content",
+    "submitOwn": "Submit for publishing",
+    "resubmitOwn": "Resubmit for publishing",
+    "submitTo": "Submit to {reviewer}",
+    "resubmitTo": "Resubmit to {reviewer}",
+    "empty": "Nothing is waiting to be submitted. Create an attraction, a stay or a food listing to start a new request."
+  },
+  "notifications": {
+    "label": "Publishing notifications",
+    "labelWith": "Publishing notifications ({details})",
+    "new": "{count} new",
+    "pending": "{count} pending",
+    "awaitingYours": "Awaiting your review",
+    "awaitingReviewer": "Awaiting a reviewer",
+    "unavailable": "Publishing notifications are unavailable.",
+    "retry": "Retry",
+    "unknownAccount": "Unknown account",
+    "viewAll": "View all requests",
+    "loading": "Loading notifications…",
+    "caughtUp": "You're all caught up.",
+    "toastTitle": "{count, plural, one {# publishing request} other {# publishing requests}} awaiting review",
+    "toastBody": "{name} submitted {target}.",
+    "somebody": "Somebody",
+    "reviewRequests": "Review requests",
+    "dismiss": "Dismiss publishing alert"
+  }
+}

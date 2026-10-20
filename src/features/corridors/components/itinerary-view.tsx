@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { ArrowDown, Clock, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +8,7 @@ import { Surface, SurfaceHeader } from "@/components/ui/surface";
 import type { CorridorItinerary, ItineraryStop, MapStop } from "@/features/corridors/api/contracts";
 import { CorridorMap } from "@/features/corridors/components/corridor-map";
 import { DayTabs } from "@/features/corridors/components/day-tabs";
-import { TRANSPORT_LABELS, formatDistance, formatMinutes, shortTime } from "@/features/corridors/format";
+import { formatDistance, formatMinutes, shortTime, type CorridorsT } from "@/features/corridors/format";
 import { cn } from "@/lib/utils";
 
 interface ItineraryViewProps {
@@ -23,6 +24,7 @@ interface ItineraryViewProps {
  * brings its stop into view.
  */
 export function ItineraryView({ itinerary, maps, variant = "detail" }: ItineraryViewProps) {
+  const t = useTranslations("corridors");
   const [day, setDay] = useState<number | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const preview = variant === "preview";
@@ -68,7 +70,7 @@ export function ItineraryView({ itinerary, maps, variant = "detail" }: Itinerary
         </div>
 
         {itinerary.days.length === 0 ? (
-          <Surface className="px-6 py-10 text-center text-sm text-muted">No days planned yet.</Surface>
+          <Surface className="px-6 py-10 text-center text-sm text-muted">{t("view.noDays")}</Surface>
         ) : null}
 
         {shownDays.map((entry) => (
@@ -77,19 +79,22 @@ export function ItineraryView({ itinerary, maps, variant = "detail" }: Itinerary
               actions={
                 entry.distanceKm != null ? (
                   <span className="text-xs text-muted tabular-nums">
-                    {formatDistance(entry.distanceKm)} · {formatMinutes(entry.travelMinutes)} travelling
+                    {t("words.travelling", { distance: formatDistance(t, entry.distanceKm), time: formatMinutes(t, entry.travelMinutes) })}
                   </span>
                 ) : null
               }
-              description={[entry.startTime ? `Sets off ${shortTime(entry.startTime)}` : null, entry.description].filter(Boolean).join(" · ") || undefined}
+              description={
+                [entry.startTime ? t("view.setsOff", { time: shortTime(entry.startTime) }) : null, entry.description].filter(Boolean).join(" · ") ||
+                undefined
+              }
               id={`view-day-${entry.id}`}
-              title={`Day ${entry.dayNumber}${entry.title ? ` · ${entry.title}` : ""}`}
+              title={[t("words.day", { day: entry.dayNumber }), entry.title].filter(Boolean).join(" · ")}
             />
             <ol className="flex flex-col px-4 py-3">
-              {entry.stops.length === 0 ? <li className="py-3 text-sm text-muted">No stops on this day.</li> : null}
+              {entry.stops.length === 0 ? <li className="py-3 text-sm text-muted">{t("view.noStops")}</li> : null}
               {entry.stops.map((stop, index) => (
                 <li key={stop.id}>
-                  {stop.sequence > 1 && (index > 0 || day == null) ? <Leg stop={stop} /> : null}
+                  {stop.sequence > 1 && (index > 0 || day == null) ? <Leg stop={stop} t={t} /> : null}
                   <button
                     aria-pressed={selected === stop.id}
                     className={cn(
@@ -119,8 +124,8 @@ export function ItineraryView({ itinerary, maps, variant = "detail" }: Itinerary
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span className="text-sm font-semibold text-ink">{stop.title || stop.destination.name}</span>
-                        {stop.destination.status !== "PUBLISHED" ? <Badge>Draft destination</Badge> : null}
-                        {stop.destination.latitude == null ? <Badge tone="warning">No map pin</Badge> : null}
+                        {stop.destination.status !== "PUBLISHED" ? <Badge>{t("view.draftDestination")}</Badge> : null}
+                        {stop.destination.latitude == null ? <Badge tone="warning">{t("words.noMapPin")}</Badge> : null}
                       </span>
                       <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted">
                         {stop.title ? <span>{stop.destination.name}</span> : null}
@@ -136,18 +141,20 @@ export function ItineraryView({ itinerary, maps, variant = "detail" }: Itinerary
                             {[shortTime(stop.arrivalTime), shortTime(stop.departureTime)].filter(Boolean).join("–")}
                           </span>
                         ) : null}
-                        {stop.recommendedDurationMinutes != null ? <span>Stay {formatMinutes(stop.recommendedDurationMinutes)}</span> : null}
+                        {stop.recommendedDurationMinutes != null ? (
+                          <span>{t("words.stay", { time: formatMinutes(t, stop.recommendedDurationMinutes) })}</span>
+                        ) : null}
                       </span>
                       {preview && (stop.description || stop.destination.shortDescription) ? (
                         <span className="mt-1.5 block text-sm text-ink-soft">{stop.description || stop.destination.shortDescription}</span>
                       ) : null}
-                      {stop.notes ? <span className="mt-1.5 block text-xs text-ink-soft">Note: {stop.notes}</span> : null}
+                      {stop.notes ? <span className="mt-1.5 block text-xs text-ink-soft">{t("words.note", { note: stop.notes })}</span> : null}
                     </span>
                   </button>
                 </li>
               ))}
             </ol>
-            {entry.notes ? <p className="border-t border-line px-4 py-2.5 text-xs text-ink-soft">Note: {entry.notes}</p> : null}
+            {entry.notes ? <p className="border-t border-line px-4 py-2.5 text-xs text-ink-soft">{t("words.note", { note: entry.notes })}</p> : null}
           </Surface>
         ))}
       </div>
@@ -167,16 +174,20 @@ export function ItineraryView({ itinerary, maps, variant = "detail" }: Itinerary
   );
 }
 
-function Leg({ stop }: { readonly stop: ItineraryStop }) {
-  const transport = stop.transportType ? TRANSPORT_LABELS[stop.transportType].toLowerCase() : "car";
+function Leg({ stop, t }: { readonly stop: ItineraryStop; readonly t: CorridorsT }) {
+  const transport = t(`transportWord.${stop.transportType ?? "CAR"}`);
   return (
     <p className="flex items-center gap-2 py-1.5 pl-9 text-xs text-muted">
       <ArrowDown aria-hidden className="size-3.5" />
       {stop.distanceFromPreviousKm === 0
-        ? "Same place as the stop before"
+        ? t("words.samePlace")
         : stop.distanceFromPreviousKm != null
-          ? `${formatDistance(stop.distanceFromPreviousKm)} · ${formatMinutes(stop.travelTimeFromPreviousMinutes)} by ${transport}`
-          : `By ${transport}`}
+          ? t("words.travelBy", {
+              distance: formatDistance(t, stop.distanceFromPreviousKm),
+              time: formatMinutes(t, stop.travelTimeFromPreviousMinutes),
+              transport,
+            })
+          : t("words.by", { transport })}
     </p>
   );
 }

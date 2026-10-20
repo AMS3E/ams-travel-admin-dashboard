@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Image from "next/image";
+import { useFormatter, useTranslations } from "next-intl";
 import { mediaPath } from "@/features/catalog/resource";
 import Link from "next/link";
 import { ArrowUpRight, BadgeCheck, ImageIcon, Pencil } from "lucide-react";
@@ -13,11 +14,10 @@ import type { CatalogRecord } from "@/features/catalog/api/contracts";
 import { byName } from "@/features/catalog/resources";
 import { QueryState } from "@/features/cms/components/query-state";
 
-const STATUS: Readonly<Record<string, { label: string; tone: "active" | "neutral" | "inactive" }>> = {
-  PUBLISHED: { label: "Published", tone: "active" },
-  DRAFT: { label: "Draft", tone: "neutral" },
-  ARCHIVED: { label: "Archived", tone: "inactive" },
-};
+/* Each status's colour; its words are catalog.region.status. */
+const STATUS_TONES = { PUBLISHED: "active", DRAFT: "neutral", ARCHIVED: "neutral" } as const;
+type KnownStatus = keyof typeof STATUS_TONES;
+const isKnownStatus = (value: string): value is KnownStatus => Object.hasOwn(STATUS_TONES, value);
 
 /* The overview as the editor wrote it, with the same marks the phone preview draws. */
 const STORY_CLASSES =
@@ -25,7 +25,6 @@ const STORY_CLASSES =
 
 const ids = (value: unknown): string[] => (Array.isArray(value) ? value.map(String) : []);
 const text = (value: unknown): string => (typeof value === "string" ? value : "");
-const count = (value: number) => value.toLocaleString();
 
 /**
  * Content Management → Tourism Regions → one region: what its page in the
@@ -34,6 +33,8 @@ const count = (value: number) => value.toLocaleString();
  * region's words are edited on its form, its lists in Taxonomy.
  */
 export function RegionDetail({ id }: { readonly id: string }) {
+  const t = useTranslations("catalog.region");
+  const format = useFormatter();
   const region = useGetCatalogRecordQuery({ resource: "regions", id });
   const categories = useGetCatalogQuery("categories");
   const tags = useGetCatalogQuery("tags");
@@ -65,60 +66,60 @@ export function RegionDetail({ id }: { readonly id: string }) {
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <Surface aria-label="Overview">
+        <Surface aria-label={t("overview")}>
           <SurfaceHeader
             actions={row?.amsRecommended === true ? (
               <Badge tone="success">
                 <BadgeCheck aria-hidden className="size-3" />
-                Recommended by AMS Travel
+                {t("recommended")}
               </Badge>
             ) : null}
-            description="Its cover picture and the lines under its name on its Discover page."
-            title="Overview"
+            description={t("overviewDescription")}
+            title={t("overview")}
           />
           <div className="p-4">
             {cover ? (
               <Image alt="" className="mb-4 aspect-[2/1] w-full rounded-md object-cover ring-1 ring-line" data-field="cover" height={320} src={cover} unoptimized width={640} />
             ) : (
-              <p className="mb-4 text-xs text-muted" data-field="cover">No cover picture yet: choose one on its form.</p>
+              <p className="mb-4 text-xs text-muted" data-field="cover">{t("noCover")}</p>
             )}
-            {overview ? <div className={STORY_CLASSES} dangerouslySetInnerHTML={{ __html: overview }} /> : <p className="text-sm text-muted">Nothing written yet.</p>}
+            {overview ? <div className={STORY_CLASSES} dangerouslySetInnerHTML={{ __html: overview }} /> : <p className="text-sm text-muted">{t("nothingWritten")}</p>}
             <div className="mt-4 border-t border-line pt-4" data-field="map">
-              <p className="mb-2 text-xs font-medium text-muted">Map picture · the Map panel in the app, where the interactive map was</p>
+              <p className="mb-2 text-xs font-medium text-muted">{t("mapPicture")}</p>
               {mapPicture ? (
                 <Image alt="" className="w-full rounded-md object-contain ring-1 ring-line" height={400} src={mapPicture} unoptimized width={480} />
               ) : (
-                <p className="text-xs text-muted">No map picture yet: upload one on its form.</p>
+                <p className="text-xs text-muted">{t("noMapPicture")}</p>
               )}
             </div>
           </div>
         </Surface>
 
-        <Surface aria-label="Its own lists">
+        <Surface aria-label={t("lists")}>
           <SurfaceHeader
             actions={
               <Link className="inline-flex items-center gap-1 text-xs font-medium text-teal-deep hover:underline" href="/categories-and-tags">
-                Manage in Taxonomy
+                {t("manageInTaxonomy")}
                 <ArrowUpRight aria-hidden className="size-3" />
               </Link>
             }
-            description="What its places are sorted and filtered by, in its page's order."
-            title="Its own lists"
+            description={t("listsDescription")}
+            title={t("lists")}
           />
           <div className="flex flex-col gap-4 p-4">
-            <TermChips field="categories" label="Categories" rows={regionCategories} />
-            <TermChips field="tags" label="Search filters" rows={regionTags} />
+            <TermChips field="categories" label={t("categories")} rows={regionCategories} />
+            <TermChips field="tags" label={t("searchFilters")} rows={regionTags} />
           </div>
         </Surface>
       </div>
 
       {/* Shown once an attraction picks this region; a failed read still shows, so it is never mistaken for empty. */}
       {destinations.error || places.length ? (
-        <Surface aria-label="Destinations">
+        <Surface aria-label={t("destinations")}>
           <SurfaceHeader
-            actions={destinations.data ? <span className="text-xs text-muted tabular-nums">{count(places.length)}</span> : null}
-            description="Every attraction shelved in this region, as its page lists them. A name opens the destination's detail; the pencil its form."
-            title="Destinations"
+            actions={destinations.data ? <span className="text-xs text-muted tabular-nums">{format.number(places.length)}</span> : null}
+            description={t("destinationsDescription")}
+            title={t("destinations")}
           />
           {destinations.error ? (
             <div className="p-3">
@@ -129,18 +130,18 @@ export function RegionDetail({ id }: { readonly id: string }) {
             <Table>
               <TableHead>
                 <TableRow className="hover:bg-transparent">
-                  <TableHeaderCell className="w-10 text-right">#</TableHeaderCell>
-                  <TableHeaderCell>Name</TableHeaderCell>
-                  <TableHeaderCell>Province</TableHeaderCell>
-                  <TableHeaderCell>Status</TableHeaderCell>
+                  <TableHeaderCell className="w-10 text-right">{t("number")}</TableHeaderCell>
+                  <TableHeaderCell>{t("name")}</TableHeaderCell>
+                  <TableHeaderCell>{t("province")}</TableHeaderCell>
+                  <TableHeaderCell>{t("statusColumn")}</TableHeaderCell>
                   <TableHeaderCell className="text-right">
-                    <span className="sr-only">Edit</span>
+                    <span className="sr-only">{t("editColumn")}</span>
                   </TableHeaderCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {places.map((place, index) => {
-                  const status = STATUS[String(place.status)];
+                  const status = String(place.status);
                   const cover = text(place.coverUrl);
                   return (
                     <TableRow data-destination-id={place.id} key={place.id}>
@@ -161,10 +162,12 @@ export function RegionDetail({ id }: { readonly id: string }) {
                       </TableCell>
                       <TableCell>{provinceName.get(text(place.provinceId)) || "—"}</TableCell>
                       <TableCell>
-                        <Badge dot tone={status?.tone ?? "neutral"}>{status?.label ?? text(place.status)}</Badge>
+                        <Badge dot tone={isKnownStatus(status) ? STATUS_TONES[status] : "neutral"}>
+                          {isKnownStatus(status) ? t(`status.${status}`) : text(place.status)}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Link aria-label={`Edit ${text(place.name)}`} className="inline-flex text-muted hover:text-ink" href={`/destinations/${place.id}`}>
+                        <Link aria-label={t("editName", { name: text(place.name) })} className="inline-flex text-muted hover:text-ink" href={`/destinations/${place.id}`}>
                           <Pencil aria-hidden className="size-4" />
                         </Link>
                       </TableCell>
@@ -182,17 +185,18 @@ export function RegionDetail({ id }: { readonly id: string }) {
 
 /** A region's categories or search filters as chips, retired ones marked. */
 function TermChips({ field, label, rows }: { readonly field: string; readonly label: string; readonly rows: readonly CatalogRecord[] }) {
+  const t = useTranslations("catalog.region");
   return (
     <div>
       <p className="text-xs font-medium text-muted">
-        {label} · {count(rows.length)}
+        {t("termCount", { label, count: rows.length })}
       </p>
       <div className="mt-1.5 flex flex-wrap gap-1.5" data-field={field}>
         {rows.length ? rows.map((row) => (
-          <Badge key={row.id} tone={row.isActive === false ? "inactive" : "neutral"}>
+          <Badge className={row.isActive === false ? "line-through opacity-70" : undefined} key={row.id} tone="neutral">
             {text(row.name)}
           </Badge>
-        )) : <span className="text-sm text-muted">None yet.</span>}
+        )) : <span className="text-sm text-muted">{t("noneYet")}</span>}
       </div>
     </div>
   );

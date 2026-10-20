@@ -3,6 +3,7 @@
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import dynamic from "next/dynamic";
 import { TriangleAlert, type LucideIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ import { SpotList, type SpotContext } from "@/features/catalog/components/fields
 import { ImageField } from "@/features/catalog/components/fields/image-field";
 import { MultiSelectField } from "@/features/catalog/components/fields/multi-select-field";
 import { inOptionGroup, optionGroupsOf } from "@/features/catalog/resource";
+import { useDates } from "@/i18n/use-dates";
 import type {
   FormValues,
   ReferenceOption,
@@ -58,25 +60,18 @@ export interface SiblingGroup {
 /** The card icon of a list the tile tables do not know. */
 const TILE_ICONS: Partial<Record<string, LucideIcon>> = {};
 
-const DAY_LABELS: Readonly<Record<(typeof WEEKDAYS)[number], string>> = {
-  mon: "Monday",
-  tue: "Tuesday",
-  wed: "Wednesday",
-  thu: "Thursday",
-  fri: "Friday",
-  sat: "Saturday",
-  sun: "Sunday",
-};
+type ControlWords = ReturnType<typeof useTranslations<"forms.controls">>;
 
 /** What a locked field reads as: the chosen option's label rather than its id. */
 function lockedText(
   field: ResourceField,
   value: FormValues[string] | undefined,
   options: readonly ReferenceOption[],
+  t: ControlWords,
 ): string {
-  if (typeof value !== "string" || !value) return "Not set";
+  if (typeof value !== "string" || !value) return t("notSet");
   if (field.kind === "ref") {
-    return options.find((option) => option.value === value)?.label ?? "A row outside your workspace";
+    return options.find((option) => option.value === value)?.label ?? t("outside");
   }
   if (field.kind === "enum") {
     return field.options?.find((option) => option.value === value)?.label ?? value;
@@ -98,6 +93,8 @@ const RichText = dynamic(() => import("@/features/catalog/components/fields/rich
 });
 
 export function FieldControl({ field, options, locked = false, siblings, places, editing = false, spot }: FieldControlProps) {
+  const t = useTranslations("forms.controls");
+  const { dates } = useDates();
   const {
     control,
     register,
@@ -112,7 +109,7 @@ export function FieldControl({ field, options, locked = false, siblings, places,
     return (
       <FormField
         className={span}
-        hint="Set when this was created."
+        hint={t("lockedHint")}
         label={field.label}
       >
         {(aria) => (
@@ -121,7 +118,7 @@ export function FieldControl({ field, options, locked = false, siblings, places,
             className="rounded-md border border-line bg-sand px-3 py-2 text-sm text-ink-soft"
             id={aria.id}
           >
-            {lockedText(field, getValues(field.name), options)}
+            {lockedText(field, getValues(field.name), options, t)}
           </p>
         )}
       </FormField>
@@ -209,7 +206,7 @@ export function FieldControl({ field, options, locked = false, siblings, places,
             />
           ) : (
             <p className="rounded-md border border-dashed border-line-strong px-3 py-2.5 text-sm text-muted" id={aria.id}>
-              Choose its {field.placeAmong === "groupName" ? "group" : "region"} first: its place shows here.
+              {t("chooseFirst", { what: field.placeAmong === "groupName" ? "group" : "region" })}
             </p>
           )
         }
@@ -221,18 +218,18 @@ export function FieldControl({ field, options, locked = false, siblings, places,
   if (field.placeAmong) {
     const last = places?.at(-1);
     return (
-      <FormField className="md:col-span-2" error={error} hint={places ? field.hint : field.placeAmong === "groupName" ? "Choose its group first." : "Choose its region first."} label={field.label}>
+      <FormField className="md:col-span-2" error={error} hint={places ? field.hint : field.placeAmong === "groupName" ? t("chooseGroupFirst") : t("chooseRegionFirst")} label={field.label}>
         {(aria) => (
           <Select {...aria} {...register(field.name)} disabled={!places}>
-            <option value="">{editing ? "Where it is now" : last ? `At the end, after ${last}` : "At the end"}</option>
+            <option value="">{editing ? t("whereNow") : last ? t("atEndAfter", { name: last }) : t("atEnd")}</option>
             {(places ?? []).map((_, index) => (
               <option key={index} value={String(index)}>
-                {index + 1}. {index === 0 ? `First, before ${places![0]}` : `After ${places![index - 1]}`}
+                {index + 1}. {index === 0 ? t("firstBefore", { name: places![0] }) : t("after", { name: places![index - 1] })}
               </option>
             ))}
             {places?.length ? (
               <option value={String(places.length)}>
-                {places.length + 1}. Last, after {last}
+                {places.length + 1}. {t("lastAfter", { name: last ?? "" })}
               </option>
             ) : null}
           </Select>
@@ -303,27 +300,31 @@ export function FieldControl({ field, options, locked = false, siblings, places,
       required={field.required}
     >
       {(aria) => {
+        /* A Khmer twin says it is Khmer, for the font and the spell checker. */
+        const lang = field.khmerOf ? "km" : undefined;
         switch (field.kind) {
           case "textarea":
             if (field.rich) {
               return (
-                <Controller
-                  control={control}
-                  name={field.name}
-                  render={({ field: bound }) => (
-                    <RichText
-                      describedBy={aria["aria-describedby"]}
-                      id={aria.id}
-                      invalid={Boolean(aria["aria-invalid"])}
-                      onBlur={bound.onBlur}
-                      onChange={bound.onChange}
-                      value={typeof bound.value === "string" ? bound.value : ""}
-                    />
-                  )}
-                />
+                <div className="contents" lang={lang}>
+                  <Controller
+                    control={control}
+                    name={field.name}
+                    render={({ field: bound }) => (
+                      <RichText
+                        describedBy={aria["aria-describedby"]}
+                        id={aria.id}
+                        invalid={Boolean(aria["aria-invalid"])}
+                        onBlur={bound.onBlur}
+                        onChange={bound.onChange}
+                        value={typeof bound.value === "string" ? bound.value : ""}
+                      />
+                    )}
+                  />
+                </div>
               );
             }
-            return <Textarea {...aria} {...register(field.name)} />;
+            return <Textarea {...aria} {...register(field.name)} lang={lang} />;
 
           case "number":
           case "decimal":
@@ -348,7 +349,7 @@ export function FieldControl({ field, options, locked = false, siblings, places,
             return (
               <Select {...aria} {...register(field.name)}>
                 <option value="">
-                  {field.required ? `Choose a ${field.label.toLowerCase()}` : "Not set"}
+                  {field.required ? t("chooseA", { label: field.label.toLowerCase() }) : t("notSet")}
                 </option>
                 {(field.options ?? []).map((option) => (
                   <option key={option.value} value={option.value}>
@@ -362,12 +363,12 @@ export function FieldControl({ field, options, locked = false, siblings, places,
             return (
               <Select {...aria} {...register(field.name)}>
                 <option value="">
-                  {field.required ? `Choose a ${field.label.toLowerCase()}` : "Not set"}
+                  {field.required ? t("chooseA", { label: field.label.toLowerCase() }) : t("notSet")}
                 </option>
                 {options.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
-                    {option.inactive ? " (retired)" : ""}
+                    {option.inactive ? ` ${t("retired")}` : ""}
                   </option>
                 ))}
               </Select>
@@ -396,7 +397,11 @@ export function FieldControl({ field, options, locked = false, siblings, places,
                   return (
                     <MultiSelectField
                       describedBy={aria["aria-describedby"]}
-                      emptyLabel={field.optionGroup ? `No ${optionGroupsOf(field).join(", ")} interests yet. Add one under Taxonomy → Interests.` : `No ${field.label.toLowerCase()} exist yet.`}
+                      emptyLabel={
+                        field.optionGroup
+                          ? t("noInterests", { groups: optionGroupsOf(field).join(", ") })
+                          : t("noneExist", { label: field.label.toLowerCase() })
+                      }
                       invalid={aria["aria-invalid"]}
                       labelledBy={aria["aria-labelledby"]}
                       onChange={bound.onChange}
@@ -437,7 +442,8 @@ export function FieldControl({ field, options, locked = false, siblings, places,
                     >
                       {WEEKDAYS.map((day, index) => (
                         <label className="flex items-center gap-2 text-xs text-ink-soft" key={day}>
-                          <span className="w-20 shrink-0 font-semibold">{DAY_LABELS[day]}</span>
+                          {/* The week starts on Monday here; the weekday names start on Sunday. */}
+                          <span className="w-20 shrink-0 font-semibold">{dates.weekdays[(index + 1) % 7]}</span>
                           <Input
                             className="h-8 text-sm"
                             onChange={(event) => {
@@ -445,7 +451,7 @@ export function FieldControl({ field, options, locked = false, siblings, places,
                               next[index] = event.target.value;
                               bound.onChange(next);
                             }}
-                            placeholder="Closed"
+                            placeholder={t("closed")}
                             value={days[index] ?? ""}
                           />
                         </label>
@@ -464,7 +470,7 @@ export function FieldControl({ field, options, locked = false, siblings, places,
                 <SiblingList groups={siblings} />
               </div>
             ) : (
-              <Input {...aria} {...register(field.name)} type="text" />
+              <Input {...aria} {...register(field.name)} lang={lang} type="text" />
             );
         }
       }}
@@ -474,22 +480,20 @@ export function FieldControl({ field, options, locked = false, siblings, places,
 
 /** What is already in each chosen region, zone or group; the one with the name being typed is marked. */
 function SiblingList({ groups }: { readonly groups: readonly SiblingGroup[] }) {
+  const t = useTranslations("forms.controls.siblings");
+  const b = (chunks: React.ReactNode) => <span className="font-medium">{chunks}</span>;
   return (
     <div className="flex flex-col gap-2.5 rounded-lg border border-line bg-sand/60 px-3 py-2.5" role="status">
       {groups.map((group) => (
         <div className="flex flex-col gap-1.5" key={group.label}>
           <p className="text-xs text-ink-soft">
-            {!group.label ? (
-              group.names.length === 0 ? `None yet.` : group.names.length === 1 ? `There is already 1 ${group.one}:` : `There are already ${group.names.length} ${group.noun}:`
-            ) : group.names.length === 0 ? (
-              <>
-                <span className="font-medium">{group.label}</span> has no {group.noun} yet.
-              </>
-            ) : (
-              <>
-                <span className="font-medium">{group.label}</span> already has {group.names.length} {group.names.length === 1 ? group.one : group.noun}:
-              </>
-            )}
+            {!group.label
+              ? group.names.length === 0
+                ? t("noneYet")
+                : t("already", { count: group.names.length, one: group.one, noun: group.noun })
+              : group.names.length === 0
+                ? t.rich("groupNone", { label: group.label, noun: group.noun, b })
+                : t.rich("groupHas", { label: group.label, count: group.names.length, one: group.one, noun: group.noun, b })}
           </p>
           {group.names.length ? (
             <ul className="flex flex-wrap gap-1">
@@ -510,7 +514,7 @@ function SiblingList({ groups }: { readonly groups: readonly SiblingGroup[] }) {
           {group.clash ? (
             <p className="flex items-center gap-1 text-xs font-medium text-heritage">
               <TriangleAlert aria-hidden className="size-3.5 shrink-0" />
-              “{group.clash}” is already one of them. Open it instead of making another.
+              {t("clash", { clash: group.clash })}
             </p>
           ) : null}
         </div>
@@ -559,11 +563,12 @@ function ImageControl({
 
 /** The status control: the choices come from the resource's own status model. */
 export function StatusControl({ options }: { readonly options: readonly StatusOption[] }) {
+  const t = useTranslations("forms.controls");
   const { register } = useFormContext<FormValues>();
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor="record-status">Status</Label>
+      <Label htmlFor="record-status">{t("status")}</Label>
       <Select id="record-status" {...register("status")}>
         {options.map((option) => (
           <option key={option.value} value={option.value}>

@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BedDouble, ChevronLeft, ChevronRight, ImageIcon, Inbox, Loader2, MapPin, Pencil, Search, Send, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { ArrowRight, BedDouble, ImageIcon, Inbox, Loader2, MapPin, Pencil, Search, Send, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -15,10 +16,11 @@ import type { DestinationRow, DestinationTypeKey } from "@/features/catalog/all-
 import { byName } from "@/features/catalog/resources";
 import { REQUEST_TONES, listingTypeOf } from "@/features/publishing/api/contracts";
 import { useSubmitPublishRequestMutation } from "@/features/publishing/api/publishing-api";
-import { MARK_LABELS, editHrefOf, type ReviewMark } from "@/features/publishing/marks";
+import { editHrefOf, type ReviewMark } from "@/features/publishing/marks";
 import { useGetVerifiedStatusesQuery } from "@/features/verification/api/verification-api";
 import { useGetReferenceOptionsQuery } from "@/features/catalog/api/catalog-api";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
+import { Pager } from "@/components/ui/pager";
 
 const ICONS: Readonly<Record<DestinationTypeKey, LucideIcon>> = {
   destinations: MapPin,
@@ -45,6 +47,8 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
   /** The listings this account may send for review from here. */
   readonly sendable?: readonly string[];
 }) {
+  const t = useTranslations("catalog");
+  const errorMessage = useApiErrorMessage();
   const router = useRouter();
   const [submit, submission] = useSubmitPublishRequestMutation();
   const [problem, setProblem] = useState<string | null>(null);
@@ -106,7 +110,7 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
       await submit({ targetType: listingType, targetId: row.id }).unwrap();
       router.refresh();
     } catch (error) {
-      setProblem(`${row.name} could not be sent for review: ${apiErrorMessage(error)}`);
+      setProblem(t("allDestinations.sendFailed", { name: row.name, reason: errorMessage(error) }));
     }
   }
 
@@ -115,14 +119,14 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
       <Toolbar>
         <SearchField
           className="max-w-sm"
-          label="Search all destinations"
+          label={t("allDestinations.search")}
           onChange={(value) => reset(() => setTerm(value))}
-          placeholder="Search by name or place…"
+          placeholder={t("allDestinations.searchPlaceholder")}
           value={term}
         />
-        <Select aria-label="Filter by status" className="h-8 w-52 text-sm" onChange={(event) => reset(() => setStatus(event.target.value))} value={status}>
-          <option value="all">All statuses</option>
-          {waitingOnYou ? <option value="review">Waiting for your review ({waitingOnYou})</option> : null}
+        <Select aria-label={t("list.filterStatus")} className="h-8 w-52 text-sm" onChange={(event) => reset(() => setStatus(event.target.value))} value={status}>
+          <option value="all">{t("list.allStatuses")}</option>
+          {waitingOnYou ? <option value="review">{t("allDestinations.waitingForYou", { count: waitingOnYou })}</option> : null}
           {statuses.map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -130,17 +134,17 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
           ))}
         </Select>
         {userId ? (
-          <Select aria-label="Filter by who created it" className="h-8 w-44 text-sm" onChange={(event) => reset(() => setMine(event.target.value === "me"))} value={mine ? "me" : "anyone"}>
-            <option value="anyone">Created by anyone</option>
-            <option value="me">Created by me</option>
+          <Select aria-label={t("list.filterCreator")} className="h-8 w-44 text-sm" onChange={(event) => reset(() => setMine(event.target.value === "me"))} value={mine ? "me" : "anyone"}>
+            <option value="anyone">{t("list.createdByAnyone")}</option>
+            <option value="me">{t("list.createdByMe")}</option>
           </Select>
         ) : null}
-        <Select aria-label="Sort" className="h-8 w-40 text-sm" onChange={(event) => reset(() => setNewest(event.target.value === "newest"))} value={newest ? "newest" : "name"}>
-          <option value="name">Name A–Z</option>
-          <option value="newest">Newest first</option>
+        <Select aria-label={t("list.sort")} className="h-8 w-40 text-sm" onChange={(event) => reset(() => setNewest(event.target.value === "newest"))} value={newest ? "newest" : "name"}>
+          <option value="name">{t("list.sortName")}</option>
+          <option value="newest">{t("list.sortNewest")}</option>
         </Select>
         <p aria-live="polite" className="ml-auto text-xs text-muted tabular-nums">
-          {shown.length} {shown.length === 1 ? "destination" : "destinations"}
+          {t("allDestinations.count", { count: shown.length })}
         </p>
       </Toolbar>
       {problem ? <p className="border-b border-heritage/20 bg-heritage-soft px-4 py-2 text-sm text-heritage" role="alert">{problem}</p> : null}
@@ -148,13 +152,13 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
       <Table>
         <TableHead>
           <TableRow className="hover:bg-transparent">
-            <TableHeaderCell>Name</TableHeaderCell>
-            <TableHeaderCell>Type</TableHeaderCell>
-            <TableHeaderCell className="hidden md:table-cell">Created by</TableHeaderCell>
-            <TableHeaderCell className="hidden md:table-cell">Verified</TableHeaderCell>
-            <TableHeaderCell>Status</TableHeaderCell>
+            <TableHeaderCell>{t("allDestinations.name")}</TableHeaderCell>
+            <TableHeaderCell>{t("allDestinations.type")}</TableHeaderCell>
+            <TableHeaderCell className="hidden md:table-cell">{t("allDestinations.createdBy")}</TableHeaderCell>
+            <TableHeaderCell className="hidden md:table-cell">{t("allDestinations.verified")}</TableHeaderCell>
+            <TableHeaderCell>{t("allDestinations.status")}</TableHeaderCell>
             <TableHeaderCell className="text-right">
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t("list.actions")}</span>
             </TableHeaderCell>
           </TableRow>
         </TableHead>
@@ -195,9 +199,9 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   {verifiedIds.has(row.id) ? (
-                    <Badge dot tone="success">Verified</Badge>
+                    <Badge dot tone="success">{t("allDestinations.verified")}</Badge>
                   ) : (
-                    <span className="text-muted">{verified.isLoading ? "…" : "Not verified"}</span>
+                    <span className="text-muted">{verified.isLoading ? "…" : t("allDestinations.notVerified")}</span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -205,28 +209,29 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
                     <Badge dot tone={row.statusTone}>
                       {row.statusLabel}
                     </Badge>
-                    {mark ? <Badge dot tone={REQUEST_TONES[mark.status]}>{MARK_LABELS[mark.status]}</Badge> : null}
+                    {mark ? <Badge dot tone={REQUEST_TONES[mark.status]}>{t(`marks.${mark.status}`)}</Badge> : null}
+                    {row.khmerMissing ? <Badge dot tone="warning">{t("table.khmerMissing", { count: row.khmerMissing })}</Badge> : null}
                   </span>
                 </TableCell>
                 <TableCell className="py-1.5 text-right whitespace-nowrap">
                   <span className="inline-flex items-center justify-end gap-1.5">
                     {mark?.yours ? (
                       <Link className={buttonVariants({ size: "sm" })} href={mark.reviewHref}>
-                        Review
+                        {t("list.review")}
                         <ArrowRight aria-hidden className="size-3.5" />
                       </Link>
                     ) : null}
                     {mayChoose.has(row.id) ? (
                       <Button disabled={submission.isLoading} onClick={() => void send(row)} size="sm" type="button" variant="secondary">
                         {submission.isLoading && submission.originalArgs?.targetId === row.id ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <Send aria-hidden className="size-3.5" />}
-                        {mark?.status === "DRAFT" ? "Send again" : "Send for review"}
+                        {mark?.status === "DRAFT" ? t("allDestinations.sendAgain") : t("allDestinations.sendForReview")}
                       </Button>
                     ) : null}
                     <Link
-                      aria-label={`Edit ${row.name}`}
+                      aria-label={t("allDestinations.editName", { name: row.name })}
                       className="inline-grid size-8 place-items-center rounded-md text-muted transition-colors hover:bg-sand-deep hover:text-ink"
                       href={editHref}
-                      title={mark?.yours ? "Edit before approving" : "Edit"}
+                      title={mark?.yours ? t("list.editBeforeApproving") : t("list.edit")}
                     >
                       <Pencil aria-hidden className="size-4" />
                     </Link>
@@ -251,13 +256,13 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
                         size="sm"
                         variant="secondary"
                       >
-                        Clear filters
+                        {t("list.clearFilters")}
                       </Button>
                     ) : null
                   }
-                  description={filtered ? "Try another search, or show every status." : "Destinations appear here once they are created."}
+                  description={filtered ? t("list.noMatchText") : t("allDestinations.emptyText")}
                   icon={filtered ? Search : Inbox}
-                  title={filtered ? "Nothing matches those filters" : "No destinations yet"}
+                  title={filtered ? t("list.noMatchTitle") : t("allDestinations.emptyTitle")}
                 />
               </TableCell>
             </TableRow>
@@ -265,23 +270,7 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
         </TableBody>
       </Table>
 
-      {pages > 1 ? (
-        <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-2.5">
-          <p className="text-xs text-muted tabular-nums">
-            Page {at + 1} of {pages}
-          </p>
-          <div className="flex gap-2">
-            <Button disabled={at === 0} onClick={() => setPage(at - 1)} size="sm" variant="secondary">
-              <ChevronLeft aria-hidden className="size-4" />
-              Previous
-            </Button>
-            <Button disabled={at >= pages - 1} onClick={() => setPage(at + 1)} size="sm" variant="secondary">
-              Next
-              <ChevronRight aria-hidden className="size-4" />
-            </Button>
-          </div>
-        </div>
-      ) : null}
+      {pages > 1 ? <Pager onPage={setPage} page={at} pageCount={pages} /> : null}
     </section>
   );
 }

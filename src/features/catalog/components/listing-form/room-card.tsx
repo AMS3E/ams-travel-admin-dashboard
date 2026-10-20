@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 import { BedDouble, Coffee, Maximize2, Mountain, Users } from "lucide-react";
+import { useMessages, useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
+import { localizeWith } from "@/features/catalog/localize";
 import type { FormValues } from "@/features/catalog/resource";
+import { getResource } from "@/features/catalog/resources";
 import { bedLine, sleepsOf, viewLabel } from "@/features/catalog/rooms";
 import { cn } from "@/lib/utils";
 
@@ -46,12 +49,15 @@ interface RoomCardProps {
  */
 export function RoomCard({
   amenityLabels = NO_LABELS, values, currency, photoUrl, badge, actions, layout = "row", className }: RoomCardProps) {
+  const t = useTranslations("forms.rooms");
+  /* Drawn on the server too (a review page), so the view's name is looked up here rather than through a client hook. */
+  const views = localizeWith(getResource("stay-rooms"), useMessages()).fields.find((field) => field.name === "view")?.options;
   const stacked = layout === "stacked";
-  const name = text(values.name) || "Untitled room";
-  const beds = bedLine(values);
+  const name = text(values.name) || t("card.untitled");
+  const beds = bedLine(values, t);
   const sleeps = sleepsOf(values);
   const size = text(values.sizeSqm);
-  const view = viewLabel(values.view);
+  const view = viewLabel(values.view, views);
   const price = Number(text(values.pricePerNight));
   const priced = text(values.pricePerNight) !== "" && Number.isFinite(price);
   const amenities = (Array.isArray(values.amenities) ? values.amenities : []).map((slug) => amenityLabels.get(slug) ?? slug);
@@ -65,7 +71,7 @@ export function RoomCard({
         ) : (
           <span className="grid h-full place-items-center gap-1 text-center text-muted">
             <BedDouble aria-hidden className={stacked ? "size-7" : "size-4"} strokeWidth={1.5} />
-            {stacked ? <span className="text-3xs font-medium">No photo</span> : null}
+            {stacked ? <span className="text-3xs font-medium">{t("card.noPhoto")}</span> : null}
           </span>
         )}
       </div>
@@ -84,7 +90,7 @@ export function RoomCard({
             ) : null}
             <li className="inline-flex items-center gap-1">
               <Users aria-hidden className="size-3.5 text-muted" />
-              Sleeps {sleeps || "—"}
+              {t("card.sleeps", { sleeps: sleeps ? String(sleeps) : "—" })}
             </li>
             {size ? (
               <li className="inline-flex items-center gap-1">
@@ -107,7 +113,7 @@ export function RoomCard({
                   {label}
                 </li>
               ))}
-              {amenities.length > 5 ? <li className="px-1 py-0.5 text-2xs text-muted">+{amenities.length - 5} more</li> : null}
+              {amenities.length > 5 ? <li className="px-1 py-0.5 text-2xs text-muted">{t("card.more", { count: amenities.length - 5 })}</li> : null}
             </ul>
           ) : null}
         </div>
@@ -116,15 +122,15 @@ export function RoomCard({
           {priced ? (
             <p className="text-sm text-ink">
               <span className={cn("font-semibold tabular-nums", stacked ? "text-base" : "text-sm")}>{formatMoney(price, currency)}</span>
-              <span className="text-xs text-muted"> / night</span>
+              <span className="text-xs text-muted"> {t("card.perNight")}</span>
             </p>
           ) : (
-            <p className="text-xs text-muted">No price yet</p>
+            <p className="text-xs text-muted">{t("card.noPrice")}</p>
           )}
           {values.breakfastIncluded === true ? (
             <p className="inline-flex items-center gap-1 text-xs text-success">
               <Coffee aria-hidden className="size-3.5" />
-              Breakfast included
+              {t("card.breakfast")}
             </p>
           ) : null}
           {actions ? <div className={cn("flex flex-wrap gap-1", stacked && "mt-auto pt-1")}>{actions}</div> : null}
@@ -137,5 +143,6 @@ export function RoomCard({
 
 /** "Not saved yet" and "Hidden", the two states a room in the list can be in besides bookable. */
 export function RoomBadge({ state }: { readonly state: "pending" | "off-sale" }) {
-  return state === "pending" ? <Badge tone="warning">Not saved yet</Badge> : <Badge>Hidden from guests</Badge>;
+  const t = useTranslations("forms.rooms.card");
+  return state === "pending" ? <Badge tone="warning">{t("pending")}</Badge> : <Badge>{t("hidden")}</Badge>;
 }

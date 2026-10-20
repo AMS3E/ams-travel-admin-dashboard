@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { ListOrdered } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -14,21 +15,23 @@ interface PreviewPageProps {
 }
 
 export async function generateMetadata({ params }: PreviewPageProps): Promise<Metadata> {
-  const { itinerary } = await loadCorridorPage((await params).id);
-  return { title: `Preview · ${itinerary.corridor.name}` };
+  const [{ itinerary }, t] = await Promise.all([loadCorridorPage((await params).id), getTranslations("corridors")]);
+  return { title: t("preview.metaTitle", { name: itinerary.corridor.name }) };
 }
 
 /** The corridor as a traveller reads it — drafts included, so it can be checked before it is published. */
 export default async function CorridorPreviewPage({ params }: PreviewPageProps) {
   const { id } = await params;
-  const { itinerary } = await loadCorridorPage(id);
+  const [{ itinerary }, t] = await Promise.all([loadCorridorPage(id), getTranslations("corridors")]);
   const { corridor, route } = itinerary;
   const facts = [
-    formatDuration(corridor.durationDays, corridor.durationNights),
-    `${corridor.stopCount} ${corridor.stopCount === 1 ? "stop" : "stops"}`,
-    route.status === "CURRENT" ? `${formatDistance(route.totalDistanceKm)} · ${formatMinutes(route.totalDurationMinutes)} travelling` : null,
+    formatDuration(t, corridor.durationDays, corridor.durationNights),
+    t("words.stops", { count: corridor.stopCount }),
+    route.status === "CURRENT"
+      ? t("words.travelling", { distance: formatDistance(t, route.totalDistanceKm), time: formatMinutes(t, route.totalDurationMinutes) })
+      : null,
     corridor.estimatedBudgetMin != null || corridor.estimatedBudgetMax != null
-      ? `${formatBudget(corridor.estimatedBudgetMin, corridor.estimatedBudgetMax)} per person`
+      ? t("preview.perPerson", { budget: formatBudget(t, corridor.estimatedBudgetMin, corridor.estimatedBudgetMax) })
       : null,
   ].filter((fact): fact is string => Boolean(fact && fact !== "—"));
 
@@ -38,13 +41,13 @@ export default async function CorridorPreviewPage({ params }: PreviewPageProps) 
         actions={
           <Link className={buttonVariants({ variant: "secondary" })} href={`/corridors/${id}/itinerary`}>
             <ListOrdered aria-hidden className="size-4" />
-            Back to the builder
+            {t("preview.back")}
           </Link>
         }
         backHref={`/corridors/${id}`}
         backLabel={corridor.name}
-        description="How the corridor reads on the website."
-        title="Preview"
+        description={t("preview.description")}
+        title={t("words.preview")}
       />
 
       <section className="panel overflow-hidden">
@@ -57,8 +60,8 @@ export default async function CorridorPreviewPage({ params }: PreviewPageProps) 
           )}
           <div className="flex flex-col gap-3 p-5">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone="info">Tourism corridor</Badge>
-              {corridor.status !== "PUBLISHED" ? <Badge>Draft — not on the website yet</Badge> : null}
+              <Badge tone="info">{t("preview.badge")}</Badge>
+              {corridor.status !== "PUBLISHED" ? <Badge>{t("preview.draft")}</Badge> : null}
             </div>
             <h2 className="heading text-2xl font-semibold text-ink">{corridor.name}</h2>
             {corridor.shortDescription ? <p className="text-md text-ink-soft">{corridor.shortDescription}</p> : null}

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useReducer, useState, useTransition } from "react";
 import { Eye, LoaderCircle, RefreshCw, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +16,7 @@ import {
 import { settled } from "@/store/api/api-error";
 import { ItineraryDaysEditor } from "@/features/corridors/components/itinerary-days-editor";
 import { ItineraryMapPanel } from "@/features/corridors/components/itinerary-map-panel";
-import { ROUTE_STATUS, formatDistance, formatMinutes } from "@/features/corridors/format";
+import { formatDistance, formatMinutes, routeStatusOf } from "@/features/corridors/format";
 import {
   draftFrom,
   draftReducer,
@@ -48,6 +49,7 @@ const editable = (itinerary: CorridorItinerary) => startingDays(draftFrom(itiner
  * route out again for any leg that changed, and the map redraws it.
  */
 export function ItineraryBuilder({ corridorId, initial, destinations, maps, canPublish }: ItineraryBuilderProps) {
+  const t = useTranslations("corridors");
   const [saved, setSaved] = useState(initial);
   const [days, dispatch] = useReducer(draftReducer, initial, editable);
   const [pending, startTransition] = useTransition();
@@ -85,11 +87,12 @@ export function ItineraryBuilder({ corridorId, initial, destinations, maps, canP
   const savedLegs = useMemo(() => knownLegs(saved), [saved]);
   /* New legs get their road as the plan is edited, not only once it is saved. */
   const legs = useRoadPreview(days, savedLegs);
-  const mapStops = useMemo(() => mapStopsFrom(days, places, legs), [days, places, legs]);
+  const unknownName = t("words.unknownDestination");
+  const mapStops = useMemo(() => mapStopsFrom(days, places, legs, unknownName), [days, places, legs, unknownName]);
   const selection = useItinerarySelection(mapStops);
   const stopCount = mapStops.length;
   const published = saved.corridor.status === "PUBLISHED";
-  const routeInfo = ROUTE_STATUS[saved.route.status];
+  const routeInfo = routeStatusOf(t, saved.route.status);
 
   /* Leaving with unsaved stops asks first. */
   useEffect(() => {
@@ -118,11 +121,14 @@ export function ItineraryBuilder({ corridorId, initial, destinations, maps, canP
       adopt(result.itinerary);
       const route = result.itinerary.route;
       if (route.status === "CURRENT" || route.status === "NONE") {
-        setNotice({ tone: "success", text: route.status === "CURRENT" ? "Itinerary saved. The road route is up to date." : "Itinerary saved." });
+        setNotice({ tone: "success", text: route.status === "CURRENT" ? t("builder.savedRouteCurrent") : t("builder.saved") });
       } else if (!route.configured) {
-        setNotice({ tone: "warning", text: "Itinerary saved. The road route is not calculated: routing is off on the API (no GOOGLE_MAPS_API_KEY or OSM_ROUTING_URL), so the map joins the stops with straight lines." });
+        setNotice({ tone: "warning", text: t("builder.savedRouteOff") });
       } else {
-        setNotice({ tone: "warning", text: `Itinerary saved, but the road route could not be worked out${route.error ? `: ${route.error}` : "."}` });
+        setNotice({
+          tone: "warning",
+          text: route.error ? t("builder.savedRouteFailedWith", { error: route.error }) : t("builder.savedRouteFailed"),
+        });
       }
     });
   }
@@ -138,7 +144,7 @@ export function ItineraryBuilder({ corridorId, initial, destinations, maps, canP
         return;
       }
       adopt(result.itinerary);
-      setNotice({ tone: "success", text: "Road route recalculated." });
+      setNotice({ tone: "success", text: t("builder.recalculated") });
     });
   }
 
@@ -153,7 +159,7 @@ export function ItineraryBuilder({ corridorId, initial, destinations, maps, canP
         return;
       }
       setSaved((current) => ({ ...current, corridor: result.corridor }));
-      setNotice({ tone: "success", text: result.corridor.status === "PUBLISHED" ? "Published: the corridor is on the website." : "Unpublished: the corridor is a draft again." });
+      setNotice({ tone: "success", text: result.corridor.status === "PUBLISHED" ? t("builder.published") : t("builder.unpublished") });
     });
   }
 
@@ -165,25 +171,28 @@ export function ItineraryBuilder({ corridorId, initial, destinations, maps, canP
           <Surface>
             <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <Badge dot tone={published ? "success" : "neutral"}>{published ? "Published" : "Draft"}</Badge>
+                <Badge dot tone={published ? "success" : "neutral"}>{published ? t("words.published") : t("words.draft")}</Badge>
                 {dirty ? (
-                  <Badge dot tone="warning">Unsaved changes</Badge>
+                  <Badge dot tone="warning">{t("builder.unsaved")}</Badge>
                 ) : (
                   <Badge dot title={routeInfo.hint} tone={routeInfo.tone}>
                     {routeInfo.label}
                   </Badge>
                 )}
                 <span className="text-xs text-muted tabular-nums">
-                  {days.length} {days.length === 1 ? "day" : "days"} · {stopCount} {stopCount === 1 ? "stop" : "stops"}
+                  {t("words.daysStops", { days: days.length, stops: stopCount })}
                   {!dirty && saved.route.status === "CURRENT"
-                    ? ` · ${formatDistance(saved.route.totalDistanceKm)} · ${formatMinutes(saved.route.totalDurationMinutes)} travelling`
+                    ? ` · ${t("words.travelling", {
+                        distance: formatDistance(t, saved.route.totalDistanceKm),
+                        time: formatMinutes(t, saved.route.totalDurationMinutes),
+                      })}`
                     : ""}
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Link className={buttonVariants({ variant: "ghost", size: "sm" })} href={`/corridors/${corridorId}/preview`}>
                   <Eye aria-hidden className="size-4" />
-                  Preview
+                  {t("words.preview")}
                 </Link>
                 <Button
                   disabled={pending || dirty || stopCount < 2 || !saved.route.configured}
@@ -191,33 +200,33 @@ export function ItineraryBuilder({ corridorId, initial, destinations, maps, canP
                   size="sm"
                   title={
                     !saved.route.configured
-                      ? "Routing is off on the API"
+                      ? t("builder.routingOff")
                       : dirty
-                        ? "Save the itinerary first"
-                        : "Work the road route out again"
+                        ? t("builder.saveFirst")
+                        : t("builder.recalculateHint")
                   }
                   type="button"
                   variant="secondary"
                 >
                   {busy === "route" ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <RefreshCw aria-hidden className="size-4" />}
-                  Recalculate route
+                  {t("builder.recalculate")}
                 </Button>
                 {canPublish ? (
                   <Button
                     disabled={pending || dirty}
                     onClick={togglePublished}
                     size="sm"
-                    title={dirty ? "Save the itinerary first" : undefined}
+                    title={dirty ? t("builder.saveFirst") : undefined}
                     type="button"
                     variant="secondary"
                   >
                     {busy === "publish" ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : null}
-                    {published ? "Unpublish" : "Publish"}
+                    {published ? t("words.unpublish") : t("words.publish")}
                   </Button>
                 ) : null}
                 <Button disabled={pending || !dirty} onClick={save} size="sm" type="button">
                   {busy === "save" ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Save aria-hidden className="size-4" />}
-                  Save itinerary
+                  {t("builder.save")}
                 </Button>
               </div>
             </div>
@@ -235,7 +244,7 @@ export function ItineraryBuilder({ corridorId, initial, destinations, maps, canP
               </p>
             ) : !dirty && saved.route.error && saved.route.status !== "CURRENT" ? (
               <p className="border-t border-gold-deep/15 bg-gold-soft px-4 py-2 text-xs text-gold-deep" role="status">
-                Last route attempt failed: {saved.route.error}
+                {t("builder.lastAttemptFailed", { error: saved.route.error })}
               </p>
             ) : null}
           </Surface>
@@ -254,7 +263,7 @@ export function ItineraryBuilder({ corridorId, initial, destinations, maps, canP
 
       <ItineraryMapPanel
         days={days.length}
-        description="Numbered in travel order, along the real roads. Click a stop or a marker."
+        description={t("builder.mapDescription")}
         maps={maps}
         selection={selection}
         stops={mapStops}

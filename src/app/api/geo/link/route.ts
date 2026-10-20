@@ -1,10 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { isGoogleHost, isShortMapLink, pointInMapLink } from "@/features/catalog/geo";
 import { requireAdminToken } from "@/lib/api-route.server";
 
 const MAX_HOPS = 5;
-const NO_POINT =
-  "That link does not say where the place is. Open it in Google Maps, right-click (or long-press) the spot, and copy the numbers instead.";
 
 /**
  * Follows a Google Maps share link — `maps.app.goo.gl/…` — to the full map
@@ -19,7 +18,7 @@ export async function GET(request: NextRequest) {
 
   const link = request.nextUrl.searchParams.get("url")?.trim() ?? "";
   if (!isShortMapLink(link)) {
-    return NextResponse.json({ message: "Paste a Google Maps share link." }, { status: 400 });
+    return NextResponse.json({ message: (await getTranslations("errors.api"))("pasteLink") }, { status: 400 });
   }
 
   let address = new URL(link);
@@ -43,11 +42,11 @@ export async function GET(request: NextRequest) {
     }
   } catch {
     return NextResponse.json(
-      { message: "Google Maps did not answer. Copy the coordinates from the map instead." },
+      { message: (await getTranslations("errors.api"))("linkDown") },
       { status: 502 },
     );
   }
 
   const found = pointInMapLink(address.href);
-  return found ? NextResponse.json(found) : NextResponse.json({ message: NO_POINT }, { status: 422 });
+  return found ? NextResponse.json(found) : NextResponse.json({ message: (await getTranslations("errors.api"))("noPointInLink") }, { status: 422 });
 }

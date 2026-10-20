@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 interface CopyButtonProps {
@@ -13,6 +14,7 @@ interface CopyButtonProps {
 
 /** A small icon button that copies one value and says so for a moment. */
 export function CopyButton({ value, label, className }: CopyButtonProps) {
+  const t = useTranslations("common.copy");
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
 
   useEffect(() => {
@@ -30,10 +32,10 @@ export function CopyButton({ value, label, className }: CopyButtonProps) {
     }
   }
 
-  const title = state === "copied" ? "Copied" : state === "failed" ? "Could not copy" : `Copy ${label}`;
+  const title = state === "copied" ? t("copied") : state === "failed" ? t("failed") : t("copy", { label });
   return (
     <button
-      aria-label={`Copy ${label}`}
+      aria-label={t("copy", { label })}
       className={cn(
         "inline-grid size-6 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-sand-deep hover:text-ink",
         state === "copied" && "text-success hover:text-success",
@@ -49,7 +51,7 @@ export function CopyButton({ value, label, className }: CopyButtonProps) {
     >
       {state === "copied" ? <Check aria-hidden className="size-3.5" /> : <Copy aria-hidden className="size-3.5" />}
       <span aria-live="polite" className="sr-only">
-        {state === "copied" ? "Copied" : state === "failed" ? "Could not copy" : ""}
+        {state === "copied" ? t("copied") : state === "failed" ? t("failed") : ""}
       </span>
     </button>
   );

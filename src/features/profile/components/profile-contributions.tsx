@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, MessageSquareWarning, Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { getMessages, getTranslations } from "next-intl/server";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Metric, MetricStrip } from "@/components/ui/metric-strip";
@@ -9,17 +11,16 @@ import { canCreateResource, canManageResource } from "@/features/auth/permission
 import { getRecords } from "@/features/catalog/api/catalog.server";
 import type { FoodResponse, StayResponse } from "@/features/catalog/api/contracts";
 import { getDestinations } from "@/features/dashboard/api/dashboard.server";
-import { formatDateTime } from "@/features/dashboard/format";
 import {
-  DESK_LABELS,
-  REQUEST_LABELS,
   REQUEST_TONES,
   lastActivityOf,
   listingHref,
+  type PublishDesk,
 } from "@/features/publishing/api/contracts";
 import { isAuthor, listingRows } from "@/features/publishing/listings";
 import { getMyRequests } from "@/features/publishing/api/publishing.server";
 import { publishingHref } from "@/features/publishing/workflow";
+import { dateTimeOf } from "@/i18n/dates";
 
 /**
  * What this account has put into the catalogue — attractions, stays and food
@@ -35,8 +36,10 @@ export async function ProfileContributions({
 }: {
   readonly grants: readonly string[];
   readonly userId: string;
-  readonly submitsTo: string | null;
+  /** The desk that decides this account's submissions, or null when nobody else does. */
+  readonly submitsTo: PublishDesk | null;
 }) {
+  const [t, messages] = await Promise.all([getTranslations("profile"), getMessages()]);
   /* A stay or a food listing is read only by an account that writes them. */
   const writesListings = canManageResource(grants, "stays");
   const [destinations, stays, foods, requests] = await Promise.all([
@@ -58,11 +61,16 @@ export async function ProfileContributions({
   return (
     <ContributionsFrame requestsHref={requests.length ? requestsHref : null}>
       <MetricStrip className="rounded-none border-x-0 border-t-0">
-        <Metric hint="Attractions, stays and food listings you started" label="Created" value={mine.length} />
-        <Metric hint="On the public site" label="Live" tone={live.length ? "success" : "neutral"} value={live.length} />
-        <Metric hint={submitsTo ? `Waiting on ${submitsTo}` : "Awaiting a decision"} label="In review" tone={pending.length ? "warning" : "neutral"} value={pending.length} />
+        <Metric hint={t("contributions.createdHint")} label={t("contributions.created")} value={mine.length} />
+        <Metric hint={t("contributions.liveHint")} label={t("contributions.live")} tone={live.length ? "success" : "neutral"} value={live.length} />
+        <Metric
+          hint={submitsTo ? t("contributions.waitingOn", { reviewer: t(`reviewers.${submitsTo}`) }) : t("contributions.awaiting")}
+          label={t("contributions.inReview")}
+          tone={pending.length ? "warning" : "neutral"}
+          value={pending.length}
+        />
         {/* Every listing not approved yet, whether it waits in review or not. */}
-        <Metric hint="Not approved yet" label="Drafts" value={mine.filter((listing) => listing.status !== "PUBLISHED").length} />
+        <Metric hint={t("contributions.draftsHint")} label={t("contributions.drafts")} value={mine.filter((listing) => listing.status !== "PUBLISHED").length} />
       </MetricStrip>
 
       {returned.length ? (
@@ -72,14 +80,16 @@ export async function ProfileContributions({
         >
           <MessageSquareWarning aria-hidden className="size-4 shrink-0" />
           <span className="flex-1">
-            <span className="font-medium">{returned.length === 1 ? "One submission" : `${returned.length} submissions`}</span>{" "}
-            came back with changes to make.
+            {t.rich("contributions.returned", {
+              count: returned.length,
+              b: (chunks) => <span className="font-medium">{chunks}</span>,
+            })}
           </span>
           <ArrowRight aria-hidden className="size-3.5" />
         </Link>
       ) : null}
 
-      <h3 className="px-4 pt-3 pb-1 text-xs font-medium text-muted">Latest submissions</h3>
+      <h3 className="px-4 pt-3 pb-1 text-xs font-medium text-muted">{t("contributions.latest")}</h3>
       {requests.length ? (
         <ul className="divide-y divide-line">
           {requests.slice(0, 5).map((request) => (
@@ -89,25 +99,23 @@ export async function ProfileContributions({
                   {request.targetName}
                 </Link>
                 <p className="truncate text-xs text-muted">
-                  {DESK_LABELS[request.desk]} · <time dateTime={lastActivityOf(request)}>{formatDateTime(lastActivityOf(request))}</time>
+                  {t(`desks.${request.desk}`)} · <time dateTime={lastActivityOf(request)}>{dateTimeOf(lastActivityOf(request), messages.common.dates)}</time>
                 </p>
               </div>
               <Badge dot tone={REQUEST_TONES[request.status]}>
-                {REQUEST_LABELS[request.status]}
+                {t(`requestStatus.${request.status}`)}
               </Badge>
             </li>
           ))}
         </ul>
       ) : (
         <div className="px-4 pt-2 pb-5 text-center">
-          <p className="text-sm font-medium text-ink">Nothing submitted yet</p>
-          <p className="mx-auto mt-0.5 max-w-sm text-sm text-muted">
-            When you send a destination for approval, it appears here with the decision it gets.
-          </p>
+          <p className="text-sm font-medium text-ink">{t("contributions.emptyTitle")}</p>
+          <p className="mx-auto mt-0.5 max-w-sm text-sm text-muted">{t("contributions.emptyDescription")}</p>
           {canCreateResource(grants, "destinations") ? (
             <Link className={buttonVariants({ className: "mt-3", size: "sm" })} href="/destinations/new">
               <Plus aria-hidden className="size-3.5" />
-              Create a destination
+              {t("contributions.create")}
             </Link>
           ) : null}
         </div>
@@ -143,20 +151,21 @@ function ContributionsFrame({
   readonly requestsHref: string | null;
   readonly children: ReactNode;
 }) {
+  const t = useTranslations("profile.contributions");
   return (
     <Surface aria-labelledby="contributions-heading" className="overflow-hidden">
       <SurfaceHeader
         actions={
           requestsHref ? (
             <Link className="inline-flex items-center gap-1 text-xs font-medium text-teal-deep hover:underline" href={requestsHref}>
-              All requests
+              {t("allRequests")}
               <ArrowRight aria-hidden className="size-3" />
             </Link>
           ) : null
         }
-        description="What you have added to the catalogue, and where it stands."
+        description={t("description")}
         id="contributions-heading"
-        title="Your contributions"
+        title={t("title")}
       />
       {children}
     </Surface>

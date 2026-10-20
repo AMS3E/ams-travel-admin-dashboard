@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { canSetStatus } from "@/features/auth/permissions";
 import { getDestinationChoices, mapsSettings } from "@/features/corridors/api/corridors.server";
 import { loadCorridorPage } from "@/features/corridors/api/load-corridor.server";
@@ -10,22 +11,22 @@ interface ItineraryPageProps {
 }
 
 export async function generateMetadata({ params }: ItineraryPageProps): Promise<Metadata> {
-  const { itinerary } = await loadCorridorPage((await params).id);
-  return { title: `Itinerary · ${itinerary.corridor.name}` };
+  const [{ itinerary }, t] = await Promise.all([loadCorridorPage((await params).id), getTranslations("corridors")]);
+  return { title: t("itinerary.metaTitle", { name: itinerary.corridor.name }) };
 }
 
 /** Days, stops, times and transport, with the route drawn beside them. */
 export default async function CorridorItineraryPage({ params }: ItineraryPageProps) {
   const { id } = await params;
-  const [{ admin, itinerary }, destinations] = await Promise.all([loadCorridorPage(id), getDestinationChoices()]);
+  const [{ admin, itinerary }, destinations, t] = await Promise.all([loadCorridorPage(id), getDestinationChoices(), getTranslations("corridors")]);
 
   return (
     <div className="mx-auto flex max-w-[92rem] flex-col gap-5">
       <PageHeader
         backHref={`/corridors/${id}`}
         backLabel={itinerary.corridor.name}
-        description="Add days, add destinations as stops, and drag them into travelling order. Saving works the road route out for any leg that changed."
-        title="Itinerary builder"
+        description={t("itinerary.description")}
+        title={t("itinerary.title")}
       />
       <ItineraryBuilder
         canPublish={canSetStatus(admin.roles, "corridors")}

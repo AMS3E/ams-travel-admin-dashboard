@@ -4,12 +4,14 @@ import type { ImageCategory } from "@/features/catalog/image-category";
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { ImageOff, Loader2, Upload, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { IMAGE_ACCEPT, MAX_IMAGE_BYTES, imageProblem, prepareImage } from "@/features/catalog/media-upload";
+import { IMAGE_ACCEPT, MAX_IMAGE_BYTES, prepareImage } from "@/features/catalog/media-upload";
 import { mediaPath } from "@/features/catalog/resource";
+import { useUploadText } from "@/features/catalog/use-image-upload";
 import { useUploadMedia } from "@/features/media/api/media-api";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
 
 interface ImageFieldProps {
   readonly id: string;
@@ -43,6 +45,9 @@ export function ImageField({
   invalid,
   onUploadingChange,
 }: ImageFieldProps) {
+  const t = useTranslations("forms.image");
+  const text = useUploadText();
+  const errorMessage = useApiErrorMessage();
   const fileInput = useRef<HTMLInputElement>(null);
   const uploadMedia = useUploadMedia();
   const [uploading, setUploading] = useState(false);
@@ -51,7 +56,7 @@ export function ImageField({
   const preview = previewUrl || (value ? mediaPath(value) : "");
 
   async function upload(picked: File) {
-    const problem = imageProblem(picked);
+    const problem = text.problem(picked);
     if (problem) {
       setFailure(problem);
       return;
@@ -64,7 +69,7 @@ export function ImageField({
       /* A camera original is resized first, so it fits the upload limit and loads quickly. */
       const file = await prepareImage(picked);
       if (file.size > MAX_IMAGE_BYTES) {
-        setFailure(`${picked.name} is still larger than 8 MB after resizing.`);
+        setFailure(text.tooLarge(picked.name));
         return;
       }
       const body = new FormData();
@@ -76,7 +81,7 @@ export function ImageField({
       setBroken(false);
       onChange(payload.key, payload.uri || mediaPath(payload.key));
     } catch (error) {
-      setFailure(apiErrorMessage(error));
+      setFailure(errorMessage(error));
     } finally {
       setUploading(false);
       onUploadingChange?.(false);
@@ -91,14 +96,14 @@ export function ImageField({
         <Input
           aria-describedby={describedBy}
           aria-invalid={invalid}
-          className="font-mono text-xs"
+          className="font-mono text-xs placeholder:font-sans"
           id={id}
           onChange={(event) => {
             setBroken(false);
             const key = event.target.value.trim();
             onChange(key, key ? mediaPath(key) : "");
           }}
-          placeholder="Upload, or paste a media key"
+          placeholder={t("placeholder")}
           spellCheck={false}
           type="text"
           value={value}
@@ -116,19 +121,19 @@ export function ImageField({
             <Upload aria-hidden className="size-4" />
           )}
           <span className="hidden sm:inline">
-            {uploading ? "Uploading…" : "Upload"}
+            {uploading ? t("uploading") : t("upload")}
           </span>
         </Button>
 
         {value ? (
           <Button
-            aria-label="Clear image"
+            aria-label={t("clear")}
             onClick={() => {
               setBroken(false);
               onChange("", "");
             }}
             size="icon"
-            title="Clear image"
+            title={t("clear")}
             type="button"
             variant="ghost"
           >
@@ -172,7 +177,7 @@ export function ImageField({
             />
           )}
           <p className="min-w-0 flex-1 truncate font-mono text-2xs text-muted">
-            {broken ? "No image could be read at this key." : value}
+            {broken ? t("unreadable") : value}
           </p>
         </div>
       ) : null}

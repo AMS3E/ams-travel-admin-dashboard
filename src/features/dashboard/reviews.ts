@@ -1,12 +1,12 @@
-import type { ReviewResponse, ReviewStatus, ReviewTarget, ReviewVisitType } from "@/features/dashboard/api/contracts";
+import { useCallback } from "react";
+import { useMessages, useTranslations } from "next-intl";
+import type { DateWords } from "@/i18n/dates";
+import type { ReviewResponse, ReviewTarget } from "@/features/dashboard/api/contracts";
 
-/** What a review is about, as a row names it. */
-export const REVIEW_TARGET_LABELS: Readonly<Record<ReviewTarget, string>> = {
-  DESTINATION: "Destination",
-  FOOD: "Food listing",
-  STAY: "Stay",
-  CORRIDOR: "Corridor",
-};
+/*
+ * How a review's target, visit type and status read is in `stats.review`
+ * (target, visit, visible/hidden), in each language.
+ */
 
 /** The catalogue list each kind of target lives in. */
 export const REVIEW_TARGET_RESOURCES = {
@@ -16,24 +16,17 @@ export const REVIEW_TARGET_RESOURCES = {
   CORRIDOR: "corridors",
 } as const satisfies Record<ReviewTarget, string>;
 
-export const REVIEW_VISIT_LABELS: Readonly<Record<ReviewVisitType, string>> = {
-  BUSINESS: "Business",
-  COUPLES: "Couple",
-  FAMILY: "Family",
-  FRIENDS: "Friends",
-  SOLO: "Solo",
-};
-
 /** "Family visit · August 2026", or whichever half the author gave; empty when neither. */
-export function visitLine(review: Pick<ReviewResponse, "visitType" | "visitedOn">): string {
-  const who = review.visitType ? `${REVIEW_VISIT_LABELS[review.visitType]} visit` : "";
-  const when = review.visitedOn && /^\d{4}-\d{2}$/.test(review.visitedOn)
-    ? new Date(Number(review.visitedOn.slice(0, 4)), Number(review.visitedOn.slice(5, 7)) - 1, 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" })
-    : "";
-  return [who, when].filter(Boolean).join(" · ");
+export function useVisitLine(): (review: Pick<ReviewResponse, "visitType" | "visitedOn">) => string {
+  const t = useTranslations("stats.review");
+  const months = (useMessages().common.dates as DateWords).months;
+  return useCallback(
+    (review) => {
+      const who = review.visitType ? t(`visit.${review.visitType}`) : "";
+      const month = review.visitedOn && /^\d{4}-\d{2}$/.test(review.visitedOn) ? months[Number(review.visitedOn.slice(5, 7)) - 1] : undefined;
+      const when = month && review.visitedOn ? t("visitMonth", { month, year: review.visitedOn.slice(0, 4) }) : "";
+      return [who, when].filter(Boolean).join(" · ");
+    },
+    [t, months],
+  );
 }
-
-export const REVIEW_STATUS_LABELS: Readonly<Record<ReviewStatus, string>> = {
-  VISIBLE: "Visible",
-  HIDDEN: "Hidden",
-};
