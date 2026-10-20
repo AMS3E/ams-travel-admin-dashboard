@@ -42,6 +42,11 @@ If a `CLAUDE.local.md` next to this file says you are working with Kimleng, skip
 - A tourism corridor has a photo gallery (`corridor-media`, the API's `/media?ownerType=CORRIDOR`), on its detail page under the itinerary, in the same box as a destination's. Making a photo the cover sets the corridor's cover; the single cover box on the corridor form and the creator stays, and such a cover shows first in the gallery.
 - The app searches on the SERVER: `GET /api/v1/search` (+ `/suggest`, `/cards`). Nothing filters the destination feed on the phone.
 - Stays are PRICE PREVIEW only, never booking. A room has a nightly price and an optional weekend price, side by side in the room editor; weekend means Friday and Saturday nights (the API's default on the stay, not asked on any form); `GET /api/v1/stay-rooms/quote` sums the nights and the app shows ONE total for the stay, never a nightly price.
+- An interest has a picture (`coverKey`, folder `interest`), asked on its form in place of the icon picker and shown in its preview and in the place-in-group list; `iconKey` is kept for the app and no longer asked (2026-10-16, from the developer's branch).
+- A tourism region has a map picture (`mapKey`, section Media, labelled "Map picture"): ONE image for the Map panel of its page in the app, where the interactive map of its places used to be. The region detail page shows that picture and no longer draws a map. A region also has "Recommended by AMS Travel" (`amsRecommended`, a boxed checkbox): the badge on its card and page in the app, and in the detail page header.
+- Audit Logs (2026-10-16, the developer's redesign): filters by record type, action, person and record id, a drawer per event, the API's maximum fetched once and paged in the browser; clearing the log stays admin-only.
+- People → an account page has a Profile form (first and last name, e-mail, phone, photo, active) on `PUT /api/people/{id}` → API `PUT /api/v1/staff/{id}`; nobody can disable their own account.
+- Kept on purpose, do not remove: the Compact tables preference (Settings), the Technical permissions panel (Profile), the Kind and Status columns on Seasons.
 - Check-ins (stamps) and points are in scope; Apple sign-in is out; Google sign-in may come; the OTP sign-in is the Keycloak email-code authenticator the API Dockerfile builds from `src/main/keycloak`, not yet in the repo.
 
 ## Where things are
@@ -57,6 +62,14 @@ If a `CLAUDE.local.md` next to this file says you are working with Kimleng, skip
 - The browser checks (`local/ui-checks/run.sh`) live on Kimleng's machine outside this repo. Ask Kimleng to run them for anything visible.
 - Commit when asked, one commit per repo, a subject in plain words and a body that lists what changed. Never push without Kimleng's go.
 - Decisions are made by looking: take a screenshot of what you built and show it before calling a design done.
+
+## Working on `visal` (the developer's branch)
+`kimleng` is the source of truth. `visal` is the developer's working branch: cut from `kimleng` on 2026-10-16 and kept on top of it.
+- Start every session on `visal` with `git fetch origin && git rebase origin/kimleng`. Never merge `kimleng` into `visal` by hand, and never merge `visal` into `kimleng`: Kimleng does that, from a pull request.
+- A conflict is a stop sign. `git rebase --abort`, list the files, and tell Kimleng. Do not resolve it.
+- Never delete or rewrite what is not yours: `CLAUDE.md`, `.claude/`, pages, preferences and columns Kimleng built. On 2026-10-16 the Compact tables preference, the Technical permissions panel and the Kind and Status columns of Seasons went missing in a merge and had to be put back.
+- What `kimleng` deleted stays deleted, History & Heritage first of all: no heritage fields, pages, image folders or wording.
+- Push to `visal` only. When a piece is done, open a pull request from `visal` to `kimleng` that says what changed and why; Kimleng reviews and merges.
 
 ## Traps
 - The API silently drops JSON fields it does not know, so a dashboard field saved against an older API vanishes without an error.

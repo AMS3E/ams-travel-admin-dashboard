@@ -46,6 +46,7 @@ import { useDates } from "@/i18n/use-dates";
 import { cn } from "@/lib/utils";
 import { useApiErrorMessage } from "@/store/api/api-error";
 import { Pager } from "@/components/ui/pager";
+import { useAppSelector } from "@/store/hooks";
 
 interface ResourceTableProps {
   readonly definition: ResourceDefinition;
@@ -137,6 +138,7 @@ export function ResourceTable({
   });
   const [removeRecord, remove] = useDeleteRecordMutation();
   const [changeStatus, setStatus] = useSetRecordStatusMutation();
+  const compact = useAppSelector((state) => state.ui.compactTables);
   // TanStack Table 8 exposes mutable getters; keep this hook outside compiler memoization.
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
@@ -303,7 +305,7 @@ export function ResourceTable({
   const filtered = Boolean(term.trim()) || statusFilter !== "all" || mineOnly || kindFilter !== "all";
 
   return (
-    <section aria-busy={query.isFetching} className="panel min-w-0 overflow-hidden">
+    <section aria-busy={query.isFetching} className={cn("panel min-w-0 overflow-hidden", compact && "[&_td]:py-1.5")}>
       <Toolbar>
         <SearchField
           className="max-w-sm"

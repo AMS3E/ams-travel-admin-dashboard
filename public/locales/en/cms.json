@@ -114,6 +114,12 @@
     "nobody": "Nobody holds this role yet."
   },
   "settings": {
+    "preferences": {
+      "title": "Workspace preferences",
+      "description": "Preferences apply to this browser session.",
+      "compact": "Compact tables",
+      "compactHint": "Fit more catalogue rows on your screen."
+    },
     "catalogue": {
       "title": "Catalogue configuration",
       "description": "Stay and food photography, badges, the periods they are earned in, and the seasons that set those periods."

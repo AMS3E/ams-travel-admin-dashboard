@@ -42,9 +42,7 @@ const writes: Record<string, readonly RegExp[]> = {
     path("destination-verifications"),
   ],
   /*
-   * Editing a customer (PERM_USER_MANAGE), moderating one review, and
-   * replacing one destination's monarch ties — whoever may edit that
-   * destination, which the API decides.
+   * Editing a customer (PERM_USER_MANAGE) and moderating one review.
    */
   PUT: [path("users/{id}"), path("reviews/{id}")],
   /*

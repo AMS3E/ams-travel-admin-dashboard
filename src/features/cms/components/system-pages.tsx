@@ -10,6 +10,8 @@ import {
   type BusinessRole,
 } from "@/features/auth/permissions";
 import { CustomerDirectory } from "@/features/people/components/customer-directory";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { setCompactTables } from "@/store/slices/ui-slice";
 import { byName, getResource } from "@/features/catalog/resources";
 import type { ResourceKey } from "@/features/catalog/resource";
 import { localizeWith } from "@/features/catalog/localize";
@@ -145,8 +147,31 @@ export function SettingsPage() {
         .sort((a, b) => byName(a.definition.labelPlural, b.definition.labelPlural)),
     [messages],
   );
+  const dispatch = useAppDispatch();
+  const compact = useAppSelector((state) => state.ui.compactTables);
   return (
     <div className="flex max-w-3xl flex-col gap-4">
+      <Surface>
+        <SurfaceHeader description={t("preferences.description")} title={t("preferences.title")} />
+        <label className="flex cursor-pointer items-center justify-between gap-4 px-4 py-3">
+          <span>
+            <span className="block text-sm font-medium text-ink">{t("preferences.compact")}</span>
+            <span className="block text-xs text-muted">{t("preferences.compactHint")}</span>
+          </span>
+          <span className="relative inline-flex shrink-0">
+            <input
+              checked={compact}
+              className="peer sr-only"
+              onChange={(event) => dispatch(setCompactTables(event.target.checked))}
+              role="switch"
+              type="checkbox"
+            />
+            <span aria-hidden className="h-5 w-9 rounded-full bg-line-strong transition-colors peer-checked:bg-teal peer-focus-visible:ring-3 peer-focus-visible:ring-teal/25" />
+            <span aria-hidden className="absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow-xs transition-transform peer-checked:translate-x-4" />
+          </span>
+        </label>
+      </Surface>
+
       <Surface>
         <SurfaceHeader
           description={t("catalogue.description")}

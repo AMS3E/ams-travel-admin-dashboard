@@ -107,6 +107,8 @@
     "count": "{granted} of {total}",
     "withheld": "Not part of your role ({count})",
     "needOne": "Need one of these? An administrator can change your role.",
+    "technical": "Technical permissions ({count})",
+    "technicalHint": "The grants on your sign-in, as support and the API name them.",
     "items": {
       "create": {
         "label": "Create destinations",
@@ -166,7 +168,7 @@
       },
       "taxonomy": {
         "label": "Manage regions and taxonomy",
-        "detail": "Tourism regions, provinces, interests, categories and tags, and the history vocabulary: periods, monarchs, styles and religions."
+        "detail": "Tourism regions, provinces, interests, categories and tags, amenities, and the history vocabulary: periods, monarchs, styles and religions."
       },
       "reviews": {
         "label": "Moderate reviews",

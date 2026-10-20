@@ -4,7 +4,7 @@ import { useEffect, useRef, type ReactNode, type CSSProperties } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Menu, PanelLeft } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useMessages, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import type { AdminUser } from "@/features/auth/types";
 import { AccountMenu } from "@/features/shell/components/account-menu";
@@ -27,6 +27,12 @@ interface AppShellProps {
 /** Pages outside the menu that still need a title in the top bar. */
 const NAMED_PAGES = ["profile", "publishing"] as const;
 
+/** A table's plural name in the reader's language, from the registry words already loaded. */
+function tableNameOf(messages: ReturnType<typeof useMessages>, key: string): string | null {
+  const words = (messages.resources as unknown as Readonly<Record<string, { readonly labelPlural?: unknown } | undefined>> | undefined)?.[key];
+  return typeof words?.labelPlural === "string" ? words.labelPlural : null;
+}
+
 export function AppShell({ admin, children }: AppShellProps) {
   const dispatch = useAppDispatch();
   const { mobileOpen: drawerOpen, collapsed } = useAppSelector(
@@ -39,6 +45,7 @@ export function AppShell({ admin, children }: AppShellProps) {
   const rail = collapsed || tablet;
   const t = useTranslations("shell");
   const nav = useNavText();
+  const messages = useMessages();
   const pathname = usePathname();
   const currentPage = navigationForPath(pathname, account.roles);
   const routeParts = pathname.split("/").filter(Boolean);
@@ -47,6 +54,7 @@ export function AppShell({ admin, children }: AppShellProps) {
     (currentPage ? nav.label(currentPage.text) : null) ??
     /* Pages outside the menu name themselves in the reader's language. */
     (namedPage ? t(`breadcrumb.pages.${namedPage}`) : null) ??
+    (routeParts[0] ? tableNameOf(messages, routeParts[0]) : null) ??
     (routeParts[0] && routeParts[0] !== "dashboard"
       ? routeParts[0]
           .split("-")
