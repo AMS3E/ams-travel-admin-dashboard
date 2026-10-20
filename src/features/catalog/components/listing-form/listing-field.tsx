@@ -254,7 +254,7 @@ function SlugField({ field, error, pathPrefix }: { readonly field: ResourceField
             {...register(field.name)}
             aria-describedby={describedBy}
             aria-invalid={error ? true : undefined}
-            className="min-w-0 flex-1 bg-transparent px-2.5 font-mono text-sm text-ink outline-none placeholder:text-muted/70"
+            className="min-w-0 flex-1 bg-transparent px-2.5 font-mono text-sm text-ink outline-none placeholder:text-muted"
             id={id}
             placeholder={made || "made-from-the-name"}
             spellCheck={false}
@@ -518,6 +518,8 @@ export function ListingField({ field: declared, options, locked = false, pathPre
   return (
     <FieldShell className={wide ? "md:col-span-2" : undefined} count={field.maxLength ? length : undefined} error={error} field={field}>
       {({ id, describedBy }) => {
+        /* A Khmer twin says it is Khmer, for the font and the spell checker. */
+        const lang = field.khmerOf ? "km" : undefined;
         const aria = { id, "aria-describedby": describedBy, "aria-invalid": error ? true : undefined };
 
         switch (field.kind) {
@@ -525,24 +527,26 @@ export function ListingField({ field: declared, options, locked = false, pathPre
             const prompt = t("storyPrompt");
             if (field.rich) {
               return (
-                <Controller
-                  control={control}
-                  name={field.name}
-                  render={({ field: bound }) => (
-                    <RichText
-                      describedBy={describedBy}
-                      id={id}
-                      invalid={Boolean(error)}
-                      onBlur={bound.onBlur}
-                      onChange={bound.onChange}
-                      placeholder={prompt}
-                      value={typeof bound.value === "string" ? bound.value : ""}
-                    />
-                  )}
-                />
+                <div className="contents" lang={lang}>
+                  <Controller
+                    control={control}
+                    name={field.name}
+                    render={({ field: bound }) => (
+                      <RichText
+                        describedBy={describedBy}
+                        id={id}
+                        invalid={Boolean(error)}
+                        onBlur={bound.onBlur}
+                        onChange={bound.onChange}
+                        placeholder={prompt}
+                        value={typeof bound.value === "string" ? bound.value : ""}
+                      />
+                    )}
+                  />
+                </div>
               );
             }
-            return <Textarea {...aria} {...register(field.name)} placeholder={prompt} rows={7} />;
+            return <Textarea {...aria} {...register(field.name)} lang={lang} placeholder={prompt} rows={7} />;
           }
 
           case "ref":
@@ -602,6 +606,7 @@ export function ListingField({ field: declared, options, locked = false, pathPre
                 {...aria}
                 {...register(field.name)}
                 autoComplete="off"
+                lang={lang}
                 inputMode={field.name === "phone" ? "tel" : field.name === "contactEmail" ? "email" : field.name === "website" ? "url" : undefined}
                 placeholder={declared.hintFor && field.name === "name" ? undefined : placeholderOf(field.name, t)}
                 type="text"
@@ -788,7 +793,7 @@ function PriceRangeInput({
             type="button"
           >
             <span className="text-sm font-semibold tracking-wide">{option.label}</span>
-            <span className={cn("text-2xs", selected ? "text-teal-deep/80" : "text-muted")}>
+            <span className={cn("text-2xs", selected ? "text-teal-deep" : "text-muted")}>
               {option.value ? (PRICE_HINTS[option.value] ? t(`priceHints.${PRICE_HINTS[option.value]}`) : undefined) : t("notSet")}
             </span>
           </button>
@@ -861,7 +866,7 @@ function FacilitiesField({
 
       {open
         ? createPortal(
-            <div className="fixed inset-0 z-[100] overflow-y-auto bg-ink/40 p-3 sm:p-6" onClick={() => setOpen(false)}>
+            <div className="fixed inset-0 z-[100] overflow-y-auto bg-scrim p-3 sm:p-6" onClick={() => setOpen(false)}>
               <div
                 aria-labelledby="facilities-dialog-title"
                 aria-modal="true"
@@ -911,7 +916,7 @@ function PriceInput({ field, aria }: { readonly field: ResourceField; readonly a
       <input
         {...aria}
         {...register(field.name)}
-        className="min-w-0 flex-1 bg-transparent px-2.5 text-base text-ink tabular-nums outline-none placeholder:text-muted/70"
+        className="min-w-0 flex-1 bg-transparent px-2.5 text-base text-ink tabular-nums outline-none placeholder:text-muted"
         inputMode="decimal"
         min={field.min}
         placeholder="0.00"

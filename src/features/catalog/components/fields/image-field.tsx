@@ -96,7 +96,7 @@ export function ImageField({
         <Input
           aria-describedby={describedBy}
           aria-invalid={invalid}
-          className="font-mono text-xs"
+          className="font-mono text-xs placeholder:font-sans"
           id={id}
           onChange={(event) => {
             setBroken(false);

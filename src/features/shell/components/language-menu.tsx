@@ -37,6 +37,11 @@ export function LanguageMenu({ className }: { readonly className?: string }) {
   const t = useTranslations("shell.language");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  /* The language just clicked: highlighted at once, while the page is asked again in it. */
+  const [chosen, setChosen] = useState<Locale | null>(null);
+  const current = pending && chosen ? chosen : (locale as Locale);
+  /* The chosen language heads the list; the other follows it. */
+  const ordered = [current, ...LOCALES.filter((option) => option !== current)];
   const [open, setOpen] = useState(false);
   const container = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -45,7 +50,7 @@ export function LanguageMenu({ className }: { readonly className?: string }) {
 
   useEffect(() => {
     if (!open) return;
-    items.current[LOCALES.indexOf(locale)]?.focus();
+    items.current[0]?.focus();
 
     function closeOutside(event: Event) {
       if (event.target instanceof Node && !container.current?.contains(event.target)) setOpen(false);
@@ -56,8 +61,7 @@ export function LanguageMenu({ className }: { readonly className?: string }) {
       document.removeEventListener("pointerdown", closeOutside);
       document.removeEventListener("focusin", closeOutside);
     };
-    // Focus goes to the current language when the menu opens, not every time it changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Focus goes to the current language, at the top, when the menu opens.
   }, [open]);
 
   function close(returnFocus: boolean) {
@@ -67,7 +71,8 @@ export function LanguageMenu({ className }: { readonly className?: string }) {
 
   function choose(next: Locale) {
     close(true);
-    if (next === locale) return;
+    if (next === current) return;
+    setChosen(next);
     rememberLocale(next);
     startTransition(() => router.refresh());
   }
@@ -94,7 +99,7 @@ export function LanguageMenu({ className }: { readonly className?: string }) {
         aria-controls={open ? menuId : undefined}
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label={t("current", { name: LOCALE_NAMES[locale] })}
+        aria-label={t("current", { name: LOCALE_NAMES[current] })}
         className={cn("gap-1.5 px-2 text-ink-soft", open && "bg-sand-deep text-ink")}
         disabled={pending}
         onClick={() => setOpen(!open)}
@@ -109,8 +114,8 @@ export function LanguageMenu({ className }: { readonly className?: string }) {
         title={t("title")}
         variant="ghost"
       >
-        {pending ? <Loader2 aria-hidden className="size-4 animate-spin" /> : <Flag locale={locale} />}
-        <span className="text-xs font-medium">{locale === "en" ? "EN" : LOCALE_NAMES[locale]}</span>
+        {pending ? <Loader2 aria-hidden className="size-4 animate-spin" /> : <Flag locale={current} />}
+        <span className="text-xs font-medium">{current === "en" ? "EN" : LOCALE_NAMES[current]}</span>
       </Button>
 
       {open ? (
@@ -122,14 +127,15 @@ export function LanguageMenu({ className }: { readonly className?: string }) {
           role="menu"
         >
           <p className="px-2 pt-1.5 pb-1 text-2xs font-medium text-muted">{t("title")}</p>
-          {LOCALES.map((option, index) => {
-            const selected = option === locale;
+          {ordered.map((option, index) => {
+            const selected = option === current;
             return (
               <button
                 aria-checked={selected}
                 className={cn(
                   "flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
-                  selected ? "bg-teal-soft text-teal-deep" : "text-ink-soft hover:bg-sand-deep hover:text-ink",
+                  /* The chosen language sits on light gray; another is only tinted on hover. */
+                  selected ? "bg-sand-deep text-ink" : "text-ink-soft hover:bg-sand-deep/60 hover:text-ink",
                 )}
                 key={option}
                 lang={option}
@@ -146,7 +152,7 @@ export function LanguageMenu({ className }: { readonly className?: string }) {
                   <span className="block leading-tight font-medium">{LOCALE_NAMES[option]}</span>
                   {/* The name in the language being read, unless that is how it names itself. */}
                   {t(`${option}.hint`) !== LOCALE_NAMES[option] ? (
-                    <span className={cn("block text-2xs leading-tight", selected ? "text-teal-deep/80" : "text-muted")}>{t(`${option}.hint`)}</span>
+                    <span className={cn("block text-2xs leading-tight", selected ? "text-ink-soft" : "text-muted")}>{t(`${option}.hint`)}</span>
                   ) : null}
                 </span>
                 {selected ? <Check aria-hidden className="size-4 shrink-0" /> : null}

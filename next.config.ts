@@ -19,6 +19,8 @@ const nextConfig: NextConfig = {
     return [
       /* My Content is All Destinations' "Created by me" filter now. */
       { source: "/my-content", destination: "/destinations", permanent: false },
+      /* The API has no badge periods of their own any more: a season sets every badge's period. */
+      { source: "/badge-periods/:path*", destination: "/seasons", permanent: false },
       { source: "/api/v1/images/:path*", destination: "/api/v1/media/files/:path*", permanent: true },
       { source: "/api/v1/medias/:path*", destination: "/api/v1/media/files/:path*", permanent: true },
     ];

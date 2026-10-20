@@ -68,7 +68,7 @@ export function VerificationPanel({ destinationId, name, status, history }: Veri
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-sm font-semibold">{t("title")}</h2>
-          <Badge tone={verified ? "gold" : "neutral"}>
+          <Badge tone={verified ? "success" : "neutral"}>
             {verified && basis ? t("badge.verifiedBasis", { basis: t(`basis.${basis}`) }) : verified ? t("badge.verified") : t("badge.notVerified")}
           </Badge>
           {status?.travelerRecommended ? <Badge tone="success">{t("badge.travelerRecommended")}</Badge> : null}

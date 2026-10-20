@@ -10,7 +10,8 @@
       "approvedBy": "Approved by",
       "verified": "Verified",
       "provinceId": "Province",
-      "status": "Status"
+      "status": "Status",
+      "missingKhmer": "Khmer"
     },
     "status": {
       "DRAFT": {
@@ -103,6 +104,24 @@
       "longitude": {
         "label": "Longitude",
         "section": "Location"
+      },
+      "nameKm": {
+        "label": "Name in Khmer",
+        "hint": "Typed by hand, never machine-translated. The place cannot be published until it is written."
+      },
+      "sloganKm": {
+        "label": "Slogan in Khmer"
+      },
+      "sloganByKm": {
+        "label": "Said by, in Khmer"
+      },
+      "descriptionKm": {
+        "label": "About in Khmer",
+        "hint": "The full story in Khmer, written for Khmer readers rather than word for word."
+      },
+      "addressKm": {
+        "label": "Address in Khmer",
+        "section": "Location"
       }
     }
   },
@@ -155,7 +174,8 @@
       "ownerUserId": "Created by",
       "approvedBy": "Approved by",
       "type": "Type",
-      "status": "Status"
+      "status": "Status",
+      "missingKhmer": "Khmer"
     },
     "status": {
       "DRAFT": {
@@ -421,6 +441,24 @@
         "label": "Stay policies",
         "hint": "Check-in and check-out times, children, pets, smoking, how guests can pay — in your own words. Headings and lists come through.",
         "section": "House rules"
+      },
+      "nameKm": {
+        "label": "Name in Khmer",
+        "hint": "Typed by hand, never machine-translated. It cannot be published until it is written."
+      },
+      "sloganKm": {
+        "label": "Slogan in Khmer"
+      },
+      "sloganByKm": {
+        "label": "Said by, in Khmer"
+      },
+      "descriptionKm": {
+        "label": "About in Khmer",
+        "hint": "The full story in Khmer, written for Khmer readers rather than word for word."
+      },
+      "addressKm": {
+        "label": "Address in Khmer",
+        "section": "Location"
       }
     }
   },
@@ -473,7 +511,8 @@
       "approvedBy": "Approved by",
       "type": "Type",
       "isLocalSpecialty": "Speciality",
-      "status": "Status"
+      "status": "Status",
+      "missingKhmer": "Khmer"
     },
     "status": {
       "DRAFT": {
@@ -634,6 +673,24 @@
         "label": "Facebook page",
         "hint": "Where most places here post today's dishes.",
         "section": "Contact"
+      },
+      "nameKm": {
+        "label": "Name in Khmer",
+        "hint": "Typed by hand, never machine-translated. It cannot be published until it is written."
+      },
+      "sloganKm": {
+        "label": "Slogan in Khmer"
+      },
+      "sloganByKm": {
+        "label": "Said by, in Khmer"
+      },
+      "descriptionKm": {
+        "label": "About in Khmer",
+        "hint": "The full story in Khmer, written for Khmer readers rather than word for word."
+      },
+      "addressKm": {
+        "label": "Address in Khmer",
+        "section": "Location"
       }
     }
   },
@@ -1060,7 +1117,8 @@
       "code": "Code",
       "categoryIds": "Categories",
       "tagIds": "Search filters",
-      "status": "Status"
+      "status": "Status",
+      "nameKm": "Khmer"
     },
     "status": {
       "ACTIVE": {
@@ -1119,9 +1177,16 @@
         "section": "Its own lists"
       },
       "amsRecommended": {
-        "label": "Recommended by AMS Travel",
+        "label": "Recommended by AMS",
         "hint": "Shows the AMS Travel badge on its card on Explore and at the top of its page in the app.",
         "section": "Recommendation"
+      },
+      "nameKm": {
+        "label": "Name in Khmer",
+        "hint": "Typed by hand, never machine-translated. Leave it empty until it is written."
+      },
+      "descriptionKm": {
+        "label": "Overview in Khmer"
       }
     }
   },
@@ -1234,7 +1299,8 @@
       "name": "Name",
       "placeCount": "Places",
       "createdBy": "Created by",
-      "status": "Status"
+      "status": "Status",
+      "nameKm": "Khmer"
     },
     "status": {
       "ACTIVE": {
@@ -1265,6 +1331,10 @@
         "label": "Longitude",
         "hint": "Decimal degrees, east positive. Cambodia lies between 102 and 108.",
         "section": "Map"
+      },
+      "nameKm": {
+        "label": "Name in Khmer",
+        "hint": "Typed by hand, never machine-translated. Leave it empty until it is written."
       }
     }
   },
@@ -1277,7 +1347,8 @@
       "groupName": "Group",
       "sortOrder": "#",
       "createdBy": "Created by",
-      "status": "Status"
+      "status": "Status",
+      "nameKm": "Khmer"
     },
     "status": {
       "ACTIVE": {
@@ -1318,6 +1389,13 @@
         "label": "Cover picture",
         "hint": "Its picture on its shelf and at the top of its page. A clear photograph of the activity reads best.",
         "section": "Media"
+      },
+      "nameKm": {
+        "label": "Name in Khmer",
+        "hint": "Typed by hand, never machine-translated. Leave it empty until it is written."
+      },
+      "descriptionKm": {
+        "label": "Description in Khmer"
       }
     }
   },
@@ -1329,7 +1407,8 @@
       "name": "Name",
       "tourismRegionIds": "Tourism regions",
       "createdBy": "Created by",
-      "status": "Status"
+      "status": "Status",
+      "nameKm": "Khmer"
     },
     "status": {
       "ACTIVE": {
@@ -1353,6 +1432,10 @@
       "description": {
         "label": "Description",
         "hint": "Optional. A line on what belongs in it."
+      },
+      "nameKm": {
+        "label": "Name in Khmer",
+        "hint": "Typed by hand, never machine-translated. Leave it empty until it is written."
       }
     }
   },
@@ -1364,7 +1447,8 @@
       "name": "Name",
       "tourismRegionIds": "Tourism regions",
       "createdBy": "Created by",
-      "status": "Status"
+      "status": "Status",
+      "nameKm": "Khmer"
     },
     "status": {
       "ACTIVE": {
@@ -1388,6 +1472,10 @@
       "description": {
         "label": "Description",
         "hint": "Optional. A line on when it applies."
+      },
+      "nameKm": {
+        "label": "Name in Khmer",
+        "hint": "Typed by hand, never machine-translated. Leave it empty until it is written."
       }
     }
   },
@@ -1524,10 +1612,9 @@
     "columns": {
       "name": "Name",
       "code": "Code",
-      "track": "Track",
-      "tier": "Tier",
-      "criteriaType": "Earned by",
-      "criteriaValue": "Threshold",
+      "level": "Tier",
+      "type": "Earned by",
+      "threshold": "Threshold",
       "status": "Status"
     },
     "status": {
@@ -1555,19 +1642,34 @@
       "description": {
         "label": "Description"
       },
-      "criteriaType": {
+      "type": {
         "label": "Earned by",
         "section": "Criteria",
         "options": {
           "BROWSES": "Destinations browsed",
           "REVIEWS": "Reviews written",
           "DESTINATION_STAMPS": "Stamps at chosen destinations",
-          "STAMPS": "Stamps collected"
+          "STAMPS": "Stamps collected",
+          "POINTS": "Points earned"
         }
       },
-      "criteriaValue": {
+      "threshold": {
         "label": "Threshold",
         "hint": "How many it takes within one badge period.",
+        "section": "Criteria"
+      },
+      "level": {
+        "label": "Tier",
+        "section": "Criteria",
+        "options": {
+          "SILVER": "Silver",
+          "GOLDEN": "Golden",
+          "PLATINUM": "Platinum"
+        }
+      },
+      "destinationIds": {
+        "label": "Destinations",
+        "hint": "Only for stamps at chosen destinations.",
         "section": "Criteria"
       }
     }
@@ -1616,6 +1718,7 @@
     "description": "The tourist calendar: when the high and green seasons run. Saving a season updates every badge's period for it to the same name and dates; deleting one retires those periods. Two seasons on the calendar may not overlap.",
     "columns": {
       "name": "Name",
+      "type": "Kind",
       "startsOn": "Starts",
       "endsOn": "Ends"
     },
@@ -1633,11 +1736,11 @@
       "name": {
         "label": "Season name"
       },
-      "kind": {
+      "type": {
         "label": "Kind",
         "options": {
-          "GREEN": "Green season",
-          "HIGH": "High season"
+          "GREEN_SEASON": "Green season",
+          "HIGH_SEASON": "High season"
         }
       },
       "startsOn": {

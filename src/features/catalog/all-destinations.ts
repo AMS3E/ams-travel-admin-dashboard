@@ -74,6 +74,8 @@ export interface DestinationRow {
   readonly status: string | null;
   readonly statusLabel: string;
   readonly statusTone: BadgeTone;
+  /** How many Khmer fields an attraction still misses; null for a kind with no Khmer of its own yet. */
+  readonly khmerMissing: number | null;
   readonly createdAt: string | null;
   readonly createdBy: string | null;
   /** Who may send it for review: who wrote it, and the partner a stay or a food listing is listed for. */
@@ -120,6 +122,7 @@ export function toRows(
       status,
       statusLabel: option?.label ?? "—",
       statusTone: option?.tone ?? "neutral",
+      khmerMissing: Array.isArray(record.missingKhmer) ? record.missingKhmer.length : null,
       createdAt: text(record.createdAt),
       createdBy: text(record.createdBy),
       authors: [text(record.ownerUserId), text(record.createdBy)].filter((id): id is string => id !== null),

@@ -29,7 +29,8 @@
     "cannotAssignRoles": "This account cannot assign roles.",
     "fieldsNeedAttention": "Some fields need attention.",
     "alreadyInUse": "Already in use.",
-    "keycloakRejected": "Keycloak rejected this change. Check the details and try again."
+    "keycloakRejected": "Keycloak rejected this change. Check the details and try again.",
+    "editUnavailable": "Changing an account's details is not available yet: the API has no way to save them. Roles can still be changed below."
   },
   "photo": {
     "label": "Profile photo",

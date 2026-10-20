@@ -25,7 +25,9 @@ function readBody(data: unknown): Pick<ApiError, "message" | "fieldErrors" | "co
   const said = [body.message, body.detail, body.title].find(
     (value): value is string => typeof value === "string" && value.trim().length > 0,
   );
-  return { message: said ?? null, fieldErrors, code: typeof body.code === "string" ? body.code : null };
+  /* A publish refused for want of Khmer is said in the reader's words, not the API's. */
+  const khmer = Array.isArray((body as { missingKhmer?: unknown }).missingKhmer) && (body as { missingKhmer: unknown[] }).missingKhmer.length > 0;
+  return { message: said ?? null, fieldErrors, code: khmer ? "khmerMissing" : typeof body.code === "string" ? body.code : null };
 }
 
 /**
@@ -56,6 +58,8 @@ export interface ApiErrorWords {
   /** The dashboard's own route answers, by their `code`. */
   readonly rejected: string;
   readonly unreachable: string;
+  /** A publish or an approval the API refused because the Khmer is not all written. */
+  readonly khmerMissing: string;
 }
 
 const ENGLISH: ApiErrorWords = {
@@ -65,6 +69,7 @@ const ENGLISH: ApiErrorWords = {
   failed: "We could not load this content. Please try again.",
   rejected: "The request was rejected.",
   unreachable: "The catalogue API could not be reached.",
+  khmerMissing: "Its Khmer is not all written yet. Open it, switch to ខ្មែរ and fill in what is marked, then publish.",
 };
 
 /** The sentence a screen shows for a failed call; English unless given the reader's words (see `useApiErrorMessage`). */
@@ -74,7 +79,7 @@ export function apiErrorMessage(error: unknown, words: ApiErrorWords = ENGLISH):
   if (problem.status === 401) return words.sessionEnded;
   if (problem.status === 403) return words.forbidden;
   if (problem.status === 404) return words.gone;
-  if (problem.code === "rejected" || problem.code === "unreachable") return words[problem.code];
+  if (problem.code === "rejected" || problem.code === "unreachable" || problem.code === "khmerMissing") return words[problem.code];
   return problem.message ?? words.failed;
 }
 
@@ -90,6 +95,7 @@ export function useApiErrorMessage(): (error: unknown) => string {
         failed: t("failed"),
         rejected: t("rejected"),
         unreachable: t("unreachable"),
+        khmerMissing: t("khmerMissing"),
       }),
     [t],
   );

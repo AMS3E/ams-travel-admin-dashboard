@@ -95,7 +95,8 @@
     "gone": "This content is no longer available.",
     "failed": "We could not load this content. Please try again.",
     "rejected": "The request was rejected.",
-    "unreachable": "The catalogue API could not be reached."
+    "unreachable": "The catalogue API could not be reached.",
+    "khmerMissing": "Its Khmer is not all written yet. Open it, switch to ខ្មែរ and fill in what is marked, then publish."
   },
   "profileForm": {
     "nameRequired": "Display name is required.",

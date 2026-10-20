@@ -19,7 +19,11 @@
     "label": "Breadcrumb",
     "create": "Create",
     "detail": "Detail",
-    "edit": "Edit"
+    "edit": "Edit",
+    "pages": {
+      "profile": "My profile",
+      "publishing": "Publishing"
+    }
   },
   "nav": {
     "groups": {

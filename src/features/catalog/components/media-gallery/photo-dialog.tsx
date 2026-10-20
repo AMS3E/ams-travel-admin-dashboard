@@ -146,7 +146,7 @@ export function PhotoDialog({ definition, photo, index, total, canEdit, canDelet
   const uploaded = uploadedAt && !Number.isNaN(uploadedAt.valueOf()) ? fillDate(dates.date, datePartsOf(uploadedAt), dates) : null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] overflow-y-auto bg-ink/60 p-3 sm:p-6" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] overflow-y-auto bg-scrim p-3 sm:p-6" onClick={onClose}>
       <div
         aria-labelledby="photo-dialog-title"
         aria-modal="true"
@@ -156,7 +156,7 @@ export function PhotoDialog({ definition, photo, index, total, canEdit, canDelet
         role="dialog"
       >
         {/* The photo, as large as the window allows, with the way to the next one. */}
-        <div className="relative min-h-72 flex-1 bg-ink md:min-h-0">
+        <div className="relative min-h-72 flex-1 bg-black md:min-h-0">
           <Image alt={photo.caption || ""} className="object-contain" fill sizes="(min-width: 768px) 60vw, 100vw" src={photo.url} unoptimized />
           {onPrevious ? (
             <button
@@ -178,7 +178,7 @@ export function PhotoDialog({ definition, photo, index, total, canEdit, canDelet
               <ChevronRight aria-hidden className="size-5" />
             </button>
           ) : null}
-          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-ink/70 px-2.5 py-0.5 text-xs text-white tabular-nums">
+          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-2.5 py-0.5 text-xs text-white tabular-nums">
             {t("position", { index: index + 1, total })}
           </span>
         </div>
@@ -308,12 +308,11 @@ export function PhotoDialog({ definition, photo, index, total, canEdit, canDelet
                 </span>
               ) : (
                 <Button
-                  className="text-heritage hover:bg-heritage-soft hover:text-heritage"
                   disabled={busy}
                   onClick={() => setConfirming(true)}
                   size="sm"
                   type="button"
-                  variant="ghost"
+                  variant="dangerGhost"
                 >
                   <Trash2 aria-hidden className="size-3.5" />
                   {t("deletePhoto")}

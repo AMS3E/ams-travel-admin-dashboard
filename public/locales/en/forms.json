@@ -35,7 +35,8 @@
       "messaging": "Messaging apps",
       "priceRange": "Price range",
       "pay": "Ways to pay",
-      "hours": "Opening hours"
+      "hours": "Opening hours",
+      "khmer": "Khmer text"
     },
     "slogan": {
       "description": "A quote the app shows at the top of the page, with who said it if anyone did."
@@ -147,7 +148,9 @@
       "rooms": "The {noun} was saved, but {failed} of {total} rooms could not be: {errors}",
       "send": "The {noun} was saved as a draft, but it could not be sent to {reviewer}: {error}",
       "invalid": "A few details need attention before this can be saved — they are marked in red.",
-      "savedLink": "<link>Open the saved {noun}</link> to add them again."
+      "savedLink": "<link>Open the saved {noun}</link> to add them again.",
+      "khmer": "Write the Khmer before publishing: the boxes marked on the ខ្មែរ side are still empty. Save changes keeps it as it is.",
+      "khmerField": "Write this in Khmer before it is published."
     },
     "bar": {
       "saveDraft": "Save draft",
@@ -199,6 +202,11 @@
       "waiting": "Waiting for {reviewer} to review it, since {day} {month}. You can keep changing it — {theReviewer} reviews what is saved.",
       "changes": "<b>{name} asked for changes</b>. Send it back with the button at the top when it is ready.",
       "changesWithNote": "<b>{name} asked for changes</b>: “{note}”. Send it back with the button at the top when it is ready."
+    },
+    "language": {
+      "label": "Language of the text boxes",
+      "missing": "{count, plural, one {# Khmer field missing} other {# Khmer fields missing}}",
+      "complete": "Khmer complete"
     }
   },
   "field": {

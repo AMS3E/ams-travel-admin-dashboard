@@ -400,7 +400,7 @@ export function GalleryManager({
                   >
                     {!cover && canAdd ? (
                       <button
-                        className="rounded-full bg-white/95 px-2.5 py-1 text-xs font-medium text-ink shadow-sm transition-colors hover:bg-white disabled:opacity-60"
+                        className="rounded-md bg-black/65 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition-colors hover:bg-black/80 disabled:opacity-60"
                         disabled={working !== null}
                         onClick={() => void setCover(tile)}
                         title={t("makeCover")}
@@ -414,7 +414,7 @@ export function GalleryManager({
                     {!tile.saved || canDelete ? (
                       <button
                         aria-label={tile.saved ? t("deletePhoto") : t("removePhoto")}
-                        className="grid size-7 place-items-center rounded-full bg-white/95 text-ink shadow-sm transition-colors hover:bg-heritage hover:text-white disabled:opacity-60"
+                        className="grid size-8 place-items-center rounded-md bg-black/65 text-white shadow-xs transition-colors hover:bg-destructive hover:text-destructive-foreground disabled:opacity-60"
                         disabled={working !== null}
                         onClick={() => void remove(tile)}
                         title={tile.saved ? t("deletePhoto") : t("remove")}

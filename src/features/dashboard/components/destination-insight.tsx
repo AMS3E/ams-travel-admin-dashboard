@@ -180,7 +180,7 @@ export function DestinationInsight({ id, grants }: { readonly id: string; readon
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-sm font-semibold">{t("detail.verification")}</h2>
-                {row ? <Badge tone={row.verified ? "gold" : "neutral"}>{standing(row)}</Badge> : null}
+                {row ? <Badge tone={row.verified ? "success" : "neutral"}>{standing(row)}</Badge> : null}
               </div>
               <p className="mt-1 text-xs text-muted">
                 {row?.verified ? t("detail.recommended") : t("detail.notRecommended")}

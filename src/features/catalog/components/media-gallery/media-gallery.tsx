@@ -451,7 +451,7 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
                   </Button>
                 </>
               ) : (
-                <Button className="text-heritage hover:bg-heritage-soft hover:text-heritage" disabled={count === 0} onClick={() => setConfirming(true)} size="sm" type="button" variant="ghost">
+                <Button disabled={count === 0} onClick={() => setConfirming(true)} size="sm" type="button" variant="dangerGhost">
                   <Trash2 aria-hidden className="size-3.5" />
                   {count ? t("gallery.deleteCount", { count }) : t("gallery.delete")}
                 </Button>
@@ -536,7 +536,7 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
                             aria-hidden
                             className={cn(
                               "absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full border shadow-sm transition-colors",
-                              picked ? "border-teal bg-teal text-white" : "border-line-strong bg-paper/95",
+                              picked ? "border-primary bg-primary text-primary-foreground" : "border-line-strong bg-paper/95",
                             )}
                           >
                             {picked ? <Check className="size-3.5" /> : null}
@@ -580,7 +580,7 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
 
       {overPage && canAdd
         ? createPortal(
-            <div aria-hidden className="pointer-events-none fixed inset-0 z-[90] bg-ink/50 p-6" data-drop-overlay>
+            <div aria-hidden className="pointer-events-none fixed inset-0 z-[90] bg-scrim p-6" data-drop-overlay>
               <div className="flex h-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-paper/80 text-center text-paper">
                 <ImagePlus className="size-8" strokeWidth={1.5} />
                 <p className="text-lg font-semibold">

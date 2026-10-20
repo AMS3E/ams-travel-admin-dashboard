@@ -73,7 +73,7 @@ export function WorkspaceTools({ accountId, grants }: {
           <Search aria-hidden className="size-4 shrink-0" />
           <input
             aria-label={t("label")}
-            className="w-full min-w-0 bg-transparent text-sm text-ink outline-none placeholder:text-muted/80"
+            className="w-full min-w-0 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
             onChange={(event) => {
               setSearch(event.target.value);
               setOpen("search");

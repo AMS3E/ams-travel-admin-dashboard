@@ -109,7 +109,7 @@ export function SidebarNav({
               {!open && holdsCurrent ? (
                 <span aria-hidden className="size-1.5 rounded-full bg-teal" title={t("currentInGroup")} />
               ) : !open ? (
-                <span className="text-xs text-muted/80 tabular-nums opacity-0 transition-opacity group-hover/head:opacity-100">
+                <span className="text-xs text-muted tabular-nums opacity-0 transition-opacity group-hover/head:opacity-100">
                   {group.items.length}
                 </span>
               ) : null}

@@ -369,12 +369,16 @@
   th {
     font-variant-numeric: tabular-nums;
   }
-}
 
-:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  /*
+   * One focus ring for every control. In the base layer so a component's own
+   * `focus-visible:` utility still wins, and it follows each element's own
+   * corners instead of reshaping it.
+   */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }
 
 ::selection {

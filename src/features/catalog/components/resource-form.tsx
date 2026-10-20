@@ -7,7 +7,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm, useWatch, type Resolver } from "react-hook-form";
 import { Loader2, Trash2, TriangleAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { SegmentedControl } from "@/components/ui/toolbar";
+import { LOCALE_NAMES } from "@/i18n/config";
 import {
   useSaveRecordMutation,
   useDeleteRecordMutation,
@@ -26,7 +29,9 @@ import {
 } from "@/features/catalog/components/fields/field-control";
 import {
   isShown,
+  khmerTwins,
   mediaPath,
+  missingKhmer,
   resourceSchema,
   statusChoices,
   statusOption,
@@ -70,9 +75,12 @@ interface Section {
 function sectionsOf(definition: ResourceDefinition): readonly Section[] {
   const sections: Section[] = [];
 
+  const declared = new Set(definition.fields.map((field) => field.name));
   for (const field of definition.fields) {
     /* Worked out or fixed, never asked: it travels in the body as it is. */
     if (field.derived) continue;
+    /* A Khmer twin takes its English field's place when the form is switched to Khmer. */
+    if (field.khmerOf && declared.has(field.khmerOf)) continue;
     const title = field.section ?? "";
     const last = sections.at(-1);
 
@@ -100,6 +108,7 @@ export function ResourceForm({
 }: ResourceFormProps) {
   const t = useTranslations("forms.resourceForm");
   const actions = useTranslations("forms.actions");
+  const languageWords = useTranslations("forms.listing.language");
   const errorMessage = useApiErrorMessage();
   const router = useRouter();
   const [saveRecord] = useSaveRecordMutation();
@@ -126,6 +135,9 @@ export function ResourceForm({
 
   const schema = useMemo(() => resourceSchema(definition), [definition]);
   const sections = useMemo(() => sectionsOf(definition), [definition]);
+  /* The language the text boxes are written in, as on a listing's form: each Khmer twin takes its English field's place. */
+  const twins = useMemo(() => khmerTwins(definition), [definition]);
+  const [language, setLanguage] = useState<"en" | "km">("en");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as unknown as Resolver<FormValues>,
@@ -140,6 +152,16 @@ export function ResourceForm({
   const { data: rows } = useGetCatalogQuery(definition.key, { skip: !needsSiblings });
   const watched = useWatch({ control: form.control }) as FormValues;
   const options = liveOptions ?? referenceOptions;
+  const khmerMissing = twins.size ? missingKhmer(definition, watched) : [];
+
+  /** Puts the text boxes in the language the problems are in, so the field marked is on the page. */
+  function showLanguageOf(names: readonly string[]) {
+    if (!twins.size) return;
+    const khmer = names.some((name) => definition.fields.find((field) => field.name === name)?.khmerOf);
+    const english = names.some((name) => twins.has(name));
+    if (khmer && !english) setLanguage("km");
+    else if (english && !khmer) setLanguage("en");
+  }
   /** Rows in their list's order when it has one (a region's capitals), else A to Z; blank titles left out. */
   function inOrder(list: readonly CatalogRecord[]): CatalogRecord[] {
     const order = definition.orderField;
@@ -202,9 +224,9 @@ export function ResourceForm({
       group: placeField?.placeAmong ? text(placeField.placeAmong) : "",
       others: others.map((row) => ({ name: String(row[definition.titleField]).trim(), image: pictureOf(row) })),
       position: spotIndex(placeField ? watched[placeField.name] : "", others.length),
-      name: text(definition.titleField),
+      name: (language === "km" && text("nameKm")) || text(definition.titleField),
       image: pictureOf(watched),
-      description: text("description"),
+      description: language === "km" ? text("descriptionKm") : text("description"),
       editing,
     };
   }
@@ -271,8 +293,9 @@ export function ResourceForm({
     for (const [name, message] of Object.entries(result.fieldErrors ?? {})) {
       form.setError(name, { message });
     }
+    showLanguageOf(Object.keys(result.fieldErrors ?? {}));
     setBanner(result.message);
-  });
+  }, (invalid) => showLanguageOf(Object.keys(invalid)));
 
   function destroy() {
     setBanner(null);
@@ -317,6 +340,22 @@ export function ResourceForm({
         {/* An interest's preview stands beside the form; every other form is one column. */}
         <div className={definition.preview === "interest" ? "grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_17rem]" : "contents"}>
           <div className="panel divide-y divide-line">
+            {twins.size ? (
+              <div className="flex flex-wrap items-center gap-2 px-4 py-3">
+                <SegmentedControl
+                  label={languageWords("label")}
+                  onChange={setLanguage}
+                  options={[
+                    { value: "en", label: LOCALE_NAMES.en },
+                    { value: "km", label: LOCALE_NAMES.km },
+                  ]}
+                  value={language}
+                />
+                <Badge dot tone={khmerMissing.length ? "warning" : "success"}>
+                  {khmerMissing.length ? languageWords("missing", { count: khmerMissing.length }) : languageWords("complete")}
+                </Badge>
+              </div>
+            ) : null}
             {sections.map((section) => (
               <section className="px-4 py-4" key={section.title || "main"}>
                 {section.title ? (
@@ -327,18 +366,21 @@ export function ResourceForm({
                   disabled={!canEdit}
                   className="grid gap-x-4 gap-y-4 md:grid-cols-2"
                 >
-                  {section.fields.filter((field) => isShown(field, watched, options)).map((field) => (
-                    <FieldControl
-                      field={field}
-                      key={field.name}
-                      locked={editing && field.createOnly === true}
-                      options={(field.ref ? options[field.ref] : undefined) ?? []}
-                      siblings={siblingsOf(field)}
-                      places={placesOf(field)}
-                      editing={editing}
-                      spot={spotOf(field)}
-                    />
-                  ))}
+                  {section.fields
+                    .map((field) => (language === "km" ? (twins.get(field.name) ?? field) : field))
+                    .filter((field) => isShown(field, watched, options))
+                    .map((field) => (
+                      <FieldControl
+                        field={field}
+                        key={field.name}
+                        locked={editing && field.createOnly === true}
+                        options={(field.ref ? options[field.ref] : undefined) ?? []}
+                        siblings={siblingsOf(field)}
+                        places={placesOf(field)}
+                        editing={editing}
+                        spot={spotOf(field)}
+                      />
+                    ))}
                 </fieldset>
               </section>
             ))}
@@ -426,12 +468,11 @@ export function ResourceForm({
                   </div>
                 ) : (
                   <Button
-                    className="text-heritage hover:bg-heritage-soft hover:text-heritage"
                     disabled={deleting}
                     onClick={() => setConfirmingDelete(true)}
                     size="sm"
                     type="button"
-                    variant="ghost"
+                    variant="dangerGhost"
                   >
                     <Trash2 aria-hidden className="size-3.5" />
                     {actions("delete")}

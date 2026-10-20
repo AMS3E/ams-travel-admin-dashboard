@@ -56,7 +56,10 @@
     "loadFailed": "Records could not be loaded.",
     "emptyMine": "{items} you create appear here.",
     "emptyText": "{items} will appear here once they are created.",
-    "emptyTitle": "No {items} yet"
+    "emptyTitle": "No {items} yet",
+    "khmerMissing": "{count, plural, one {# Khmer field missing} other {# Khmer fields missing}}",
+    "khmerComplete": "Khmer complete",
+    "khmerNone": "No Khmer yet"
   },
   "types": {
     "destinations": {
@@ -283,7 +286,9 @@
     "inverseFailedDetail": "The {item} was saved, but its {field} could not all be updated: {detail} Open it from the list to try again — do not create it again.",
     "exists": "That {item} already exists.",
     "nameTaken": "This name is already taken.",
-    "generic": "The catalogue rejected this change. Check the fields and try again."
+    "generic": "The catalogue rejected this change. Check the fields and try again.",
+    "khmerMissing": "The {item} is saved, but not published: its Khmer is not all written. Switch to ខ្មែរ and fill in the boxes marked.",
+    "khmerRequired": "Write this in Khmer before it is published."
   },
   "options": {
     "unnamedAccount": "Unnamed account"

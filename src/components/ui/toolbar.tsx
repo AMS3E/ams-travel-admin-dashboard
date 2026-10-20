@@ -9,7 +9,14 @@ import { cn } from "@/lib/utils";
 /** Search, filters, sort and the primary action, on one line above the data. */
 export function Toolbar({ children, className }: { readonly children: ReactNode; readonly className?: string }) {
   return (
-    <div className={cn("flex flex-wrap items-center gap-2 border-b border-line px-3 py-2.5", className)}>
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-2 border-b border-line px-3 py-2.5",
+        /* On a phone the filters share each row evenly instead of keeping desktop widths. */
+        "max-sm:*:data-[slot=select]:min-w-[calc(50%-0.25rem)] max-sm:*:data-[slot=select]:flex-1 max-sm:[&>[data-slot=select]>select]:w-full",
+        className,
+      )}
+    >
       {children}
     </div>
   );
@@ -85,7 +92,7 @@ export function SegmentedControl<T extends string>({
           >
             {option.label}
             {option.count !== undefined ? (
-              <span className={cn("tabular-nums", on ? "text-muted" : "text-muted/80")}>{option.count ?? "–"}</span>
+              <span className="text-muted tabular-nums">{option.count ?? "–"}</span>
             ) : null}
           </button>
         );

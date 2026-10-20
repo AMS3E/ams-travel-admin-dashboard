@@ -104,7 +104,7 @@ export function PublishingNotifications({ grants, accountId, open, onToggle, onC
         {badge ? (
           <span
             className={`absolute -top-0.5 -right-0.5 grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] leading-none font-semibold ring-2 ring-paper ${
-              unseen.length ? "bg-destructive text-white" : "bg-sand-deep text-ink-soft"
+              unseen.length ? "bg-destructive text-destructive-foreground" : "bg-sand-deep text-ink-soft"
             }`}
           >
             {badge > 99 ? "99+" : badge}

@@ -300,27 +300,31 @@ export function FieldControl({ field, options, locked = false, siblings, places,
       required={field.required}
     >
       {(aria) => {
+        /* A Khmer twin says it is Khmer, for the font and the spell checker. */
+        const lang = field.khmerOf ? "km" : undefined;
         switch (field.kind) {
           case "textarea":
             if (field.rich) {
               return (
-                <Controller
-                  control={control}
-                  name={field.name}
-                  render={({ field: bound }) => (
-                    <RichText
-                      describedBy={aria["aria-describedby"]}
-                      id={aria.id}
-                      invalid={Boolean(aria["aria-invalid"])}
-                      onBlur={bound.onBlur}
-                      onChange={bound.onChange}
-                      value={typeof bound.value === "string" ? bound.value : ""}
-                    />
-                  )}
-                />
+                <div className="contents" lang={lang}>
+                  <Controller
+                    control={control}
+                    name={field.name}
+                    render={({ field: bound }) => (
+                      <RichText
+                        describedBy={aria["aria-describedby"]}
+                        id={aria.id}
+                        invalid={Boolean(aria["aria-invalid"])}
+                        onBlur={bound.onBlur}
+                        onChange={bound.onChange}
+                        value={typeof bound.value === "string" ? bound.value : ""}
+                      />
+                    )}
+                  />
+                </div>
               );
             }
-            return <Textarea {...aria} {...register(field.name)} />;
+            return <Textarea {...aria} {...register(field.name)} lang={lang} />;
 
           case "number":
           case "decimal":
@@ -466,7 +470,7 @@ export function FieldControl({ field, options, locked = false, siblings, places,
                 <SiblingList groups={siblings} />
               </div>
             ) : (
-              <Input {...aria} {...register(field.name)} type="text" />
+              <Input {...aria} {...register(field.name)} lang={lang} type="text" />
             );
         }
       }}

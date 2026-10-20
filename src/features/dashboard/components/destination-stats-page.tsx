@@ -26,7 +26,7 @@ const SORTS: readonly SortKey[] = ["rating", "reviews", "browses", "views", "nam
 export const STATUS_TONES = {
   PUBLISHED: "active",
   DRAFT: "neutral",
-  ARCHIVED: "inactive",
+  ARCHIVED: "neutral",
 } as const satisfies Record<string, "active" | "neutral" | "inactive">;
 
 export type ListingStatus = keyof typeof STATUS_TONES;

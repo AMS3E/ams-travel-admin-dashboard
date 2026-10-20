@@ -264,6 +264,12 @@ export interface ResourceField {
    * as Markdown, which the app draws. A plain text is Markdown already.
    */
   readonly rich?: boolean;
+  /**
+   * The Khmer twin of this English field, typed by hand: `nameKm` is
+   * `khmerOf: "name"`. A listing form shows it in the English field's place
+   * when its language switch is on Khmer; other forms show it beside it.
+   */
+  readonly khmerOf?: string;
   readonly ties?: {
     readonly path: string;
     readonly by: string;
@@ -292,9 +298,10 @@ export interface ResourceColumn {
   /**
    * How the cell reads. `approval` and `verified` are the table's own answers —
    * who approved the listing's request, and whether the place is verified on
-   * evidence — rather than anything the row itself carries.
+   * evidence — rather than anything the row itself carries. `khmer` is how far
+   * the Khmer is written: the API's `missingKhmer` list, or a Khmer name.
    */
-  readonly kind?: "text" | "number" | "boolean" | "status" | "image" | "ref" | "refs" | "enum" | "approval" | "verified";
+  readonly kind?: "text" | "number" | "boolean" | "status" | "image" | "ref" | "refs" | "enum" | "approval" | "verified" | "khmer";
   readonly ref?: ReferenceKey;
   /** For `enum` — the labels its values read as; an unset value shows as a dash. */
   readonly options?: readonly EnumOption[];
@@ -401,9 +408,12 @@ export function mediaOwnerType(key: ResourceKey): GalleryOwnerType | null {
   return MEDIA_OWNERS[key] ?? null;
 }
 
+/** Resources whose API path is not their dashboard key. */
+const API_PATHS: Partial<Record<ResourceKey, string>> = { "badge-definitions": "/badges" };
+
 export function resourcePath(key: ResourceKey): string {
   if (MEDIA_OWNERS[key]) return "/media";
-  return `/${key}`;
+  return API_PATHS[key] ?? `/${key}`;
 }
 
 /** A photo set hung off one row: the picture, whose it is, and the order shown. */
@@ -660,6 +670,23 @@ export function offeredOptions(field: ResourceField, values: FormValues): readon
   const value = values[field.name];
   const chosen = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
   return every.filter((option) => keep.includes(option.value) || chosen.includes(option.value));
+}
+
+/** Each English field that has a Khmer twin, by the English field's name. */
+export function khmerTwins(definition: ResourceDefinition): ReadonlyMap<string, ResourceField> {
+  return new Map(definition.fields.filter((field) => field.khmerOf).map((field) => [field.khmerOf!, field]));
+}
+
+/**
+ * The Khmer twins still empty while their English says something: what the
+ * API refuses to publish without (its `missingKhmer`, worked out here as the
+ * form stands).
+ */
+export function missingKhmer(definition: ResourceDefinition, values: FormValues): readonly string[] {
+  const said = (value: FieldValue | undefined) => typeof value === "string" && value.trim().length > 0;
+  return definition.fields
+    .filter((field) => field.khmerOf && said(values[field.khmerOf]) && !said(values[field.name]))
+    .map((field) => field.name);
 }
 
 /** Turns an API row into the values its form starts with. */

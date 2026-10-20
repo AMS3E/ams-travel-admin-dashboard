@@ -121,6 +121,10 @@ export async function updateAccount(id: string, values: AccountChanges): Promise
     revalidatePath(`/people/${id}`);
     return { ok: true, id };
   } catch (error) {
+    /* The API has no `PUT /staff/{id}` yet: say so rather than pass on a bare 404/405. */
+    if (error instanceof BackendApiError && (error.status === 404 || error.status === 405)) {
+      return { ok: false, message: t("editUnavailable") };
+    }
     const message = messageFrom(error, t("keycloakRejected"));
     if (error instanceof BackendApiError && error.status === 409) {
       return { ok: false, message, fieldErrors: { email: t("alreadyInUse") } };

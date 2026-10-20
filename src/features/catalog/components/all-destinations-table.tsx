@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ArrowRight, BedDouble, ChevronLeft, ChevronRight, ImageIcon, Inbox, Loader2, MapPin, Pencil, Search, Send, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { ArrowRight, BedDouble, ImageIcon, Inbox, Loader2, MapPin, Pencil, Search, Send, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -18,6 +18,7 @@ import { REQUEST_TONES, listingTypeOf } from "@/features/publishing/api/contract
 import { useSubmitPublishRequestMutation } from "@/features/publishing/api/publishing-api";
 import { editHrefOf, type ReviewMark } from "@/features/publishing/marks";
 import { useApiErrorMessage } from "@/store/api/api-error";
+import { Pager } from "@/components/ui/pager";
 
 const ICONS: Readonly<Record<DestinationTypeKey, LucideIcon>> = {
   destinations: MapPin,
@@ -183,6 +184,7 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
                       {row.statusLabel}
                     </Badge>
                     {mark ? <Badge dot tone={REQUEST_TONES[mark.status]}>{t(`marks.${mark.status}`)}</Badge> : null}
+                    {row.khmerMissing ? <Badge dot tone="warning">{t("table.khmerMissing", { count: row.khmerMissing })}</Badge> : null}
                   </span>
                 </TableCell>
                 <TableCell className="py-1.5 text-right whitespace-nowrap">
@@ -242,23 +244,7 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
         </TableBody>
       </Table>
 
-      {pages > 1 ? (
-        <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-2.5">
-          <p className="text-xs text-muted tabular-nums">
-            {t("list.pageOf", { page: at + 1, count: pages })}
-          </p>
-          <div className="flex gap-2">
-            <Button disabled={at === 0} onClick={() => setPage(at - 1)} size="sm" variant="secondary">
-              <ChevronLeft aria-hidden className="size-4" />
-              {t("list.previous")}
-            </Button>
-            <Button disabled={at >= pages - 1} onClick={() => setPage(at + 1)} size="sm" variant="secondary">
-              {t("list.next")}
-              <ChevronRight aria-hidden className="size-4" />
-            </Button>
-          </div>
-        </div>
-      ) : null}
+      {pages > 1 ? <Pager onPage={setPage} page={at} pageCount={pages} /> : null}
     </section>
   );
 }

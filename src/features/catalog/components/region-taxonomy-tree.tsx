@@ -150,7 +150,7 @@ function RegionRows({ region, open, onToggle, ...shared }: Shared & { readonly r
             {open ? <ChevronDown aria-hidden className="size-4 text-muted" /> : <ChevronRight aria-hidden className="size-4 text-muted" />}
             <span className="font-semibold text-ink">{text(region.name)}</span>
             <span className="text-xs text-muted">{t("regionCounts", { categories: categoryIds.length, tags: tagIds.length })}</span>
-            {region.isActive === false ? <Badge tone="inactive">{t("retired")}</Badge> : null}
+            {region.isActive === false ? <Badge tone="neutral">{t("retired")}</Badge> : null}
           </button>
         </TableCell>
         <TableCell className="py-3 text-right text-muted tabular-nums">{t("used", { count: used })}</TableCell>
@@ -192,7 +192,7 @@ function TermList({ kind, region, termIds, byId, regionName, usage, editable, ne
     if (!wanted) return;
     setProblem(null);
     try {
-      const result = await save({ resource: kind, values: { name: wanted, description: "", status: "ACTIVE", tourismRegionIds: [region.id] } }).unwrap();
+      const result = await save({ resource: kind, values: { name: wanted, nameKm: "", description: "", status: "ACTIVE", tourismRegionIds: [region.id] } }).unwrap();
       if (!result.ok) {
         setProblem(result.message);
         return;
@@ -277,7 +277,7 @@ function TermRow({ kind, region, row, used, regionName, editable }: { readonly k
     setProblem(null);
     try {
       /* The form's own fields, so nothing the row has is lost: its regions above all, which the save writes back. */
-      const result = await save({ resource: kind, id: row.id, values: { name: wanted, description: text(row.description), status: retired ? "INACTIVE" : "ACTIVE", tourismRegionIds: ids(row.tourismRegionIds) } }).unwrap();
+      const result = await save({ resource: kind, id: row.id, values: { name: wanted, nameKm: text(row.nameKm), description: text(row.description), status: retired ? "INACTIVE" : "ACTIVE", tourismRegionIds: ids(row.tourismRegionIds) } }).unwrap();
       if (!result.ok) {
         setProblem(result.message);
         return;
@@ -313,7 +313,7 @@ function TermRow({ kind, region, row, used, regionName, editable }: { readonly k
         ) : (
           <span className="flex flex-wrap items-center gap-2">
             <span className={cn("text-ink", retired && "text-muted line-through")}>{text(row.name)}</span>
-            {retired ? <Badge tone="inactive">{t("retired")}</Badge> : null}
+            {retired ? <Badge tone="neutral">{t("retired")}</Badge> : null}
             {elsewhere.length ? <span className="text-xs text-muted">{t("alsoIn", { list: elsewhere.join(", ") })}</span> : null}
           </span>
         )}

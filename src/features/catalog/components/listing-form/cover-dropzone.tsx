@@ -106,7 +106,6 @@ export function PhotoDropzone({ id, value, previewUrl, onChange, category, descr
               {t("replace")}
             </Button>
             <Button
-              className="text-heritage hover:bg-heritage-soft hover:text-heritage"
               disabled={uploading}
               onClick={() => {
                 setFailure(null);
@@ -114,7 +113,7 @@ export function PhotoDropzone({ id, value, previewUrl, onChange, category, descr
               }}
               size="sm"
               type="button"
-              variant="ghost"
+              variant="dangerGhost"
             >
               <Trash2 aria-hidden className="size-3.5" />
               {t("remove")}
@@ -190,7 +189,7 @@ export function PhotoDropzone({ id, value, previewUrl, onChange, category, descr
         </summary>
         <Input
           aria-label={t("mediaKey")}
-          className="mt-2 h-8 font-mono text-xs"
+          className="mt-2 h-8 font-mono text-xs placeholder:font-sans"
           onChange={(event) => {
             const key = event.target.value.trim();
             setFailure(null);

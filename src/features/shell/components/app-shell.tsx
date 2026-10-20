@@ -24,6 +24,9 @@ interface AppShellProps {
   readonly children: ReactNode;
 }
 
+/** Pages outside the menu that still need a title in the top bar. */
+const NAMED_PAGES = ["profile", "publishing"] as const;
+
 export function AppShell({ admin, children }: AppShellProps) {
   const dispatch = useAppDispatch();
   const { mobileOpen: drawerOpen, collapsed } = useAppSelector(
@@ -39,8 +42,11 @@ export function AppShell({ admin, children }: AppShellProps) {
   const pathname = usePathname();
   const currentPage = navigationForPath(pathname, account.roles);
   const routeParts = pathname.split("/").filter(Boolean);
+  const namedPage = NAMED_PAGES.find((page) => page === routeParts[0]);
   const pageTitle =
     (currentPage ? nav.label(currentPage.text) : null) ??
+    /* Pages outside the menu name themselves in the reader's language. */
+    (namedPage ? t(`breadcrumb.pages.${namedPage}`) : null) ??
     (routeParts[0] && routeParts[0] !== "dashboard"
       ? routeParts[0]
           .split("-")

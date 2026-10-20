@@ -141,7 +141,6 @@ export function EvidenceField({
               {t("replace")}
             </Button>
             <Button
-              className="text-heritage hover:bg-heritage-soft hover:text-heritage"
               disabled={uploading}
               onClick={() => {
                 setPicked(null);
@@ -151,7 +150,7 @@ export function EvidenceField({
               }}
               size="sm"
               type="button"
-              variant="ghost"
+              variant="dangerGhost"
             >
               <Trash2 aria-hidden className="size-3.5" />
               {t("remove")}

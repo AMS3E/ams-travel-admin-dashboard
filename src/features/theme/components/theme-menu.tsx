@@ -129,7 +129,7 @@ export function ThemeMenu() {
                 <OptionIcon aria-hidden className={cn("size-4 shrink-0", selected ? "text-teal" : "text-muted")} strokeWidth={1.75} />
                 <span className="min-w-0 flex-1">
                   <span className="block leading-tight font-medium">{label}</span>
-                  <span className={cn("block text-2xs leading-tight", selected ? "text-teal-deep/80" : "text-muted")}>{hint}</span>
+                  <span className={cn("block text-2xs leading-tight", selected ? "text-teal-deep" : "text-muted")}>{hint}</span>
                 </span>
                 {selected ? <Check aria-hidden className="size-4 shrink-0" /> : null}
               </button>

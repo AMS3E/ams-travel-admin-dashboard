@@ -15,11 +15,11 @@ import {
   PUBLISH_DESKS,
   type PublishDesk,
 } from "@/features/publishing/api/contracts";
-import { cn } from "@/lib/utils";
 import { byName } from "@/features/catalog/resources";
 import { useGetVerificationQueueQuery } from "../api/verification-api";
 import { decidedVerified, type VerificationQueueItem } from "../api/contracts";
 import { VerifyDrawer, type DrawerFocus } from "./verify-drawer";
+import { SegmentedControl } from "@/components/ui/toolbar";
 
 type Filter = "awaiting" | "verified" | "all";
 
@@ -29,7 +29,7 @@ const FILTERS: readonly Filter[] = ["awaiting", "verified", "all"];
 const STATUS_TONES: Readonly<Record<VerificationQueueItem["destinationStatus"], "active" | "neutral" | "inactive">> = {
   PUBLISHED: "active",
   DRAFT: "neutral",
-  ARCHIVED: "inactive",
+  ARCHIVED: "neutral",
 };
 
 /** A translator for `verification`, from `useTranslations`. */
@@ -82,27 +82,12 @@ export function VerificationQueue({ grants }: { readonly grants: readonly string
       </p>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2.5">
-        <div
-          aria-label={t("queue.filterLabel")}
-          className="inline-flex h-8 flex-wrap items-center rounded-md border border-line-strong bg-sand p-0.5"
-          role="group"
-        >
-          {FILTERS.map((option) => (
-            <button
-              aria-pressed={filter === option}
-              className={cn(
-                "inline-flex h-full items-center gap-1.5 rounded-[5px] px-2.5 text-xs font-medium transition-colors",
-                filter === option ? "bg-paper text-ink shadow-xs ring-1 ring-line" : "text-muted hover:text-ink",
-              )}
-              key={option}
-              onClick={() => setFilter(option)}
-              type="button"
-            >
-              {t(`queue.filters.${option}`)}
-              <span className="text-muted tabular-nums">{counts[option]}</span>
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label={t("queue.filterLabel")}
+          onChange={setFilter}
+          options={FILTERS.map((option) => ({ value: option, label: t(`queue.filters.${option}`), count: counts[option] }))}
+          value={filter}
+        />
 
         <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
           {/* Only worth a control when the queue spans more than one desk. */}

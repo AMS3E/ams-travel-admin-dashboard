@@ -5,7 +5,7 @@ import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { ArrowRight, ChevronLeft, ChevronRight, Eye, EyeOff, ImageIcon, Inbox, Pencil, Search, Trash2 } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, ImageIcon, Inbox, Pencil, Search, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -45,6 +45,7 @@ import { useLocalizedDefinition } from "@/features/catalog/use-resource";
 import { useDates } from "@/i18n/use-dates";
 import { cn } from "@/lib/utils";
 import { useApiErrorMessage } from "@/store/api/api-error";
+import { Pager } from "@/components/ui/pager";
 
 interface ResourceTableProps {
   readonly definition: ResourceDefinition;
@@ -198,6 +199,22 @@ export function ResourceTable({
           <span title={dateTime(approval.at)}>{approval.by}</span>
         ) : (
           <span className="text-muted">—</span>
+        );
+      }
+
+      /* How far the Khmer is written: a listing by what the API still misses, a name by itself. */
+      case "khmer": {
+        if (Array.isArray(value)) {
+          return value.length ? (
+            <Badge dot tone="warning">{t("table.khmerMissing", { count: value.length })}</Badge>
+          ) : (
+            <Badge dot tone="success">{t("table.khmerComplete")}</Badge>
+          );
+        }
+        return typeof value === "string" && value.trim() ? (
+          <span lang="km">{value}</span>
+        ) : (
+          <Badge dot tone="warning">{t("table.khmerNone")}</Badge>
         );
       }
 
@@ -585,31 +602,7 @@ export function ResourceTable({
       </Table>
 
       {totalElements > 0 ? (
-        <footer className="flex items-center justify-between gap-3 border-t border-line px-4 py-2 text-xs text-muted">
-          <span className="tabular-nums">
-            {t("list.pageOf", { page: pagination.pageIndex + 1, count: totalPages })}
-          </span>
-          <div className="flex gap-1.5">
-            <Button
-              disabled={!table.getCanPreviousPage() || query.isFetching}
-              onClick={() => table.previousPage()}
-              size="sm"
-              variant="secondary"
-            >
-              <ChevronLeft aria-hidden className="size-3.5" />
-              {t("list.previous")}
-            </Button>
-            <Button
-              disabled={!table.getCanNextPage() || query.isFetching}
-              onClick={() => table.nextPage()}
-              size="sm"
-              variant="secondary"
-            >
-              {t("list.next")}
-              <ChevronRight aria-hidden className="size-3.5" />
-            </Button>
-          </div>
-        </footer>
+        <Pager busy={query.isFetching} onPage={(page) => table.setPageIndex(page)} page={pagination.pageIndex} pageCount={totalPages} />
       ) : null}
     </section>
   );

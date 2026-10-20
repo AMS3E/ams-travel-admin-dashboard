@@ -67,7 +67,7 @@ export function VerificationHistory({ history }: VerificationHistoryProps) {
 
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone={entry.verified ? "gold" : "inactive"}>
+                    <Badge tone={entry.verified ? "success" : "danger"}>
                       {entry.verified ? t("badge.verifiedBasis", { basis: t(`basis.${entry.basis ?? "PAID"}`) }) : t("badge.revoked")}
                     </Badge>
                     {entry.reference ? (

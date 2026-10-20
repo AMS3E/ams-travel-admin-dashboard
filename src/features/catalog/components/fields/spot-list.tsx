@@ -64,7 +64,7 @@ export function SpotList({ places, value, onChange, title, iconKey, icons, image
       <span className="w-5 text-right text-xs font-semibold text-teal tabular-nums">{at + 1}</span>
       {images ? <PictureThumb className="size-5" src={image} /> : <KeyIcon aria-hidden className="size-4 shrink-0 text-teal" iconKey={iconKey} strokeWidth={1.75} />}
       <span className={cn("min-w-0 flex-1 truncate text-sm font-medium", title ? "text-ink" : "text-muted italic")}>{title || t("itsName")}</span>
-      <span className="rounded-full bg-teal px-1.5 py-px text-2xs font-semibold text-white">{editing ? t("thisOne") : t("new")}</span>
+      <span className="rounded-full bg-primary px-1.5 py-px text-2xs font-semibold text-primary-foreground">{editing ? t("thisOne") : t("new")}</span>
       <span className="flex items-center">
         <button aria-label={t("up")} className="grid size-6 place-items-center rounded text-ink-soft hover:bg-paper disabled:opacity-30" disabled={at === 0} onClick={() => move(at - 1)} type="button">
           <ChevronUp aria-hidden className="size-4" />

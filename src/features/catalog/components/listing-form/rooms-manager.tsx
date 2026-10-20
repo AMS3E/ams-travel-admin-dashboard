@@ -213,7 +213,7 @@ export function RoomsManager({
   /* The room is written in a dialog over the page, outside the listing's form: its own Enter and Escape, and room to work. */
   const dialog = editing
     ? createPortal(
-        <div className="fixed inset-0 z-[100] overflow-y-auto bg-ink/40 p-3 sm:p-6" onClick={() => setEditing(null)}>
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-scrim p-3 sm:p-6" onClick={() => setEditing(null)}>
           <div
             aria-labelledby="room-dialog-title"
             aria-modal="true"

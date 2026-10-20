@@ -126,7 +126,7 @@ export function VerifyDrawer({ destination, focus = "verify", onClose }: VerifyD
             </h2>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Badge tone={verified ? "gold" : "neutral"}>{verified ? t("badge.verified") : t("badge.notVerified")}</Badge>
+            <Badge tone={verified ? "success" : "neutral"}>{verified ? t("badge.verified") : t("badge.notVerified")}</Badge>
             <Button aria-label={t("drawer.closeButton")} onClick={onClose} size="icon-sm" type="button" variant="ghost">
               <X aria-hidden className="size-4" />
             </Button>

@@ -119,6 +119,12 @@ export interface ReadinessCheck {
   /** For a line reworded per kind of place (see FOOD_CHECK_WORDS, STAY_CHECK_WORDS). */
   readonly id?: "price" | "own" | "rooms";
   readonly required?: boolean;
+  /**
+   * The Khmer check: `fields` are the Khmer twins and these their English
+   * fields, in the same order. Met when no English field that says something
+   * is without its Khmer — what the API asks before it publishes.
+   */
+  readonly english?: readonly string[];
 }
 
 /** What a listing's words call it: a stay, or a place. */
@@ -329,7 +335,8 @@ function stepsIn(t: StepWords): Readonly<Record<ListingKey, readonly StepDraft[]
   };
 }
 
-type CheckDraft = Omit<ReadinessCheck, "label"> & { readonly label: Label };
+/** `khmer`: the Khmer check, its fields every Khmer twin the listing declares. */
+type CheckDraft = Omit<ReadinessCheck, "label"> & { readonly label: Label; readonly khmer?: true };
 
 const CHECKS: Readonly<Record<ListingKey, readonly CheckDraft[]>> = {
   destinations: [
@@ -341,6 +348,7 @@ const CHECKS: Readonly<Record<ListingKey, readonly CheckDraft[]>> = {
     { label: "pin", fields: ["latitude", "longitude"], all: true },
     { label: "categories", fields: ["categoryIds"] },
     { label: "interests", fields: ["interestIds"] },
+    { label: "khmer", fields: [], khmer: true, required: true, step: "about" },
   ],
   stays: [
     { label: "type", fields: ["interestIds"], required: true },
@@ -352,6 +360,7 @@ const CHECKS: Readonly<Record<ListingKey, readonly CheckDraft[]>> = {
     { label: "messaging", fields: ["telegram", "whatsapp", "facebookUrl"] },
     { label: "cover", fields: ["coverKey"], step: "photos" },
     { label: "facilities", fields: ["amenities"] },
+    { label: "khmer", fields: [], khmer: true, required: true, step: "about" },
   ],
   foods: [
     { label: "type", fields: ["interestIds"], required: true },
@@ -363,6 +372,7 @@ const CHECKS: Readonly<Record<ListingKey, readonly CheckDraft[]>> = {
     { label: "messaging", fields: ["telegram", "whatsapp", "facebookUrl"] },
     { label: "priceRange", fields: ["priceRange"], id: "price" },
     { label: "pay", fields: ["paymentMethods"] },
+    { label: "khmer", fields: [], khmer: true, required: true, step: "about" },
   ],
 };
 
@@ -418,6 +428,10 @@ export function listingSteps(definition: ResourceDefinition, kind?: string, t: S
       .filter((group) => group.fields.length > 0),
   }));
 
+  /* A Khmer twin is shown in its English field's place, not in a section of its own. */
+  definition.fields.forEach((field) => {
+    if (field.khmerOf && placed.has(field.khmerOf)) placed.add(field.name);
+  });
   /* A field the form works out for itself is never asked. */
   const rest = definition.fields.filter((field) => !field.derived && !placed.has(field.name)).map((field) => field.name);
   if (!rest.length) return steps;
@@ -440,13 +454,24 @@ export function readinessChecks(definition: ResourceDefinition, kind?: string, t
   /* A line about one field reads as that field does, where a field still has a label of its kind's. */
   const labelFor = (name: string) =>
     kind ? definition.fields.find((field) => field.name === name)?.labelFor?.labels[kind] : undefined;
+  const twins = definition.fields.filter((field) => field.khmerOf);
   return CHECKS[definition.key]
-    .filter((check) => check.virtual || check.fields.every((name) => declared.has(name)))
+    .map(({ khmer, ...check }) =>
+      khmer ? { ...check, fields: twins.map((field) => field.name), english: twins.map((field) => field.khmerOf!) } : check,
+    )
+    .filter((check) => check.virtual || (check.fields.length > 0 && check.fields.every((name) => declared.has(name))))
     .map((check): ReadinessCheck => {
       const own = check.fields.length === 1 && !check.virtual ? labelFor(check.fields[0]) : undefined;
       return { ...check, label: own || t(`labels.${check.label}`) };
     })
     .filter((check) => check.label !== "");
+}
+
+/** Whether these values meet a check: any of its fields filled, every one for `all`, or the Khmer beside each English. */
+export function isChecked(check: ReadinessCheck, values: Readonly<Record<string, FieldValue | undefined>>): boolean {
+  const english = check.english;
+  if (english) return check.fields.every((name, index) => !isFilled(values[english[index]]) || isFilled(values[name]));
+  return check.all ? check.fields.every((name) => isFilled(values[name])) : check.fields.some((name) => isFilled(values[name]));
 }
 
 export function stepFields(step: ListingStep): readonly string[] {

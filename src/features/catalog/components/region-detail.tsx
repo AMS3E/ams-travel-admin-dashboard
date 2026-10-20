@@ -15,7 +15,7 @@ import { byName } from "@/features/catalog/resources";
 import { QueryState } from "@/features/cms/components/query-state";
 
 /* Each status's colour; its words are catalog.region.status. */
-const STATUS_TONES = { PUBLISHED: "active", DRAFT: "neutral", ARCHIVED: "inactive" } as const;
+const STATUS_TONES = { PUBLISHED: "active", DRAFT: "neutral", ARCHIVED: "neutral" } as const;
 type KnownStatus = keyof typeof STATUS_TONES;
 const isKnownStatus = (value: string): value is KnownStatus => Object.hasOwn(STATUS_TONES, value);
 
@@ -193,7 +193,7 @@ function TermChips({ field, label, rows }: { readonly field: string; readonly la
       </p>
       <div className="mt-1.5 flex flex-wrap gap-1.5" data-field={field}>
         {rows.length ? rows.map((row) => (
-          <Badge key={row.id} tone={row.isActive === false ? "inactive" : "neutral"}>
+          <Badge className={row.isActive === false ? "line-through opacity-70" : undefined} key={row.id} tone="neutral">
             {text(row.name)}
           </Badge>
         )) : <span className="text-sm text-muted">{t("noneYet")}</span>}

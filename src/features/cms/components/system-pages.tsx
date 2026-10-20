@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { QueryState } from "./query-state";
 
 /**
- * Customers of the public site. The directory is the People feature's; this
+ * Customers of the public site. The directory is the People feature's; this 
  * only decides whether the viewer may create, edit and delete — all
  * USER_MANAGE's, which the API enforces the same way.
  */
@@ -122,8 +122,8 @@ export function RolesPage({ grants }: { readonly grants: readonly string[] }) {
 
 /**
  * The tables no sidebar lists: supporting rows an administrator still manages.
- * The last three are the gamification calendar — seasons set every badge's
- * periods, so they sit beside the badges they drive.
+ * The last two are the gamification calendar — a season sets every badge's
+ * period, so it sits beside the badges it drives.
  */
 const advanced: ResourceKey[] = [
   "stay-media",
@@ -132,7 +132,6 @@ const advanced: ResourceKey[] = [
   "food-menu-items",
   "corridor-media",
   "badge-definitions",
-  "badge-periods",
   "seasons",
 ];
 export function SettingsPage() {

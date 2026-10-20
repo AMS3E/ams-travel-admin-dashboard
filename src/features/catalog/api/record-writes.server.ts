@@ -28,7 +28,7 @@ import {
 import { getResource, isResourceKey } from "@/features/catalog/resources";
 import { BackendApiError, backendRequest } from "@/lib/backend-api.server";
 import { isUuid } from "@/lib/ids";
-import { problemFieldErrors, problemMessage } from "@/lib/problem";
+import { problemFieldErrors, problemMessage, problemMissingKhmer } from "@/lib/problem";
 
 /**
  * Creates or updates one catalogue row.
@@ -181,6 +181,12 @@ export async function saveRecord(
     return { ok: true, id: saved.id };
   } catch (error) {
     if (error instanceof BackendApiError) {
+      /* Saved, but not published: the Khmer is not all written. The form marks the Khmer boxes still empty. */
+      const khmer = khmerRefusal(error, item, t);
+      if (khmer) {
+        revalidatePath("/", "layout");
+        return khmer;
+      }
       const detail = problemMessage(error.detail);
       /*
        * The services answer a duplicate name or slug with 409 and the offending
@@ -207,6 +213,17 @@ export async function saveRecord(
     }
     return { ok: false, message: generic };
   }
+}
+
+/** A publish the API refused for want of Khmer, as the form shows it: each Khmer box still empty marked. */
+function khmerRefusal(error: BackendApiError, item: string, t: Awaited<ReturnType<typeof getTranslations<"catalog.save">>>): SaveResult | null {
+  const missing = error.status === 409 ? problemMissingKhmer(error.detail) : [];
+  if (!missing.length) return null;
+  return {
+    ok: false,
+    message: t("khmerMissing", { item }),
+    fieldErrors: Object.fromEntries(missing.map((name) => [name, t("khmerRequired")])),
+  };
 }
 
 /** A link the row's save could not carry onto other rows: which field, and what the API said. */

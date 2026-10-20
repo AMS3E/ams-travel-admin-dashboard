@@ -8,7 +8,7 @@ import {
   type ResourceField,
 } from "@/features/catalog/resource";
 import { byName } from "@/features/catalog/resources";
-import { isFilled, type ListingStep, type ReadinessCheck } from "@/features/catalog/components/listing-form/steps";
+import { isChecked, isFilled, type ListingStep, type ReadinessCheck } from "@/features/catalog/components/listing-form/steps";
 
 /**
  * A listing as its reviewer reads it: every answer its author gave, under the
@@ -150,9 +150,7 @@ export interface CheckedLine {
 export function checkedLines(checks: readonly ReadinessCheck[], values: FormValues): CheckedLine[] {
   return checks.map((check) => ({
     label: check.label,
-    done: check.all
-      ? check.fields.every((name) => isFilled(values[name]))
-      : check.fields.some((name) => isFilled(values[name])),
+    done: isChecked(check, values),
     required: Boolean(check.required),
   }));
 }

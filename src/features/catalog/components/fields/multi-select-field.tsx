@@ -195,7 +195,7 @@ export function MultiSelectField({
               <span className="min-w-0 flex-1 truncate text-ink-soft">
                 {option.label}
               </span>
-              {option.inactive ? <Badge tone="inactive">{t("retired")}</Badge> : null}
+              {option.inactive ? <Badge tone="neutral">{t("retired")}</Badge> : null}
             </label>
           </li>
         ))}

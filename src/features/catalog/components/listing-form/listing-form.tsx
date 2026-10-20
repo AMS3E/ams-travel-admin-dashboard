@@ -44,11 +44,13 @@ import { HelpIcon, ListingField } from "@/features/catalog/components/listing-fo
 import { RoomsManager, type RoomDraft } from "@/features/catalog/components/listing-form/rooms-manager";
 import type { RoomSummary } from "@/features/catalog/rooms";
 import { Badge } from "@/components/ui/badge";
+import { SegmentedControl } from "@/components/ui/toolbar";
 import { HelpStyleContext } from "@/features/catalog/components/listing-form/help-style";
 import { PhonePreview } from "@/features/catalog/components/listing-form/phone-preview";
 import { LocationMap } from "@/features/catalog/components/listing-form/location-map";
 import {
   LISTING_GALLERIES,
+  isChecked,
   isFilled,
   listingSteps,
   readinessChecks,
@@ -63,6 +65,8 @@ import { useGalleryRows, useUploadText, type UploadProgress } from "@/features/c
 import {
   galleryOf,
   isShown,
+  khmerTwins,
+  missingKhmer,
   resourceSchema,
   statusOption,
   statusValueOf,
@@ -81,6 +85,7 @@ import {
   type PublishRequestResponse,
 } from "@/features/publishing/api/contracts";
 import { useTranslations } from "next-intl";
+import { LOCALE_NAMES } from "@/i18n/config";
 import { datePartsOf } from "@/i18n/dates";
 import { useDates } from "@/i18n/use-dates";
 import { useApiErrorMessage } from "@/store/api/api-error";
@@ -257,6 +262,9 @@ export function ListingForm({
 
   const fieldsByName = useMemo(() => new Map(definition.fields.map((field) => [field.name, field])), [definition]);
   const schema = useMemo(() => resourceSchema(definition), [definition]);
+  /* The language the text boxes are written in: each Khmer twin takes its English field's place. */
+  const twins = useMemo(() => khmerTwins(definition), [definition]);
+  const [language, setLanguage] = useState<"en" | "km">("en");
 
   /** For a field that follows another — an attraction's categories follow its theme's region — the rows it names. */
   function narrowingOptions(field: ResourceField) {
@@ -295,6 +303,8 @@ export function ListingForm({
   });
   const values = useWatch({ control: form.control }) as FormValues;
   const { isSubmitting, isDirty } = form.formState;
+  /* The Khmer still to write: what the API waits on before it publishes. */
+  const khmerMissing = twins.size ? missingKhmer(definition, values) : [];
   /* What the form is written for: a food's or a stay's type, an attraction's theme. */
   const kindField = definition.key === "destinations" ? "theme" : "type";
   const kind = typeof values[kindField] === "string" && values[kindField] ? (values[kindField] as string) : undefined;
@@ -408,7 +418,18 @@ export function ListingForm({
   const open = gated ? steps.slice(0, gateAt + 1) : steps;
 
   function stepOf(names: readonly string[]): number {
-    return steps.findIndex((each) => stepFields(each).some((name) => names.includes(name)));
+    /* A Khmer twin sits where its English field does. */
+    const placed = names.map((name) => fieldsByName.get(name)?.khmerOf ?? name);
+    return steps.findIndex((each) => stepFields(each).some((name) => placed.includes(name)));
+  }
+
+  /** Puts the text boxes in the language the problems are in, so the field marked is on the page. */
+  function showLanguageOf(names: readonly string[]) {
+    if (!twins.size) return;
+    const khmer = names.some((name) => fieldsByName.get(name)?.khmerOf);
+    const english = names.some((name) => twins.has(name));
+    if (khmer && !english) setLanguage("km");
+    else if (english && !khmer) setLanguage("en");
   }
 
   /* What the checks read: the form's values, with the rooms counted beside them. */
@@ -417,7 +438,7 @@ export function ListingForm({
   /* Each check belongs to the section that holds what it asks for. */
   const checkRows: readonly CheckRow[] = checks.map((check) => ({
     ...check,
-    done: check.all ? check.fields.every((name) => isFilled(checked[name])) : check.fields.some((name) => isFilled(checked[name])),
+    done: isChecked(check, checked),
     at: Math.max(0, check.step ? steps.findIndex((each) => each.id === check.step) : stepOf(check.fields)),
   }));
 
@@ -457,6 +478,9 @@ export function ListingForm({
     };
   });
   const current = open.find((each) => each.id === inView) ?? open[0];
+  /* The preview shows the side being written: on the Khmer side, the Khmer in the English boxes' places, empty where none is written. */
+  const previewValues: FormValues =
+    language === "km" ? { ...values, ...Object.fromEntries([...twins].map(([english, twin]) => [english, values[twin.name] ?? ""])) } : values;
   /* Where it stands on the website, for the bar: what is saved, not what a button is about to make it. */
   const standing = record ? statusOption(definition, statusValueOf(definition, record)) : null;
 
@@ -520,9 +544,17 @@ export function ListingForm({
    * a pin, the rooms — and marks it for a moment so the eye finds
    * it. A field that is not on the page falls back to its section.
    */
-  function scrollToCheck(row: CheckRow) {
-    const name =
-      row.fields.includes("latitude") && row.fields.includes("longitude")
+  function scrollToCheck(row: CheckRow, switched = false) {
+    /* The Khmer check opens the Khmer side first, where its boxes are. */
+    if (row.english && language !== "km" && !switched) {
+      setLanguage("km");
+      requestAnimationFrame(() => scrollToCheck(row, true));
+      return;
+    }
+    const english = row.english;
+    const name = english
+      ? (row.fields.find((each, index) => isFilled(checked[english[index]]) && !isFilled(checked[each])) ?? row.fields[0])
+      : row.fields.includes("latitude") && row.fields.includes("longitude")
         ? "pin"
         : (row.fields.find((each) => !isFilled(checked[each])) ?? row.fields[0]);
     const section = document.getElementById(sectionDomId(steps[row.at].id));
@@ -626,12 +658,14 @@ export function ListingForm({
     for (const [name, message] of Object.entries(fieldErrors)) {
       form.setError(name, { message });
     }
+    showLanguageOf(Object.keys(fieldErrors));
     const at = stepOf(Object.keys(fieldErrors));
     if (at >= 0) scrollToSection(steps[at].id, true);
     setBanner(result.message);
   }
 
   function refuse(invalid: FieldErrors<FormValues>) {
+    showLanguageOf(Object.keys(invalid));
     /* The first section holding a problem; the status lives in the last. */
     const first = stepOf(Object.keys(invalid));
     const target = first >= 0 ? first : invalid.status ? steps.length - 1 : -1;
@@ -661,6 +695,14 @@ export function ListingForm({
    * anyone else only saves.
    */
   function saveAs(status: string | null, send: boolean | null) {
+    /* Nothing goes live while English is without its Khmer: the API refuses it, so the form says so first. */
+    if (status !== null && status === liveStatus && khmerMissing.length) {
+      setBanner(t("problems.khmer"));
+      for (const name of khmerMissing) form.setError(name, { message: t("problems.khmerField") });
+      showLanguageOf(khmerMissing);
+      scrollToSection(steps[Math.max(0, stepOf(khmerMissing))].id, true);
+      return;
+    }
     if (status !== null) form.setValue("status", status, { shouldDirty: true });
     void form.handleSubmit((submitted) => save(submitted, send), refuse)();
   }
@@ -717,6 +759,22 @@ export function ListingForm({
               <Link className={buttonVariants({ variant: "ghost", size: "sm" })} href={cancelHref ?? listHref}>
                 {actions("cancel")}
               </Link>
+              {twins.size ? (
+                <span className="flex items-center gap-2">
+                  <SegmentedControl
+                    label={t("language.label")}
+                    onChange={setLanguage}
+                    options={[
+                      { value: "en", label: LOCALE_NAMES.en },
+                      { value: "km", label: LOCALE_NAMES.km },
+                    ]}
+                    value={language}
+                  />
+                  <Badge dot tone={khmerMissing.length ? "warning" : "success"}>
+                    {khmerMissing.length ? t("language.missing", { count: khmerMissing.length }) : t("language.complete")}
+                  </Badge>
+                </span>
+              ) : null}
               {editing && isDirty ? (
                 <span className="inline-flex items-center gap-1.5 text-xs text-muted">
                   <span aria-hidden className="size-1.5 rounded-full bg-gold" />
@@ -858,11 +916,11 @@ export function ListingForm({
                     const cell = (name: string) => {
                       /* The pin is the coordinates: the map draws their two boxes itself, folded away. */
                       if (pinned && (name === "latitude" || name === "longitude")) return null;
-                      const field = fieldsByName.get(name);
+                      const field = (language === "km" ? twins.get(name) : undefined) ?? fieldsByName.get(name);
                       if (!field || !isShown(field, values, options)) return null;
                       return (
                         /* Named, so a check can scroll to its field; `contents` leaves the grid to the field itself. */
-                        <div className="contents" data-field={name} key={name}>
+                        <div className="contents" data-field={field.name} key={field.name}>
                           <ListingField
                             field={field}
                             locked={editing && field.createOnly === true}
@@ -950,7 +1008,7 @@ export function ListingForm({
                     <>
                       <div className="flex flex-col items-center gap-2 px-5 py-5 xl:hidden">
                         <p className="self-start text-xs font-medium text-muted">{t("previewTitle")}</p>
-                        <PhonePreview definition={definition} options={options} photos={photoCount} values={values} />
+                        <PhonePreview definition={definition} options={options} photos={photoCount} values={previewValues} />
                       </div>
                       {editing && canDelete ? (
                         <FormSection description={t("delete.description")} title={t("delete.title", { noun })}>
@@ -968,11 +1026,10 @@ export function ListingForm({
                               </>
                             ) : (
                               <Button
-                                className="text-heritage hover:bg-heritage-soft hover:text-heritage"
                                 onClick={() => setConfirmingDelete(true)}
                                 size="sm"
                                 type="button"
-                                variant="secondary"
+                                variant="dangerGhost"
                               >
                                 <Trash2 aria-hidden className="size-3.5" />
                                 {t("delete.button", { noun })}
@@ -1004,7 +1061,7 @@ export function ListingForm({
               inert={previewHidden}
             >
               <div className="w-[21.5rem] pb-2">
-                <PhonePreview definition={definition} options={options} photos={photoCount} values={values} />
+                <PhonePreview definition={definition} options={options} photos={photoCount} values={previewValues} />
               </div>
             </div>
           }

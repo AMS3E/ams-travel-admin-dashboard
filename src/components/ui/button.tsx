@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
  * - `secondary` — a real action that is not the main one. Outlined, neutral.
  * - `ghost` — tertiary: toolbar icons, Cancel, Back.
  * - `destructive` — deletes or revokes. Red, and never the only confirmation.
+ * - `dangerGhost` — the quiet first step of a delete: red words, no fill.
  */
 const buttonVariants = cva(
   "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
@@ -20,6 +21,7 @@ const buttonVariants = cva(
           "border border-line-strong bg-paper text-ink-soft shadow-xs hover:bg-sand hover:text-ink",
         destructive: "bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive-hover",
         ghost: "text-ink-soft hover:bg-sand-deep hover:text-ink",
+        dangerGhost: "text-heritage hover:bg-heritage-soft hover:text-heritage",
         link: "h-auto px-0 text-teal-deep underline-offset-4 hover:underline",
       },
       size: {
