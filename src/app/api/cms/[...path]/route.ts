@@ -15,6 +15,8 @@ function path(pattern: string): RegExp {
  */
 const reads = [
   path("admin/(overview|audit|destination-stats)"),
+  /* Destination Detail: one place's standing by its id, an attraction, a stay or a food place. */
+  path("admin/destination-stats/{id}"),
   /* Back-office accounts in Keycloak (`?search=` for anyone in the realm); USER_MANAGE's. */
   path("staff"),
   /* Accounts in the `users` table: customers of the public site, and staff who have signed in. */
@@ -27,6 +29,8 @@ const reads = [
    * the API scopes them to the caller's desks.
    */
   path("destination-verifications(/(queue|status))?"),
+  /* A destination's check-in codes (`?targetType=&targetId=`); the editorial desks'. */
+  path("stamps/codes"),
 ];
 const writes: Record<string, readonly RegExp[]> = {
   /*
@@ -39,6 +43,8 @@ const writes: Record<string, readonly RegExp[]> = {
     path("publish-requests"),
     path("publish-requests/{id}/(approve|reject|publish|unpublish)"),
     path("destination-verifications"),
+    /* Issuing a destination's check-in code, replacing the current one. */
+    path("stamps/codes"),
   ],
   /*
    * Editing a customer (PERM_USER_MANAGE) and moderating one review.
@@ -48,7 +54,7 @@ const writes: Record<string, readonly RegExp[]> = {
    * Deleting a customer for good (PERM_USER_MANAGE) and clearing the audit
    * log — all-or-nothing; the API demands full control.
    */
-  DELETE: [path("users/{id}"), path("admin/audit")],
+  DELETE: [path("users/{id}"), path("admin/audit"), path("stamps/codes/{id}")],
 };
 type Context = { params: Promise<{ path: string[] }> };
 async function forward(request: NextRequest, context: Context) {

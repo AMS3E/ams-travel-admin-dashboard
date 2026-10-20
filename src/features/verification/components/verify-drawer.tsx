@@ -19,6 +19,8 @@ export interface VerifiableDestination {
   readonly id: string;
   readonly name: string;
   readonly verified: boolean;
+  /** Which kind of listing it is; an attraction when left out. */
+  readonly resource?: "destinations" | "stays" | "foods";
   /** Whose writing it is, when the screen knows — the queue does. */
   readonly desk?: PublishDesk;
 }
@@ -128,7 +130,7 @@ export function VerifyDrawer({ destination, focus = "verify", onClose }: VerifyD
         </header>
 
         <div className="flex flex-col gap-4 p-4">
-          <ListingSummary desk={destination.desk} id={destination.id} />
+          <ListingSummary resource={destination.resource} desk={destination.desk} id={destination.id} />
           {/* Opened for the record, the record comes first; opened to decide, the form does. */}
           {focus === "history" && !filed ? (
             <>
@@ -148,8 +150,12 @@ export function VerifyDrawer({ destination, focus = "verify", onClose }: VerifyD
 }
 
 /** The listing as travellers see it: what the paperwork has to match. */
-function ListingSummary({ id, desk }: { readonly id: string; readonly desk?: PublishDesk }) {
-  const listing = useGetCatalogRecordQuery({ resource: "destinations", id });
+function ListingSummary({ id, desk, resource = "destinations" }: {
+  readonly id: string;
+  readonly desk?: PublishDesk;
+  readonly resource?: "destinations" | "stays" | "foods";
+}) {
+  const listing = useGetCatalogRecordQuery({ resource, id });
   const provinces = useGetCatalogQuery("provinces");
 
   if (listing.isLoading) {

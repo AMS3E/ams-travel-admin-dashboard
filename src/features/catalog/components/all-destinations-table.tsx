@@ -16,6 +16,8 @@ import { byName } from "@/features/catalog/resources";
 import { REQUEST_TONES, listingTypeOf } from "@/features/publishing/api/contracts";
 import { useSubmitPublishRequestMutation } from "@/features/publishing/api/publishing-api";
 import { MARK_LABELS, editHrefOf, type ReviewMark } from "@/features/publishing/marks";
+import { useGetVerifiedStatusesQuery } from "@/features/verification/api/verification-api";
+import { useGetReferenceOptionsQuery } from "@/features/catalog/api/catalog-api";
 import { apiErrorMessage } from "@/store/api/api-error";
 
 const ICONS: Readonly<Record<DestinationTypeKey, LucideIcon>> = {
@@ -78,6 +80,18 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
   const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
   const at = Math.min(page, pages - 1);
   const visible = shown.slice(at * PAGE_SIZE, (at + 1) * PAGE_SIZE);
+  /* Verified on evidence, for the rows on this page alone, whatever their kind. */
+  const visibleIds = visible.map((row) => row.id);
+  const verified = useGetVerifiedStatusesQuery(visibleIds, { skip: visibleIds.length === 0 });
+  const verifiedIds = new Set((verified.data ?? []).filter((status) => status.verified).map((status) => status.destinationId));
+  /* Who wrote each row, by name: the attractions table's own reference list names every account. */
+  const references = useGetReferenceOptionsQuery({ resource: "destinations", include: "columns" });
+  const userNames = useMemo(() => new Map((references.data?.users ?? []).map((option) => [option.value, option.label])), [references.data]);
+  /** The account a row is credited to: who created it, or the partner a stay or a food place is listed for. */
+  const creatorOf = (row: DestinationRow) => {
+    const id = row.createdBy ?? row.authors[0] ?? null;
+    return id ? (userNames.get(id) ?? null) : null;
+  };
   const filtered = Boolean(needle) || status !== "all" || mine;
   const reset = (change: () => void) => {
     change();
@@ -136,6 +150,8 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
           <TableRow className="hover:bg-transparent">
             <TableHeaderCell>Name</TableHeaderCell>
             <TableHeaderCell>Type</TableHeaderCell>
+            <TableHeaderCell className="hidden md:table-cell">Created by</TableHeaderCell>
+            <TableHeaderCell className="hidden md:table-cell">Verified</TableHeaderCell>
             <TableHeaderCell>Status</TableHeaderCell>
             <TableHeaderCell className="text-right">
               <span className="sr-only">Actions</span>
@@ -147,8 +163,8 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
             const Icon = ICONS[row.type];
             const mark = markOf.get(row.id);
             const editHref = editHrefOf(row.href, mark);
-            /* The name opens what matters most: the review when it waits on the viewer. */
-            const mainHref = mark?.yours ? mark.reviewHref : editHref;
+            /* The name opens the detail page when the row has one; otherwise what matters most: the review when it waits on the viewer. */
+            const mainHref = row.detailHref ?? (mark?.yours ? mark.reviewHref : editHref);
             return (
               <TableRow className="group" key={`${row.type}-${row.id}`}>
                 <TableCell className="max-w-0 min-w-56">
@@ -173,6 +189,16 @@ export function AllDestinationsTable({ rows, userId, marks = [], sendable = [] }
                     <Icon aria-hidden className="size-4 text-muted" strokeWidth={1.75} />
                     {row.typeLabel}
                   </span>
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  {creatorOf(row) ?? <span className="text-muted">—</span>}
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  {verifiedIds.has(row.id) ? (
+                    <Badge dot tone="success">Verified</Badge>
+                  ) : (
+                    <span className="text-muted">{verified.isLoading ? "…" : "Not verified"}</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <span className="flex flex-wrap items-center gap-1.5">

@@ -1044,13 +1044,11 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     titleField: "name",
     searchFields: ["name", "slug", "address", "shortDescription"],
     status: DESTINATION_PUBLICATION,
+    /* As the All Destinations table reads: the place under the name, no column of its own. */
     columns: [
-      { name: "name", label: "Name" },
-      { name: "address", label: "Address", secondary: true },
+      { name: "name", label: "Name", detail: { text: "address", ref: { field: "provinceId", resource: "provinces" } } },
       { name: "createdBy", label: "Created by", kind: "ref", ref: "users", secondary: true },
-      { name: "approvedBy", label: "Approved by", kind: "approval", secondary: true },
       { name: "verified", label: "Verified", kind: "verified", secondary: true },
-      { name: "provinceId", label: "Province", kind: "ref", ref: "provinces", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
     /*
@@ -1130,10 +1128,9 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     searchFields: ["name", "address", "shortDescription"],
     status: PUBLICATION,
     columns: [
-      { name: "name", label: "Name" },
-      { name: "address", label: "Address", secondary: true },
+      { name: "name", label: "Name", detail: { text: "address", ref: { field: "provinceId", resource: "provinces" } } },
       { name: "ownerUserId", label: "Created by", kind: "ref", ref: "users", secondary: true },
-      { name: "approvedBy", label: "Approved by", kind: "approval", secondary: true },
+      { name: "verified", label: "Verified", kind: "verified", secondary: true },
       { name: "type", label: "Type", kind: "enum", options: STAY_TYPES, secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
@@ -1245,12 +1242,10 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     searchFields: ["name", "slug", "address", "shortDescription"],
     status: PUBLICATION,
     columns: [
-      { name: "name", label: "Name" },
-      { name: "address", label: "Address", secondary: true },
+      { name: "name", label: "Name", detail: { text: "address", ref: { field: "provinceId", resource: "provinces" } } },
       { name: "createdBy", label: "Created by", kind: "ref", ref: "users", secondary: true },
-      { name: "approvedBy", label: "Approved by", kind: "approval", secondary: true },
+      { name: "verified", label: "Verified", kind: "verified", secondary: true },
       { name: "type", label: "Type", kind: "enum", options: FOOD_TYPES, secondary: true },
-      { name: "isLocalSpecialty", label: "Speciality", kind: "boolean", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
     /*
@@ -1990,6 +1985,7 @@ export function referencedResources(
   if (include !== "fields") {
     for (const column of definition.columns) {
       if (column.ref) keys.add(column.ref);
+      if (column.detail?.ref) keys.add(column.detail.ref.resource);
     }
   }
   if (include !== "columns") {

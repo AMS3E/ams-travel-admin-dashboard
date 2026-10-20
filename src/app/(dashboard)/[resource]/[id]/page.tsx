@@ -115,12 +115,12 @@ export default async function EditRecordPage(
   const title = recordTitle(record, definition.titleField, definition.label);
 
   /*
-   * A destination also shows whether it is verified — public, so anyone may
-   * read it — and, for a desk that verifies, the decisions behind it. The
-   * history answers null outside the caller's desks; the panel then shows the
-   * status alone.
+   * A destination of any kind, an attraction, a stay or a food place, also
+   * shows whether it is verified — public, so anyone may read it — and, for a
+   * desk that verifies, the decisions behind it. The history answers null
+   * outside the caller's desks; the panel then shows the status alone.
    */
-  const isDestination = resource === "destinations";
+  const isDestination = isListing(resource);
   const [verifiedStatus, verificationHistory] = isDestination
     ? await Promise.all([
         getVerifiedStatus(record.id),
@@ -142,6 +142,7 @@ export default async function EditRecordPage(
           destinationId={record.id}
           history={verificationHistory}
           name={title}
+          resource={resource}
           status={verifiedStatus}
         />
       ) : null}

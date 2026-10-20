@@ -17,7 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { byName } from "@/features/catalog/resources";
 import { useGetVerificationQueueQuery } from "../api/verification-api";
-import { BASIS_LABELS, decidedVerified, type VerificationQueueItem } from "../api/contracts";
+import { BASIS_LABELS, decidedVerified, type VerificationQueueItem, RESOURCE_OF_TARGET, TARGET_LABELS } from "../api/contracts";
 import { VerifyDrawer, type DrawerFocus } from "./verify-drawer";
 
 type Filter = "awaiting" | "verified" | "all";
@@ -98,7 +98,7 @@ export function VerificationQueue({ grants }: { readonly grants: readonly string
         (filter === "all" || (filter === "verified") === item.verified) &&
         (!needle ||
           item.destinationName.toLowerCase().includes(needle) ||
-          item.destinationSlug.toLowerCase().includes(needle)),
+          (item.destinationSlug ?? "").toLowerCase().includes(needle)),
     )
     .toSorted((a, b) => Number(a.verified) - Number(b.verified) || byName(a.destinationName, b.destinationName));
   /* Looked up each render, so the drawer follows the row once a decision lands. */
@@ -194,7 +194,7 @@ export function VerificationQueue({ grants }: { readonly grants: readonly string
 
       {open && current ? (
         <VerifyDrawer
-          destination={{ id: current.destinationId, name: current.destinationName, verified: decidedVerified(current), desk: current.desk }}
+          destination={{ id: current.destinationId, name: current.destinationName, verified: decidedVerified(current), desk: current.desk, resource: RESOURCE_OF_TARGET[current.targetType] }}
           focus={open.focus}
           key={`${open.id}-${open.focus}`}
           onClose={() => setOpen(null)}
@@ -260,7 +260,7 @@ function QueueRow({
       <div className="min-w-0 flex-1">
         <Link
           className="text-sm font-medium text-ink hover:text-teal-deep hover:underline"
-          href={`/destinations/${item.destinationId}`}
+          href={`/${RESOURCE_OF_TARGET[item.targetType]}/${item.destinationId}`}
         >
           {item.destinationName}
         </Link>
@@ -272,6 +272,7 @@ function QueueRow({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        <Badge tone="neutral">{TARGET_LABELS[item.targetType]}</Badge>
         <Badge>{WRITTEN_BY[item.desk]}</Badge>
         <Badge dot tone={status?.tone ?? "neutral"}>{status?.label ?? item.destinationStatus}</Badge>
         {item.travelerRecommended ? <Badge tone="success">Recommended by Traveler</Badge> : null}

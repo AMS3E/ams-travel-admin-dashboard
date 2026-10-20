@@ -158,7 +158,7 @@ export function DestinationStatsPage() {
                   return (
                     <TableRow data-destination-id={row.id} key={row.id}>
                       <TableCell>
-                        <Link className="font-medium text-ink hover:text-teal-deep hover:underline" href={`/destination-stats/${row.id}`}>
+                        <Link className="font-medium text-ink hover:text-teal-deep hover:underline" href={`/destinations/${row.id}/detail?from=stats`}>
                           {row.name}
                         </Link>
                         <p className="truncate text-xs text-muted">{(row.provinceId && provinceName.get(row.provinceId)) || row.slug}</p>

@@ -300,6 +300,15 @@ export interface ResourceColumn {
   readonly options?: readonly EnumOption[];
   /** Hidden below `md`, so a phone shows only what identifies the row. */
   readonly secondary?: boolean;
+  /**
+   * A small line under the value, as the All Destinations table puts a
+   * place under a name: the `text` field when it is set, else the row the
+   * `ref` field points at, read as its name.
+   */
+  readonly detail?: {
+    readonly text?: string;
+    readonly ref?: { readonly field: string; readonly resource: ReferenceKey };
+  };
 }
 
 export interface StatusOption {

@@ -7,6 +7,8 @@ import { VerifyButton } from "./verify-button";
 interface VerificationPanelProps {
   readonly destinationId: string;
   readonly name: string;
+  /** Which kind of listing; an attraction when left out. */
+  readonly resource?: "destinations" | "stays" | "foods";
   /** The public status; null when the API could not say. */
   readonly status: VerifiedStatusResponse | null;
   /** The decisions, newest first; null for an account whose desk may not verify this destination. */
@@ -21,7 +23,7 @@ interface VerificationPanelProps {
  * for a desk allowed to decide it, opens that drawer in place. Everyone else
  * sees the status alone.
  */
-export function VerificationPanel({ destinationId, name, status, history }: VerificationPanelProps) {
+export function VerificationPanel({ destinationId, name, resource = "destinations", status, history }: VerificationPanelProps) {
   if (!status && !history) return null;
 
   const verified = status?.verified ?? history?.[0]?.verified ?? false;
@@ -67,7 +69,7 @@ export function VerificationPanel({ destinationId, name, status, history }: Veri
         </div>
         <p className="mt-1 text-xs text-muted">{detail}</p>
       </div>
-      {history ? <VerifyButton destination={{ id: destinationId, name, verified: decidedVerified({ verified, basis }) }} /> : null}
+      {history ? <VerifyButton destination={{ id: destinationId, name, verified: decidedVerified({ verified, basis }), resource }} /> : null}
     </section>
   );
 }

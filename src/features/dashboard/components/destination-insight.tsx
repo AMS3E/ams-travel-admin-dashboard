@@ -16,8 +16,9 @@ import { BASIS_LABELS } from "@/features/verification/api/contracts";
 import { useGetDestinationVerificationsQuery } from "@/features/verification/api/verification-api";
 import { VerificationHistory } from "@/features/verification/components/verification-history";
 import { VerifyButton } from "@/features/verification/components/verify-button";
-import type { DestinationStatsPeriod } from "../api/contracts";
-import { useGetDestinationStatsQuery } from "../api/dashboard-api";
+import type { DestinationStatsPeriod, StampTarget } from "../api/contracts";
+import { CheckInCode } from "./check-in-code";
+import { useGetPlaceStatsQuery } from "../api/dashboard-api";
 import { cambodianDay, formatDateTime } from "../format";
 import { PeriodControl, inWindow, periodDates, windowOf, type Period } from "./period-control";
 import { StatGrid, StatTile } from "./stat-tile";
@@ -30,22 +31,32 @@ const STATUS: Readonly<Record<string, { label: string; tone: "active" | "neutral
 
 const count = (value: number) => value.toLocaleString();
 
+/** The kinds of listing the page reads: the catalogue resource, and how the API files its reviews and browses. */
+export type PlaceResource = "destinations" | "stays" | "foods";
+const TARGET: Readonly<Record<PlaceResource, StampTarget>> = { destinations: "DESTINATION", stays: "STAY", foods: "FOOD" };
+
 /**
- * One destination's insight: the listing as it stands, what travellers made
- * of it over a period, every review, and the Verified badge with its
- * history. Read-only but for moderating a review and filing a verification,
- * which open their own controls; editing the listing is the form's job.
+ * One place's insight, an attraction, a stay or a food place: the listing as
+ * it stands, what travellers made of it over a period, every review, its
+ * check-in code, and the Verified badge with its history. Read-only but for
+ * moderating a review and filing a verification, which open their own
+ * controls; editing the listing is the form's job.
  */
-export function DestinationInsight({ id, grants }: { readonly id: string; readonly grants: readonly string[] }) {
+export function DestinationInsight({ id, grants, resource = "destinations" }: {
+  readonly id: string;
+  readonly grants: readonly string[];
+  readonly resource?: PlaceResource;
+}) {
   const [period, setPeriod] = useState<Period>("all");
   const [custom, setCustom] = useState<DestinationStatsPeriod>({});
   const window = windowOf(period, custom);
   const dates = periodDates(window);
-  const record = useGetCatalogRecordQuery({ resource: "destinations", id });
+  const record = useGetCatalogRecordQuery({ resource, id });
   const provinces = useGetCatalogQuery("provinces");
-  const stats = useGetDestinationStatsQuery(window);
-  const reviews = useGetDestinationReviewsQuery(id);
+  const stats = useGetPlaceStatsQuery({ id, ...window });
+  const reviews = useGetDestinationReviewsQuery({ targetType: TARGET[resource], targetId: id });
   const verifies = hasPermission(grants, "PERM_VERIFIED_BADGE_SET") || hasPermission(grants, "PERM_FULL_CONTROL");
+  const manages = hasPermission(grants, "PERM_DESTINATION_EDIT_ANY");
   const history = useGetDestinationVerificationsQuery(id, { skip: !verifies });
   const moderator = hasPermission(grants, "PERM_REVIEW_MODERATE");
   const [moderate, moderation] = useModerateReviewMutation();
@@ -55,7 +66,7 @@ export function DestinationInsight({ id, grants }: { readonly id: string; readon
   const province = provinces.data?.find((row) => row.id === place?.provinceId);
   const provinceName = province && typeof province.name === "string" ? province.name : null;
   const status = STATUS[String(place?.status)];
-  const row = stats.data?.places.find((each) => each.id === id);
+  const row = stats.data?.place;
   const shown = (reviews.data ?? []).filter((review) => inWindow(review.createdAt, window, cambodianDay));
 
   return (
@@ -75,7 +86,9 @@ export function DestinationInsight({ id, grants }: { readonly id: string; readon
             <>
               <p className="flex items-center gap-1 text-sm text-ink-soft">
                 <MapPin aria-hidden className="size-3.5 shrink-0 text-muted" />
-                {[text("address"), provinceName].filter(Boolean).join(", ") || "No address on the listing yet."}
+                {[text("address"), provinceName && !text("address")?.toLowerCase().includes(provinceName.toLowerCase()) ? provinceName : null]
+                  .filter(Boolean)
+                  .join(", ") || "No address on the listing yet."}
               </p>
               {text("slogan") ? <p className="mt-0.5 text-sm text-muted italic">“{text("slogan")}”</p> : null}
               <div className="mt-2 flex flex-wrap items-center gap-2" data-field="standing">
@@ -177,8 +190,9 @@ export function DestinationInsight({ id, grants }: { readonly id: string; readon
           ) : null}
         </Surface>
 
-        {/* The Verified badge: where it stands, and every decision behind it. */}
+        {/* The code posted on site for check-ins; then the Verified badge, where it stands and every decision behind it. */}
         <div className="flex flex-col gap-4">
+          <CheckInCode manages={manages} name={text("name") ?? ""} targetId={id} targetType={TARGET[resource]} />
           <Surface aria-label="Verification" className="flex flex-wrap items-center gap-3 p-4">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -195,7 +209,7 @@ export function DestinationInsight({ id, grants }: { readonly id: string; readon
               </p>
             </div>
             {verifies && place ? (
-              <VerifyButton destination={{ id, name: text("name") ?? "", verified: Boolean(row?.verified && row.basis !== "TRAVELER_SCORE") }} />
+              <VerifyButton destination={{ id, name: text("name") ?? "", verified: Boolean(row?.verified && row.basis !== "TRAVELER_SCORE"), resource }} />
             ) : null}
           </Surface>
           {verifies && history.data ? <VerificationHistory history={history.data} /> : null}

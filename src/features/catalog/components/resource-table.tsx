@@ -79,6 +79,12 @@ interface ResourceTableProps {
   readonly approvals?: readonly ApprovalMark[];
   /** Whether the rows can be verified on evidence: an attraction can, a stay cannot. */
   readonly verifiable?: boolean;
+  /**
+   * A read-only page per row, with `{id}` standing for the row's id: the name
+   * and the picture open it and the pencil keeps the form. Without it the name
+   * opens the form, or the review when one waits on the viewer.
+   */
+  readonly detailHref?: string;
 }
 
 export function ResourceTable({
@@ -94,6 +100,7 @@ export function ResourceTable({
   marks,
   approvals,
   verifiable = false,
+  detailHref,
 }: ResourceTableProps) {
   const status = definition.status;
   const markOf = useMemo(() => new Map((marks ?? []).map((mark) => [mark.listingId, mark])), [marks]);
@@ -181,6 +188,16 @@ export function ResourceTable({
   );
 
   const failure = remove.error ?? setStatus.error ?? query.error;
+
+  /** The line under a value: the text field when set, else the referenced row's name. */
+  function detailOf(record: CatalogRecord, column: ResourceColumn): string | null {
+    if (!column.detail) return null;
+    const text = column.detail.text ? record[column.detail.text] : null;
+    if (typeof text === "string" && text.trim()) return text.trim();
+    const ref = column.detail.ref;
+    const name = ref ? labels.get(ref.resource)?.get(String(record[ref.field])) : undefined;
+    return name ?? null;
+  }
 
   function renderCell(record: CatalogRecord, column: ResourceColumn) {
     const value = record[column.name];
@@ -415,6 +432,7 @@ export function ResourceTable({
                 canDeleteRecord(grants, definition.key, record, userId));
             const mark = markOf.get(record.id);
             const editHref = editHrefOf(`/${definition.key}/${record.id}`, mark);
+            const openHref = detailHref ? detailHref.replace("{id}", record.id) : mark?.yours ? mark.reviewHref : editHref;
             const cover = typeof record.coverUrl === "string" && record.coverUrl
               ? record.coverUrl
               : typeof record.coverKey === "string" && record.coverKey ? mediaPath(record.coverKey) : null;
@@ -432,7 +450,7 @@ export function ResourceTable({
                     {index === 0 ? (
                       <span className="flex items-center gap-3">
                         {thumbs ? (
-                          <Link aria-hidden className="relative hidden h-9 w-12 shrink-0 overflow-hidden rounded border border-line bg-sand-deep sm:block" href={mark?.yours ? mark.reviewHref : editHref} tabIndex={-1}>
+                          <Link aria-hidden className="relative hidden h-9 w-12 shrink-0 overflow-hidden rounded border border-line bg-sand-deep sm:block" href={openHref} tabIndex={-1}>
                             {cover ? (
                               <Image alt="" className="object-cover" fill sizes="48px" src={cover} unoptimized />
                             ) : (
@@ -443,10 +461,13 @@ export function ResourceTable({
                         <span className="min-w-0">
                           <Link
                             className="hover:text-teal-deep hover:underline"
-                            href={mark?.yours ? mark.reviewHref : editHref}
+                            href={openHref}
                           >
                             {renderCell(record, column)}
                           </Link>
+                          {detailOf(record, column) ? (
+                            <span className="block truncate text-xs font-normal text-muted">{detailOf(record, column)}</span>
+                          ) : null}
                           {mark ? (
                             <Badge className="ml-2 align-middle" dot tone={REQUEST_TONES[mark.status]}>{MARK_LABELS[mark.status]}</Badge>
                           ) : null}

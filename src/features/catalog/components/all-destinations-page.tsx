@@ -57,6 +57,8 @@ export async function AllDestinationsPage({ roles, tab }: { readonly roles: read
   ]);
   const marks = reviewMarks([...queue, ...mine], roles, userId);
   const approvals = approvalMarks([...queue, ...mine]);
+  /* Destination Detail reads the stats, so only who may read those opens it from a name. */
+  const insight = hasPermission(roles, "PERM_DESTINATION_EDIT_ANY");
   const provinceNames = new Map(
     provinces.status === "fulfilled" ? provinces.value.map((row) => [row.id, String(row.name ?? "")]) : [],
   );
@@ -66,7 +68,7 @@ export async function AllDestinationsPage({ roles, tab }: { readonly roles: read
       if (list.status !== "fulfilled") return [];
       /* A partner's stays and foods are theirs alone. */
       const records = seesOwnListingsOnly(roles, type.key) ? list.value.filter((row) => row.ownerUserId === userId) : list.value;
-      return [[type.key, toRows(type.key, records, provinceNames)] as const];
+      return [[type.key, toRows(type.key, records, provinceNames, insight)] as const];
     }),
   );
   const rows = allRows([...rowsByType.values()]);
@@ -156,6 +158,8 @@ function TypeTable({ roles, type, userId, marks, approvals }: {
 }) {
   const attractions = type.key === "destinations";
   const scoped = seesOwnRowsOnly(roles, type.key);
+  /* A name opens Destination Detail for who may read the stats; the pencil keeps the form. */
+  const detailHref = hasPermission(roles, "PERM_DESTINATION_EDIT_ANY") ? `/${type.key}/{id}/detail?from=${type.tab}` : undefined;
   /* A reviewer's workspace is neither everything nor their own — say which. */
   const reviewing = attractions && !hasPermission(roles, "PERM_DESTINATION_EDIT_ANY") && hasPermission(roles, "PERM_PARTNER_LISTING_EDIT");
   return (
@@ -165,12 +169,13 @@ function TypeTable({ roles, type, userId, marks, approvals }: {
         canDelete={canDeleteResource(roles, type.key)}
         canSetStatus={canSetStatus(roles, type.key)}
         definition={namesListingOwner(roles, type.key) ? getResource(type.key) : withoutField(getResource(type.key), "ownerUserId")}
+        detailHref={detailHref}
         grants={roles}
         key={type.key}
         approvals={approvals}
         marks={marks}
         ownedBy={seesOwnListingsOnly(roles, type.key) ? userId : null}
-        verifiable={attractions}
+        verifiable
         ownerFilter={attractions && !scoped && canCreateResource(roles, type.key)}
         referenceOptions={{}}
         userId={attractions ? userId : null}

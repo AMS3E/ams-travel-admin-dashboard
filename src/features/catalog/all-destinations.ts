@@ -83,7 +83,10 @@ export interface DestinationRow {
   readonly authors: readonly string[];
   /** Its cover photo's link, when it has one. */
   readonly cover: string | null;
+  /** Its form. */
   readonly href: string;
+  /** Its read-only page, Destination Detail, for a viewer who may read the stats; null for one who may not. */
+  readonly detailHref: string | null;
 }
 
 const SINGULAR: Readonly<Record<DestinationTypeKey, string>> = {
@@ -97,11 +100,16 @@ const KIND_WORDS: Readonly<Record<string, string>> = { CAFE: "Cafe" };
 
 const text = (value: unknown): string | null => (typeof value === "string" && value.trim() ? value.trim() : null);
 
-/** A type's rows as the All tab shows them. */
+/**
+ * A type's rows as the All tab shows them. `insight` says whether the viewer
+ * may read Destination Stats: then a name opens the place's detail page and
+ * the pencil keeps the form.
+ */
 export function toRows(
   type: DestinationTypeKey,
   records: readonly CatalogRecord[],
   provinceNames: ReadonlyMap<string, string> = new Map(),
+  insight = false,
 ): DestinationRow[] {
   const definition = getResource(type);
   const kinds = definition.fields.find((field) => field.name === "type")?.options ?? [];
@@ -125,6 +133,7 @@ export function toRows(
       authors: [text(record.ownerUserId), text(record.createdBy)].filter((id): id is string => id !== null),
       cover: text(record.coverUrl) ?? (text(record.coverKey) ? mediaPath(text(record.coverKey)!) : null),
       href: `/${type}/${record.id}`,
+      detailHref: insight ? `/${type}/${record.id}/detail` : null,
     };
   });
 }

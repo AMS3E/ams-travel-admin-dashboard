@@ -154,7 +154,7 @@ export function RegionDetail({ id }: { readonly id: string }) {
                               <ImageIcon aria-hidden className="size-4" strokeWidth={1.75} />
                             </span>
                           )}
-                          <Link className="font-medium text-ink hover:text-teal-deep hover:underline" href={`/destination-stats/${place.id}`}>
+                          <Link className="font-medium text-ink hover:text-teal-deep hover:underline" href={`/destinations/${place.id}/detail?from=region:${id}`}>
                             {text(place.name)}
                           </Link>
                         </span>

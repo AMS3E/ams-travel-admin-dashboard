@@ -35,9 +35,29 @@ export function decidedVerified(row: Pick<VerificationResponse, "verified" | "ba
  * three reads, each filling in what it may: a place's decisions, the desk's
  * queue, and the public status. The narrower types below say which is which.
  */
+/** The kinds of destination a decision can be on: all three alike since 2026-10-20. */
+export type VerificationTarget = "DESTINATION" | "STAY" | "FOOD";
+
+/** The catalogue resource a kind's listing lives under. */
+export const RESOURCE_OF_TARGET: Readonly<Record<VerificationTarget, "destinations" | "stays" | "foods">> = {
+  DESTINATION: "destinations",
+  STAY: "stays",
+  FOOD: "foods",
+};
+
+/** How a kind reads on a row. */
+export const TARGET_LABELS: Readonly<Record<VerificationTarget, string>> = {
+  DESTINATION: "Attraction",
+  STAY: "Stay",
+  FOOD: "Food",
+};
+
 export interface VerificationResponse {
   /** The decision; null for a place in the queue nobody has decided on yet. */
   readonly id: string | null;
+  /** An attraction, a stay or a food place; null only in a public status with no decision. */
+  readonly targetType: VerificationTarget | null;
+  /** The place's id, whatever its kind. */
   readonly destinationId: string;
   readonly destinationName: string | null;
   readonly destinationSlug: string | null;
@@ -106,8 +126,10 @@ export interface RecordVerificationRequest {
  * with no `id` and `verified` false.
  */
 export interface VerificationQueueItem extends VerificationResponse {
+  readonly targetType: VerificationTarget;
   readonly destinationName: string;
-  readonly destinationSlug: string;
+  /** A stay has none. */
+  readonly destinationSlug: string | null;
   readonly destinationStatus: PublicationStatus;
   /** Whose desk it is on: who wrote it. Seeded places, with no author, are the staff desk's. */
   readonly desk: PublishDesk;
