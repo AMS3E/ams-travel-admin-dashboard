@@ -26,6 +26,8 @@ export type ResourceKey =
   | "foods"
   | "food-menu-items"
   | "food-media"
+  | "activities"
+  | "activity-media"
   | "corridors"
   | "corridor-media"
   | "regions"
@@ -329,7 +331,7 @@ export interface StatusOption {
 /**
  * How a resource says whether it is on the public site.
  *
- * The taxonomy carries an `isActive` flag; destinations, stays and foods a
+ * The taxonomy carries an `isActive` flag; destinations, stays, foods and activities a
  * DRAFT → PUBLISHED → ARCHIVED status; partners ACTIVE or INACTIVE. Media rows
  * and memberships have no status at all, and declare none.
  */
@@ -402,13 +404,14 @@ export function withoutField(definition: ResourceDefinition, name: string): Reso
 }
 
 /** Whose photos a gallery holds: the API's `ownerType`. */
-export type GalleryOwnerType = "DESTINATION" | "STAY" | "FOOD" | "CORRIDOR";
+export type GalleryOwnerType = "DESTINATION" | "STAY" | "FOOD" | "ACTIVITY" | "CORRIDOR";
 
-/** The four galleries are one API table, `/media`, told apart by whose photos they are. */
+/** The five galleries are one API table, `/media`, told apart by whose photos they are. */
 const MEDIA_OWNERS: Partial<Record<ResourceKey, GalleryOwnerType>> = {
   "destination-media": "DESTINATION",
   "stay-media": "STAY",
   "food-media": "FOOD",
+  "activity-media": "ACTIVITY",
   "corridor-media": "CORRIDOR",
 };
 

@@ -1,4 +1,4 @@
-import type { DestinationResponse, FoodResponse, PublicationStatus, StayResponse } from "@/features/catalog/api/contracts";
+import type { ActivityResponse, DestinationResponse, FoodResponse, PublicationStatus, StayResponse } from "@/features/catalog/api/contracts";
 import { mediaPath } from "@/features/catalog/resource";
 import { LISTING_NOUNS, LISTING_RESOURCES, type ListingType } from "./api/contracts";
 
@@ -28,11 +28,12 @@ export interface ListingRow {
   readonly updatedAt: string | null;
 }
 
-/** The three tables' rows, as listing rows. */
+/** The four tables' rows, as listing rows. */
 export interface ListingSources {
   readonly destinations?: readonly DestinationResponse[] | null;
   readonly stays?: readonly StayResponse[] | null;
   readonly foods?: readonly FoodResponse[] | null;
+  readonly activities?: readonly ActivityResponse[] | null;
 }
 
 /** Where a row's cover is read: the link the API made, or one made from its key. */
@@ -42,7 +43,7 @@ const coverOf = (row: { readonly coverUrl: string | null; readonly coverKey: str
 const present = (...ids: readonly (string | null | undefined)[]): string[] =>
   ids.filter((id): id is string => typeof id === "string" && id.length > 0);
 
-export function listingRows({ destinations, stays, foods }: ListingSources): ListingRow[] {
+export function listingRows({ destinations, stays, foods, activities }: ListingSources): ListingRow[] {
   return [
     ...(destinations ?? []).map((row): ListingRow => ({
       type: "DESTINATION",
@@ -70,6 +71,18 @@ export function listingRows({ destinations, stays, foods }: ListingSources): Lis
     })),
     ...(foods ?? []).map((row): ListingRow => ({
       type: "FOOD",
+      id: row.id,
+      name: row.name,
+      detail: row.address,
+      summary: row.description ?? row.shortDescription ?? null,
+      cover: coverOf(row),
+      status: row.status,
+      authors: present(row.ownerUserId, row.createdBy),
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt ?? row.createdAt,
+    })),
+    ...(activities ?? []).map((row): ListingRow => ({
+      type: "ACTIVITY",
       id: row.id,
       name: row.name,
       detail: row.address,

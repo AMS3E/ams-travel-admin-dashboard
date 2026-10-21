@@ -114,6 +114,20 @@ const STAY_TYPES = options(["HOTEL", "GUESTHOUSE", "HOSTEL", "RESORT", "HOMESTAY
 const FOOD_TYPES: readonly EnumOption[] = options(["RESTAURANT", "CAFE", "STREET_FOOD", "MARKET", "OTHER"]).map(
   (option) => (option.value === "CAFE" ? { ...option, label: "Cafe" } : option),
 );
+/* The kinds of activity, the API's ActivityType: the ten of the mind map, which are the Activities & Experiences interests, and a catch-all. */
+const ACTIVITY_TYPES: readonly EnumOption[] = [
+  { value: "DIVING", label: "Diving" },
+  { value: "KAYAK", label: "Kayak" },
+  { value: "BIRD_SANCTUARY", label: "Bird Sanctuary" },
+  { value: "WILDLIFE", label: "Wildlife" },
+  { value: "HIKING_TREKKING", label: "Hiking/Trekking" },
+  { value: "FISHING", label: "Fishing" },
+  { value: "CAMPING", label: "Camping" },
+  { value: "VIEWPOINT", label: "Viewpoint" },
+  { value: "CRUISE", label: "Cruise" },
+  { value: "SHOPPING", label: "Shopping" },
+  { value: "OTHER", label: "Other" },
+];
 const BADGE_CRITERIA: readonly EnumOption[] = [
   { value: "BROWSES", label: "Destinations browsed" },
   { value: "REVIEWS", label: "Reviews written" },
@@ -802,8 +816,8 @@ const classification: readonly ResourceField[] = [
   { name: "interestIds", label: "Interests", kind: "refs", ref: "interests", span: 2, section: "Classification" },
 ];
 
-/** The interest shelves an attraction can stand on; Stays and Food are a stay's and a food listing's, Tourism Corridors a corridor's. */
-const ATTRACTION_INTEREST_GROUPS = ["Attraction Sites", "Water", "Activities & Experiences"] as const;
+/** The interest shelves an attraction can stand on; Stays, Food and Activities & Experiences are a stay's, a food listing's and an activity's (2026-10-21), Tourism Corridors a corridor's. */
+const ATTRACTION_INTEREST_GROUPS = ["Attraction Sites", "Water"] as const;
 
 /**
  * An attraction's categories and tags are its tourism region's own: Ancient
@@ -946,11 +960,11 @@ const pinnedLocation: readonly ResourceField[] = location.map((field) => {
 });
 
 /**
- * Where a stay or a food listing shows in Explore: the interests of its own
- * shelf (Stays, Food), each of whose pages lists it next to the destinations.
+ * Where a stay, a food listing or an activity shows in Explore: the interests of its own
+ * shelf (Stays, Food, Activities & Experiences), each of whose pages lists it next to the destinations.
  * The one matching its type is chosen for it, when such an interest exists.
  */
-const shelfInterests = (group: "Stays" | "Food", noun: string): ResourceField => ({
+const shelfInterests = (group: "Stays" | "Food" | "Activities & Experiences", noun: string): ResourceField => ({
   name: "interestIds",
   /* The type IS the interest: the taxonomy's shelf, which the app browses by. The API's own kind follows from the first one (see kindOf). */
   label: "Type",
@@ -965,6 +979,7 @@ const shelfInterests = (group: "Stays" | "Food", noun: string): ResourceField =>
 
 const STAY_INTERESTS = shelfInterests("Stays", "stay");
 const FOOD_INTERESTS = shelfInterests("Food", "place");
+const ACTIVITY_INTERESTS = shelfInterests("Activities & Experiences", "activity");
 
 
 const listingName: ResourceField = { ...name(), maxLength: 255, span: 2 };
@@ -1375,6 +1390,66 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     ] satisfies readonly ResourceField[],
   },
 
+  activities: {
+    key: "activities",
+    label: "Activity",
+    labelPlural: "Activities & Experiences",
+    group: "Listings",
+    description:
+      "Things to do — a dive trip, a kayak tour, a bird safari, a trek, a cruise — a partner's own, or listed by the editors. Written like an attraction, with the contact of whoever runs it.",
+    titleField: "name",
+    searchFields: ["name", "nameKm", "slug", "address", "shortDescription"],
+    status: PUBLICATION,
+    columns: [
+      { name: "name", label: "Name", detail: { text: "address", ref: { field: "provinceId", resource: "provinces" } } },
+      { name: "createdBy", label: "Created by", kind: "ref", ref: "users", secondary: true },
+      { name: "verified", label: "Verified", kind: "verified", secondary: true },
+      { name: "type", label: "Type", kind: "enum", options: ACTIVITY_TYPES, secondary: true },
+      { name: "missingKhmer", label: "Khmer", kind: "khmer", secondary: true },
+      { name: "status", label: "Status", kind: "status" },
+    ],
+    /*
+     * An attraction's questions, in the attraction's order, with its type (the
+     * Activities & Experiences shelf, its whole classification: no tourism
+     * region, category or tag, as for a stay or a food place) and the contact
+     * of whoever runs it: the fourth kind of destination (2026-10-21).
+     */
+    fields: [
+      listingName,
+      listingSlug,
+      /* Never asked: it follows the first Type ticked (see kindOf). The names stay for the API's lists. */
+      { name: "type", label: "Kind (API)", kind: "enum", options: ACTIVITY_TYPES, derived: true },
+      listingShortDescription,
+      {
+        ...description,
+        label: "About",
+        rich: true,
+        hint: "The full story: what you do, how long it takes, who runs it and what to bring. The app shows its first lines on the page and all of it under Read more.",
+      },
+      listingSlogan,
+      listingSloganBy,
+      ACTIVITY_INTERESTS,
+      ref("ownerUserId", "Owner account", "users", {
+        section: "Placement",
+        hint: "The account this activity is listed for — the partner who runs it, or the contributor who looks after it. Leave it empty when your own team does; whoever writes their own is filled in for them.",
+      }),
+      ref("provinceId", "Province", "provinces", {
+        required: true,
+        section: "Placement",
+        hint: "The province it is in; the app lists it on that province's page.",
+      }),
+      /* Its address sits beside its province, under the map. */
+      ...location.map((field): ResourceField => (field.name === "address" ? { ...field, span: 1 } : field)),
+      /* Chosen among its gallery's photos, never asked on its own: the gallery writes it. */
+      { ...cover("activity"), derived: true },
+      ...contact(255),
+      { name: "telegram", label: "Telegram", kind: "text", maxLength: 100, section: "Contact", hint: "A handle such as @kampicruise, or a t.me link." },
+      { name: "whatsapp", label: "WhatsApp", kind: "text", maxLength: 50, section: "Contact", hint: "The number WhatsApp answers on, with the country code." },
+      { name: "facebookUrl", label: "Facebook page", kind: "text", maxLength: 512, section: "Contact", hint: "Where most operators here post this week's trips." },
+      ...listingKhmer,
+    ] satisfies readonly ResourceField[],
+  },
+
   "food-menu-items": {
     key: "food-menu-items",
     label: "Dish",
@@ -1543,6 +1618,25 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { name: "isCover", label: "Cover", kind: "boolean", secondary: true },
     ],
     fields: mediaFields(ref("ownerId", "Food listing", "foods", { required: true }), "food"),
+  },
+
+  "activity-media": {
+    key: "activity-media",
+    label: "Activity photo",
+    labelPlural: "Activity media",
+    group: "Listings",
+    description: "The photographs shown on an activity.",
+    titleField: "caption",
+    searchFields: ["caption"],
+    orderField: "sortOrder",
+    columns: [
+      { name: "mediaUrl", label: "Media", kind: "image" },
+      { name: "ownerId", label: "Activity", kind: "ref", ref: "activities" },
+      { name: "caption", label: "Caption", secondary: true },
+      { name: "sortOrder", label: "#", kind: "number", secondary: true },
+      { name: "isCover", label: "Cover", kind: "boolean", secondary: true },
+    ],
+    fields: mediaFields(ref("ownerId", "Activity", "activities", { required: true }), "activity"),
   },
 
   regions: {

@@ -28,7 +28,7 @@ const CORRIDOR_CONTENT: ReadonlySet<ResourceKey> = new Set([
 ]);
 
 /**
- * Stays and foods (and a food's photos): the editors', and a partner
+ * Stays, foods and activities (and their photos): the editors', and a partner
  * member's for their own partner's rows — which rows those are is the API's
  * to decide. Only an editor publishes one.
  */
@@ -38,6 +38,8 @@ const LISTINGS: ReadonlySet<ResourceKey> = new Set([
   "stay-rooms",
   "foods",
   "food-media",
+  "activities",
+  "activity-media",
 ]);
 
 /**
@@ -234,7 +236,7 @@ export function canEditRecord(
   }
   /* So too a contributor's stay or food listing: once live, the editors change it. */
   if (
-    (resource === "stays" || resource === "foods") &&
+    (resource === "stays" || resource === "foods" || resource === "activities") &&
     record.status === "PUBLISHED" &&
     !hasPermission(roles, "PERM_DESTINATION_EDIT_ANY") &&
     hasPermission(roles, "PERM_DESTINATION_DRAFT_EDIT_OWN")
@@ -289,7 +291,7 @@ export function canSetStatus(
       hasPermission(roles, "PERM_DESTINATION_UNPUBLISH")
     );
   }
-  if (resource === "stays" || resource === "foods") {
+  if (resource === "stays" || resource === "foods" || resource === "activities") {
     return hasPermission(roles, "PERM_DESTINATION_EDIT_ANY");
   }
   if (resource === "corridors") return hasPermission(roles, "PERM_CORRIDOR_CURATE");
@@ -298,7 +300,7 @@ export function canSetStatus(
 }
 
 /** What an administrator puts straight on the public site when creating it. */
-const LIVE_ON_CREATE: ReadonlySet<ResourceKey> = new Set(["destinations", "stays", "foods"]);
+const LIVE_ON_CREATE: ReadonlySet<ResourceKey> = new Set(["destinations", "stays", "foods", "activities"]);
 
 /**
  * Whether a new destination, stay or food may go on the public site the moment
@@ -356,11 +358,11 @@ export function reviewsDesk(roles: readonly string[], desk: PublishDesk): boolea
  * is that owner, and the API fills it in.
  */
 export function namesListingOwner(roles: readonly string[], resource: ResourceKey): boolean {
-  return (resource === "stays" || resource === "foods") && !seesOwnListingsOnly(roles, resource);
+  return (resource === "stays" || resource === "foods" || resource === "activities") && !seesOwnListingsOnly(roles, resource);
 }
 
 export function seesOwnListingsOnly(roles: readonly string[], resource: ResourceKey): boolean {
-  if (resource !== "stays" && resource !== "foods") return false;
+  if (resource !== "stays" && resource !== "foods" && resource !== "activities") return false;
   return !hasPermission(roles, "PERM_FULL_CONTROL") && !hasPermission(roles, "PERM_DESTINATION_EDIT_ANY");
 }
 

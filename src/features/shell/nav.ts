@@ -1,7 +1,8 @@
 import {
   Award, BadgeCheck, BedDouble, BedSingle, Building2, CalendarRange, ChartColumn, ChefHat, ClipboardCheck, Compass, ConciergeBell,
   FileClock, FilePenLine, Images,
-  LayoutDashboard, Map, MapPin, MessageSquare, Plus, Route,
+  LayoutDashboard, Map, MapPin,
+  Mountain, MessageSquare, Plus, Route,
   Settings, Shapes, ShieldCheck, Store, SunMedium, Tag,
   Users, UtensilsCrossed,
   type LucideIcon,
@@ -21,7 +22,7 @@ export interface NavText {
 
 const ICONS: Readonly<Record<ResourceKey, LucideIcon>> = {
   destinations: MapPin, "destination-media": Images, stays: BedDouble,
-  "stay-media": Images, "stay-rooms": BedSingle, foods: UtensilsCrossed, "food-media": Images, "food-menu-items": ChefHat, corridors: Route, "corridor-media": Images, regions: Map,
+  "stay-media": Images, "stay-rooms": BedSingle, foods: UtensilsCrossed, "food-media": Images, "food-menu-items": ChefHat, activities: Mountain, "activity-media": Images, corridors: Route, "corridor-media": Images, regions: Map,
   provinces: Building2, interests: Compass, categories: Shapes, tags: Tag, amenities: ConciergeBell,
   "badge-definitions": Award,
   "badge-periods": CalendarRange, seasons: SunMedium,
@@ -63,18 +64,18 @@ function tool(href: string, label: string, icon: LucideIcon, permissions: readon
 /* --- what each role's sidebar is built from ------------------------------ */
 
 /*
- * Stays and food listings have no entry of their own: they are tabs of All
+ * Stays, food listings and activities have no entry of their own: they are tabs of All
  * Destinations, and are made from Create Destination. Their pages sit under
  * those two entries.
  */
 const destinations: NavItem = {
   ...catalog("/destinations", "All Destinations", "destinations", "Every attraction, place to eat and stay, with a tab per main type", { key: "destinations" }),
-  aliases: ["/stays", "/foods"],
+  aliases: ["/stays", "/foods", "/activities"],
 };
 /* Asks the main type first — attraction, food, stay — then opens that form. */
 const createDestination: NavItem = {
   ...tool("/create", "Create Destination", Plus, writing, "Choose the main type — attraction, food or stay — then fill in its form", { key: "create" }),
-  aliases: ["/destinations/new", "/stays/new", "/foods/new"],
+  aliases: ["/destinations/new", "/stays/new", "/foods/new", "/activities/new"],
   exact: true,
 };
 /** A new row's form belongs to its Create entry, not to its list: a new stay is Create Destination's. */

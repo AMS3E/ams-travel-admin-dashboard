@@ -22,6 +22,8 @@ export const IMAGE_CATEGORIES = [
   "stay",
   /** A food listing's cover and its photo set. */
   "food",
+  /** An activity's cover and its photo set. */
+  "activity",
   /** A corridor's cover. */
   "corridor",
   /** A tourism region's cover: its Explore card and the banner of its page. */

@@ -21,7 +21,7 @@ export interface VerifiableDestination {
   readonly name: string;
   readonly verified: boolean;
   /** Which kind of listing it is; an attraction when left out. */
-  readonly resource?: "destinations" | "stays" | "foods";
+  readonly resource?: "destinations" | "stays" | "foods" | "activities";
   /** Whose writing it is, when the screen knows — the queue does. */
   readonly desk?: PublishDesk;
 }
@@ -159,7 +159,7 @@ export function VerifyDrawer({ destination, focus = "verify", onClose }: VerifyD
 function ListingSummary({ id, desk, resource = "destinations" }: {
   readonly id: string;
   readonly desk?: PublishDesk;
-  readonly resource?: "destinations" | "stays" | "foods";
+  readonly resource?: "destinations" | "stays" | "foods" | "activities";
 }) {
   const t = useTranslations("verification");
   const desks = useTranslations("publishing.desk");

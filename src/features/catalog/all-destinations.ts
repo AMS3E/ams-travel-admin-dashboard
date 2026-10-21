@@ -5,13 +5,13 @@ import { mediaPath, statusOption, statusValueOf, type ResourceDefinition } from 
 import { byName } from "@/features/catalog/resources";
 
 /**
- * "All Destinations": every attraction, place to eat and stay in one list,
+ * "All Destinations": every attraction, activity, place to eat and stay in one list,
  * with a tab per main type. Tourism corridors are not destinations: they have
  * their own page. The All tab reads every type together;
  * a type's tab is that type's own table, with everything it can do.
  */
 
-export type DestinationTypeKey = "destinations" | "foods" | "stays";
+export type DestinationTypeKey = "destinations" | "activities" | "foods" | "stays";
 
 /** A main type; its words (tab name, "New stay") are `catalog.types.<key>`. */
 export interface DestinationType {
@@ -23,6 +23,7 @@ export interface DestinationType {
 /** The main types, A to Z — the same ones Create Destination offers. */
 export const DESTINATION_TYPES: readonly DestinationType[] = [
   { key: "destinations", tab: "attractions" },
+  { key: "activities", tab: "activities" },
   { key: "foods", tab: "food" },
   { key: "stays", tab: "stays" },
 ];
@@ -64,7 +65,7 @@ export function createHref(roles: readonly string[], type: DestinationType | nul
 export interface DestinationRow {
   readonly id: string;
   readonly type: DestinationTypeKey;
-  /** "Attraction", "Food", "Stay". */
+  /** "Attraction", "Activity", "Food", "Stay". */
   readonly typeLabel: string;
   readonly name: string;
   /** Its own type within the main one: "Hotel", "Cafe". */

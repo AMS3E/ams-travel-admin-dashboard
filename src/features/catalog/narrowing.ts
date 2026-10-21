@@ -66,9 +66,10 @@ export function mainRegion(regions: readonly ReferenceOption[], theme: string | 
 }
 
 /**
- * The API's kind of a stay or a food listing, by the interest it is filed
- * under — the Stays and Food shelves of the mind map, nothing else. The API's
- * other kinds (guesthouse, hostel, villa, cafe as such, other) are never given.
+ * The API's kind of a stay, a food listing or an activity, by the interest it is
+ * filed under — the Stays, Food and Activities & Experiences shelves of the mind
+ * map, nothing else. The API's other kinds (guesthouse, hostel, villa, cafe as
+ * such, other) are never given.
  */
 export const KIND_BY_INTEREST: Readonly<Record<string, string>> = {
   "Luxury Hotel": "HOTEL",
@@ -82,6 +83,17 @@ export const KIND_BY_INTEREST: Readonly<Record<string, string>> = {
   Streetfood: "STREET_FOOD",
   "Traditional Food": "RESTAURANT",
   Skybar: "RESTAURANT",
+  /* The Activities & Experiences shelf: each interest is one of the API's activity kinds. */
+  Diving: "DIVING",
+  Kayak: "KAYAK",
+  "Bird Sanctuary": "BIRD_SANCTUARY",
+  Wildlife: "WILDLIFE",
+  "Hiking/Trekking": "HIKING_TREKKING",
+  Fishing: "FISHING",
+  Camping: "CAMPING",
+  Viewpoint: "VIEWPOINT",
+  Cruise: "CRUISE",
+  Shopping: "SHOPPING",
 };
 
 /**

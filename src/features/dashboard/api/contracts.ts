@@ -17,7 +17,7 @@ export interface ReviewOverview {
 }
 
 /** What a review is about. */
-export type ReviewTarget = "DESTINATION" | "FOOD" | "STAY" | "CORRIDOR";
+export type ReviewTarget = "DESTINATION" | "FOOD" | "STAY" | "ACTIVITY" | "CORRIDOR";
 
 /** Who the author travelled with, as the app's "Kind of visit" chips offer it. */
 export type ReviewVisitType = "BUSINESS" | "COUPLES" | "FAMILY" | "FRIENDS" | "SOLO";
@@ -58,6 +58,7 @@ export type OverviewCountKey =
   | "corridors"
   | "stays"
   | "foods"
+  | "activities"
   | "partners"
   | "users"
   | "reviews"
@@ -133,7 +134,7 @@ export interface DestinationStatsPeriod {
 }
 
 /** The kinds of place Destination Detail reads the standing of. */
-export type PlaceType = "DESTINATION" | "STAY" | "FOOD";
+export type PlaceType = "DESTINATION" | "STAY" | "FOOD" | "ACTIVITY";
 
 export interface DestinationStatsRow {
   readonly id: string;
@@ -169,8 +170,8 @@ export interface PlaceStatsResponse {
   readonly place: DestinationStatsRow;
 }
 
-/** The kinds of destination a check-in code is posted at: all three alike. */
-export type StampTarget = "DESTINATION" | "STAY" | "FOOD";
+/** The kinds of destination a check-in code is posted at: all four alike. */
+export type StampTarget = "DESTINATION" | "STAY" | "FOOD" | "ACTIVITY";
 
 /**
  * `GET /stamps/codes?targetType=&targetId=` — a destination's check-in codes,

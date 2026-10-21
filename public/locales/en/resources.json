@@ -696,6 +696,152 @@
       }
     }
   },
+  "activities": {
+    "label": "Activity",
+    "labelPlural": "Activities & Experiences",
+    "description": "Things to do — a dive trip, a kayak tour, a bird safari, a trek, a cruise — a partner's own, or listed by the editors. Written like an attraction, with the contact of whoever runs it.",
+    "columns": {
+      "name": "Name",
+      "address": "Address",
+      "createdBy": "Created by",
+      "verified": "Verified",
+      "type": "Type",
+      "missingKhmer": "Khmer",
+      "status": "Status"
+    },
+    "status": {
+      "DRAFT": {
+        "label": "Draft",
+        "hint": "not on the public site yet"
+      },
+      "PUBLISHED": {
+        "label": "Published",
+        "hint": "visible on the public site"
+      },
+      "ARCHIVED": {
+        "label": "Archived",
+        "hint": "taken off the public site"
+      }
+    },
+    "fields": {
+      "name": {
+        "label": "Name"
+      },
+      "slug": {
+        "label": "Link name",
+        "hint": "The end of this listing's web address, e.g. ams.travel/foods/mekong-grill. Leave it empty and we make one from the name.",
+        "pattern": "Use lower-case letters and numbers joined by hyphens, e.g. angkor-wat — or leave it empty."
+      },
+      "type": {
+        "label": "Kind (API)",
+        "options": {
+          "DIVING": "Diving",
+          "KAYAK": "Kayak",
+          "BIRD_SANCTUARY": "Bird Sanctuary",
+          "WILDLIFE": "Wildlife",
+          "HIKING_TREKKING": "Hiking/Trekking",
+          "FISHING": "Fishing",
+          "CAMPING": "Camping",
+          "VIEWPOINT": "Viewpoint",
+          "CRUISE": "Cruise",
+          "SHOPPING": "Shopping",
+          "OTHER": "Other"
+        }
+      },
+      "shortDescription": {
+        "label": "Short description",
+        "hint": "One or two sentences. This is the text on every card across the website."
+      },
+      "description": {
+        "label": "About",
+        "hint": "The full story: what you do, how long it takes, who runs it and what to bring. The app shows its first lines on the page and all of it under Read more."
+      },
+      "slogan": {
+        "label": "Slogan",
+        "hint": "One line someone said about it. The app quotes it at the top of the page, e.g. “Angkor Wat, the crown jewel of Cambodia, emanates history and awe in equal measure.”"
+      },
+      "sloganBy": {
+        "label": "Said by",
+        "hint": "Optional. Who said it, e.g. Gail Gutradt, shown under the quote. Leave it empty for a slogan of its own."
+      },
+      "interestIds": {
+        "label": "Type",
+        "hint": "What travellers browse by: a traveller looking for one of these finds this activity on its page. Tick every one that fits.",
+        "section": "Classification"
+      },
+      "ownerUserId": {
+        "label": "Owner account",
+        "hint": "The account this activity is listed for — the partner who runs it, or the contributor who looks after it. Leave it empty when your own team does; whoever writes their own is filled in for them.",
+        "section": "Placement"
+      },
+      "provinceId": {
+        "label": "Province",
+        "hint": "The province it is in; the app lists it on that province's page.",
+        "section": "Placement"
+      },
+      "address": {
+        "label": "Address",
+        "section": "Location"
+      },
+      "latitude": {
+        "label": "Latitude",
+        "section": "Location"
+      },
+      "longitude": {
+        "label": "Longitude",
+        "section": "Location"
+      },
+      "coverKey": {
+        "label": "Cover image",
+        "section": "Media"
+      },
+      "phone": {
+        "label": "Phone",
+        "section": "Contact"
+      },
+      "contactEmail": {
+        "label": "E-mail",
+        "section": "Contact"
+      },
+      "website": {
+        "label": "Website",
+        "section": "Contact"
+      },
+      "whatsapp": {
+        "label": "WhatsApp",
+        "hint": "The number WhatsApp answers on, with the country code.",
+        "section": "Contact"
+      },
+      "telegram": {
+        "label": "Telegram",
+        "hint": "A handle such as @kampicruise, or a t.me link.",
+        "section": "Contact"
+      },
+      "facebookUrl": {
+        "label": "Facebook page",
+        "hint": "Where most operators here post this week's trips.",
+        "section": "Contact"
+      },
+      "nameKm": {
+        "label": "Name in Khmer",
+        "hint": "Typed by hand, never machine-translated. The place cannot be published until it is written."
+      },
+      "sloganKm": {
+        "label": "Slogan in Khmer"
+      },
+      "sloganByKm": {
+        "label": "Said by, in Khmer"
+      },
+      "descriptionKm": {
+        "label": "About in Khmer",
+        "hint": "The full story in Khmer, written for Khmer readers rather than word for word."
+      },
+      "addressKm": {
+        "label": "Address in Khmer",
+        "section": "Location"
+      }
+    }
+  },
   "food-menu-items": {
     "label": "Dish",
     "labelPlural": "Menu dishes",
@@ -1086,6 +1232,44 @@
     "fields": {
       "ownerId": {
         "label": "Food listing"
+      },
+      "mediaKey": {
+        "label": "File"
+      },
+      "mediaType": {
+        "label": "Type",
+        "options": {
+          "IMAGE": "Image",
+          "VIDEO": "Video"
+        }
+      },
+      "sortOrder": {
+        "label": "Sort order",
+        "hint": "Lower numbers come first."
+      },
+      "caption": {
+        "label": "Caption",
+        "hint": "Describe the photograph for anyone who cannot see it."
+      },
+      "isCover": {
+        "label": "Use as the cover"
+      }
+    }
+  },
+  "activity-media": {
+    "label": "Activity photo",
+    "labelPlural": "Activity media",
+    "description": "The photographs shown on an activity.",
+    "columns": {
+      "mediaUrl": "Media",
+      "ownerId": "Activity",
+      "caption": "Caption",
+      "sortOrder": "#",
+      "isCover": "Cover"
+    },
+    "fields": {
+      "ownerId": {
+        "label": "Activity"
       },
       "mediaKey": {
         "label": "File"

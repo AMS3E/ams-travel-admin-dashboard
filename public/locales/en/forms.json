@@ -60,7 +60,8 @@
       "tipBody": "Copy the {noun, select, stay {stay} other {place}}'s link in Google Maps (Share, then Copy link) and paste it here, or search it by name. Then switch to Satellite and drag the pin onto the entrance. At the place with a phone? Use the crosshair on the map. A pair of coordinates typed into the box works too.",
       "found": {
         "stays": "Travellers see this stay on the page of every destination within 50 km of its pin — a hotel in Siem Reap on Angkor Wat's page, say.",
-        "foods": "Travellers see this place on the page of every destination within 50 km of its pin — a noodle shop in Siem Reap on Angkor Wat's page, say."
+        "foods": "Travellers see this place on the page of every destination within 50 km of its pin — a noodle shop in Siem Reap on Angkor Wat's page, say.",
+        "activities": "Travellers see this activity on the page of every destination within 50 km of its pin, and under its type on the Interests tab."
       }
     },
     "contact": {
@@ -93,6 +94,13 @@
       "tipTitle": "One region, its own lists",
       "tipBody": "Choose the region the place is best known for. Only that region's categories and tags are offered, and the place is listed on its Discover page. Interests are separate: tick what a traveller comes for, whatever the region.",
       "interestsDescription": "The Interests tab and province pages it is listed under."
+    },
+    "activityType": {
+      "title": "Type of activity",
+      "question": "What kind of activity is it?",
+      "description": "The kind travellers browse by on the Interests tab. Tick every one that fits.",
+      "tipTitle": "Pick what it really is",
+      "tipBody": "A boat trip to watch dolphins is a Cruise and Wildlife both: tick both. The first one ticked names the kind the app files it under."
     },
     "facilities": {
       "title": "Rooms & facilities",
@@ -340,6 +348,7 @@
   "preview": {
     "untitled": {
       "destinations": "Untitled destination",
+      "activities": "Untitled activity",
       "stays": "Untitled stay",
       "foods": "Untitled place"
     },
@@ -687,8 +696,12 @@
     "description": "Choose the main type. The form that follows is written for it and asks only what it needs.",
     "kinds": {
       "destinations": {
-        "title": "Attraction",
+        "title": "Attraction Site",
         "description": "A temple, a beach, a waterfall, a museum, a village — a place worth the trip."
+      },
+      "activities": {
+        "title": "Activities & Experiences",
+        "description": "A dive trip, a kayak tour, a trek, a cruise, a bird safari — something a traveller does, run by someone you can contact."
       },
       "foods": {
         "title": "Food",

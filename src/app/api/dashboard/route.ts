@@ -34,10 +34,10 @@ export async function GET() {
   ]);
   /* A reviewer who also submits — an editor or a BDO — needs both lists. */
   const viewsOwn = hasPermission(grants, "PERM_PUBLISH_REQUEST_VIEW_OWN");
-  /* Stays and food listings: a partner writes their own, an editor, a BDO or an administrator all of them. */
+  /* Stays, food listings and activities: a partner writes their own, an editor, a BDO or an administrator all of them. */
   const managesListings = hasAnyPermission(grants, ["PERM_DESTINATION_EDIT_ANY", "PERM_FULL_CONTROL"]);
   const writesListings = managesListings || hasPermission(grants, "PERM_LISTING_EDIT_OWN");
-  const [overview, destinations, requests, audit, ownRequests, stays, foods, userId] = await Promise.all([
+  const [overview, destinations, requests, audit, ownRequests, stays, foods, activities, userId] = await Promise.all([
     /* A moderator reads the review tiles; the API adds table counts for full control alone. */
     read<NonNullable<DashboardResponse["overview"]>>(
       source("overview"),
@@ -71,6 +71,7 @@ export async function GET() {
     ),
     read<NonNullable<DashboardResponse["stays"]>>(source("stays"), "/stays", writesListings),
     read<NonNullable<DashboardResponse["foods"]>>(source("foods"), "/foods", writesListings),
+    read<NonNullable<DashboardResponse["activities"]>>(source("activities"), "/activities", writesListings),
     managesListings ? Promise.resolve(null) : getBackendUserId(),
   ]);
   /*
@@ -87,6 +88,7 @@ export async function GET() {
     destinations: own(destinations),
     stays: own(stays),
     foods: own(foods),
+    activities: own(activities),
     requests,
     mine: canReview ? ownRequests : requests,
     audit,
