@@ -68,6 +68,12 @@
       "new": "New attraction",
       "untitled": "Untitled attraction"
     },
+    "activities": {
+      "tab": "Activities",
+      "one": "Activity",
+      "new": "New activity",
+      "untitled": "Untitled activity"
+    },
     "foods": {
       "tab": "Food",
       "one": "Food",
@@ -83,8 +89,8 @@
   },
   "allDestinations": {
     "title": "All Destinations",
-    "description": "Every attraction, place to eat and stay in one place. Open a tab to manage one type.",
-    "descriptionScoped": "Every attraction, place to eat and stay in one place. Open a tab to manage one type. You are shown your own.",
+    "description": "Every attraction, activity, place to eat and stay in one place. Open a tab to manage one type.",
+    "descriptionScoped": "Every attraction, activity, place to eat and stay in one place. Open a tab to manage one type. You are shown your own.",
     "create": "Create destination",
     "mainTypes": "Main types",
     "all": "All",

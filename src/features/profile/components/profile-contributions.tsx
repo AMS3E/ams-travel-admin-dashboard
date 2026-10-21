@@ -9,7 +9,7 @@ import { Metric, MetricStrip } from "@/components/ui/metric-strip";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
 import { canCreateResource, canManageResource } from "@/features/auth/permissions";
 import { getRecords } from "@/features/catalog/api/catalog.server";
-import type { FoodResponse, StayResponse } from "@/features/catalog/api/contracts";
+import type { ActivityResponse, FoodResponse, StayResponse } from "@/features/catalog/api/contracts";
 import { getDestinations } from "@/features/dashboard/api/dashboard.server";
 import {
   REQUEST_TONES,
@@ -42,16 +42,18 @@ export async function ProfileContributions({
   const [t, messages] = await Promise.all([getTranslations("profile"), getMessages()]);
   /* A stay or a food listing is read only by an account that writes them. */
   const writesListings = canManageResource(grants, "stays");
-  const [destinations, stays, foods, requests] = await Promise.all([
+  const [destinations, stays, foods, activities, requests] = await Promise.all([
     getDestinations(),
     writesListings ? getRecords("stays").catch(() => []) : [],
     writesListings ? getRecords("foods").catch(() => []) : [],
+    writesListings ? getRecords("activities").catch(() => []) : [],
     getMyRequests(),
   ]);
   const mine = listingRows({
     destinations,
     stays: stays as unknown as StayResponse[],
     foods: foods as unknown as FoodResponse[],
+    activities: activities as unknown as ActivityResponse[],
   }).filter((listing) => isAuthor(listing, userId));
   const live = mine.filter((listing) => listing.status === "PUBLISHED");
   const returned = requests.filter((request) => request.status === "DRAFT");

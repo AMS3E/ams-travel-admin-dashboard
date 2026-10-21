@@ -87,6 +87,7 @@
     "back": "Back to Destination Stats",
     "editStay": "Edit stay",
     "editFood": "Edit food listing",
+    "editActivity": "Edit activity",
     "backAll": "Back to All Destinations",
     "backRegion": "Back to the region"
   },
@@ -112,6 +113,7 @@
     "target": {
       "DESTINATION": "Destination",
       "FOOD": "Food listing",
+      "ACTIVITY": "Activity",
       "STAY": "Stay",
       "CORRIDOR": "Corridor"
     },

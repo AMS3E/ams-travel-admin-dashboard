@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { BedDouble, MapPin, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { BedDouble, MapPin, Mountain, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { requireAdmin } from "@/features/auth/session";
 import { createKinds, type CreateKindKey } from "@/features/catalog/create-kinds";
@@ -16,10 +16,11 @@ const ICONS: Readonly<Record<CreateKindKey, LucideIcon>> = {
   destinations: MapPin,
   stays: BedDouble,
   foods: UtensilsCrossed,
+  activities: Mountain,
 };
 
 /**
- * "What are you adding?" — only the main type: an attraction, food or a stay.
+ * "What are you adding?" — only the main type: an attraction, food, a stay or an activity.
  * The form that opens is written for that type and asks the rest.
  */
 export default async function CreatePage() {

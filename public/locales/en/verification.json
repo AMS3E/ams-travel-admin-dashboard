@@ -78,7 +78,8 @@
     "kind": {
       "DESTINATION": "Attraction",
       "STAY": "Stay",
-      "FOOD": "Food"
+      "FOOD": "Food",
+      "ACTIVITY": "Activity"
     },
     "searchLabel": "Search destinations",
     "searchPlaceholder": "Search destinations…",

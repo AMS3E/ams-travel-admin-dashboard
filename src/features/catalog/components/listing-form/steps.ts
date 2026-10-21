@@ -20,7 +20,7 @@ import type {
 import { getResource } from "@/features/catalog/resources";
 
 /**
- * The listing forms — a destination, a stay, a food — as one page of sections,
+ * The listing forms — a destination, a stay, a food, an activity — as one page of sections,
  * in the order a host would think about them.
  *
  * Each section (a "step" in these names: the form was once walked one at a
@@ -32,10 +32,10 @@ import { getResource } from "@/features/catalog/resources";
  * appears, in a "More details" section.
  */
 
-export type ListingKey = "destinations" | "stays" | "foods";
+export type ListingKey = "destinations" | "stays" | "foods" | "activities";
 
 export function isListing(key: ResourceKey): key is ListingKey {
-  return key === "destinations" || key === "stays" || key === "foods";
+  return key === "destinations" || key === "stays" || key === "foods" || key === "activities";
 }
 
 /** The photo set each listing hangs off: its gallery rows. */
@@ -43,9 +43,10 @@ export const LISTING_GALLERIES: Readonly<Record<ListingKey, ResourceKey>> = {
   destinations: "destination-media",
   stays: "stay-media",
   foods: "food-media",
+  activities: "activity-media",
 };
 
-/** A row with a photo set of its own: the three listings, and a tourism corridor. */
+/** A row with a photo set of its own: the four listings, and a tourism corridor. */
 export type GalleryOwner = ListingKey | "corridors";
 
 /** Every gallery the photos box fills: the listings' and the corridor's. */
@@ -176,7 +177,7 @@ function stepsIn(t: StepWords): Readonly<Record<ListingKey, readonly StepDraft[]
    * province and address the pin fills in. `found` says how travellers come
    * across this kind — a stay or a food listing by its pin, not by a page.
    */
-  const locationStep = (noun: Noun, found?: "stays" | "foods"): StepDraft => ({
+  const locationStep = (noun: Noun, found?: "stays" | "foods" | "activities"): StepDraft => ({
     id: "location",
     title: t("location.title"),
     question: t("location.question"),
@@ -332,6 +333,37 @@ function stepsIn(t: StepWords): Readonly<Record<ListingKey, readonly StepDraft[]
       },
       review,
     ],
+
+    /* An attraction's sections, then who runs it, then its type with the region's own lists. */
+    activities: [
+      about("place", { slug: true }),
+      photos("place"),
+      locationStep("place", "activities"),
+      contact("place"),
+      {
+        id: "classification",
+        title: t("classification.title"),
+        question: t("classification.question"),
+        description: t("classification.description"),
+        icon: Tags,
+        tip: { title: t("classification.tipTitle"), body: t("classification.tipBody") },
+        groups: [
+          /* The type first — the Activities & Experiences shelf of the taxonomy. */
+          { fields: ["interestIds"] },
+          { label: "tourismRegion", fields: ["tourismRegionIds"] },
+          { label: "categories", fields: ["categoryIds"] },
+          /* The region's own tags, with no heading of their own. */
+          { fields: ["tagIds"] },
+        ],
+        places: [
+          { label: "type", field: "interestIds" },
+          { label: "tourismRegion", field: "tourismRegionIds" },
+          { label: "categories", field: "categoryIds" },
+          { label: "tags", field: "tagIds" },
+        ],
+      },
+      review,
+    ],
   };
 }
 
@@ -372,6 +404,18 @@ const CHECKS: Readonly<Record<ListingKey, readonly CheckDraft[]>> = {
     { label: "messaging", fields: ["telegram", "whatsapp", "facebookUrl"] },
     { label: "priceRange", fields: ["priceRange"], id: "price" },
     { label: "pay", fields: ["paymentMethods"] },
+    { label: "khmer", fields: [], khmer: true, required: true, step: "about" },
+  ],
+  activities: [
+    { label: "type", fields: ["interestIds"], required: true },
+    { label: "name", fields: ["name"], required: true },
+    { label: "tourismRegion", fields: ["tourismRegionIds"], required: true },
+    { label: "address", fields: ["provinceId"], required: true },
+    { label: "cover", fields: ["coverKey"], step: "photos" },
+    { label: "pin", fields: ["latitude", "longitude"], all: true },
+    { label: "categories", fields: ["categoryIds"] },
+    { label: "contactDetails", fields: ["phone", "contactEmail", "website"] },
+    { label: "messaging", fields: ["telegram", "whatsapp", "facebookUrl"] },
     { label: "khmer", fields: [], khmer: true, required: true, step: "about" },
   ],
 };

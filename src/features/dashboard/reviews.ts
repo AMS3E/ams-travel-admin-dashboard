@@ -13,6 +13,7 @@ export const REVIEW_TARGET_RESOURCES = {
   DESTINATION: "destinations",
   FOOD: "foods",
   STAY: "stays",
+  ACTIVITY: "activities",
   CORRIDOR: "corridors",
 } as const satisfies Record<ReviewTarget, string>;
 

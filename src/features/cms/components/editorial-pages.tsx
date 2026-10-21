@@ -23,17 +23,19 @@ function useTargetNames(): (type: ReviewTarget, id: string) => string | undefine
   const destinations = useGetCatalogQuery(REVIEW_TARGET_RESOURCES.DESTINATION);
   const foods = useGetCatalogQuery(REVIEW_TARGET_RESOURCES.FOOD);
   const stays = useGetCatalogQuery(REVIEW_TARGET_RESOURCES.STAY);
+  const activities = useGetCatalogQuery(REVIEW_TARGET_RESOURCES.ACTIVITY);
   const names = useMemo(() => {
     const byType = new Map<ReviewTarget, Map<string, string>>();
     for (const [type, rows] of [
       ["DESTINATION", destinations.data],
       ["FOOD", foods.data],
       ["STAY", stays.data],
+      ["ACTIVITY", activities.data],
     ] as const) {
       byType.set(type, new Map((rows ?? []).map((row) => [row.id, String(row.name ?? "")])));
     }
     return byType;
-  }, [destinations.data, foods.data, stays.data]);
+  }, [destinations.data, foods.data, stays.data, activities.data]);
   return (type, id) => names.get(type)?.get(id) || undefined;
 }
 

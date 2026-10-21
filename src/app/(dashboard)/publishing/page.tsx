@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { canManageResource, hasPermission } from "@/features/auth/permissions";
 import { getBackendUserId, requireAdmin } from "@/features/auth/session";
 import { getRecords } from "@/features/catalog/api/catalog.server";
-import type { FoodResponse, StayResponse } from "@/features/catalog/api/contracts";
+import type { ActivityResponse, FoodResponse, StayResponse } from "@/features/catalog/api/contracts";
 import { getDestinations } from "@/features/dashboard/api/dashboard.server";
 import { DashboardSection } from "@/features/dashboard/components/dashboard-section";
 import {
@@ -44,12 +44,13 @@ export default async function PublishingPage() {
 
   /* A stay or a food listing is read only by an account that writes them: a partner, or one who manages them all. */
   const writesListings = maySubmit && canManageResource(admin.roles, "stays");
-  const [mine, queue, destinations, stays, foods, userId] = await Promise.all([
+  const [mine, queue, destinations, stays, foods, activities, userId] = await Promise.all([
     maySubmit ? getMyRequests() : [],
     mayReview ? getReviewQueue() : [],
     maySubmit ? getDestinations() : [],
     writesListings ? getRecords("stays").catch(() => []) : [],
     writesListings ? getRecords("foods").catch(() => []) : [],
+    writesListings ? getRecords("activities").catch(() => []) : [],
     maySubmit ? getBackendUserId() : null,
   ]);
 
@@ -59,6 +60,7 @@ export default async function PublishingPage() {
       destinations,
       stays: stays as unknown as StayResponse[],
       foods: foods as unknown as FoodResponse[],
+      activities: activities as unknown as ActivityResponse[],
     }),
     mine,
     userId,

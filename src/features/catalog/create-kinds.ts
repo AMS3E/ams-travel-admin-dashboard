@@ -3,13 +3,13 @@ import { byName } from "@/features/catalog/resources";
 
 /**
  * What "Create Destination" asks first: the main type of what is being added —
- * an attraction, a place to eat, a place to stay. Only the main
+ * an attraction, a place to eat, a place to stay, an activity. Only the main
  * type is chosen here; the form that opens asks the rest in its own words (a
  * stay's first step is its kind of stay, a food listing's its kind of place).
  * Only what this account may create is offered, A to Z.
  */
 
-export type CreateKindKey = "destinations" | "stays" | "foods";
+export type CreateKindKey = "destinations" | "stays" | "foods" | "activities";
 
 export interface CreateKind {
   readonly key: CreateKindKey;
@@ -27,6 +27,7 @@ const FROM = "from=create";
 const KINDS: readonly { readonly key: CreateKindKey; readonly href: string }[] = [
   { key: "destinations", href: `/destinations/new?${FROM}` },
   { key: "foods", href: `/foods/new?${FROM}` },
+  { key: "activities", href: `/activities/new?${FROM}` },
   { key: "stays", href: `/stays/new?${FROM}` },
 ];
 

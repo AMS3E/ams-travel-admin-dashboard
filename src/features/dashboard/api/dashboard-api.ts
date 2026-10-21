@@ -1,6 +1,6 @@
 import { baseApi } from "@/store/api/base-api";
 import type { AdminOverviewResponse, AuditLogResponse, DestinationStatsPeriod, DestinationStatsResponse, PlaceStatsResponse, StampCodeResponse, StampTarget } from "./contracts";
-import type { DestinationResponse, FoodResponse, StayResponse } from "@/features/catalog/api/contracts";
+import type { ActivityResponse, DestinationResponse, FoodResponse, StayResponse } from "@/features/catalog/api/contracts";
 import type { PublishRequestResponse } from "@/features/publishing/api/contracts";
 export interface DashboardResponse {
   overview: AdminOverviewResponse | null;
@@ -11,6 +11,7 @@ export interface DashboardResponse {
    */
   stays: StayResponse[] | null;
   foods: FoodResponse[] | null;
+  activities: ActivityResponse[] | null;
   /** The desk's queue for a reviewer; the account's own requests for anyone else. */
   requests: PublishRequestResponse[] | null;
   /** The account's own requests — for an editor or a BDO, what they sent to an administrator. */

@@ -27,14 +27,15 @@ export function decidedVerified(row: Pick<VerificationResponse, "verified" | "ba
  * three reads, each filling in what it may: a place's decisions, the desk's
  * queue, and the public status. The narrower types below say which is which.
  */
-/** The kinds of destination a decision can be on: all three alike since 2026-10-20. */
-export type VerificationTarget = "DESTINATION" | "STAY" | "FOOD";
+/** The kinds of destination a decision can be on: all alike since 2026-10-20; activities since 2026-10-21. */
+export type VerificationTarget = "DESTINATION" | "STAY" | "FOOD" | "ACTIVITY";
 
 /** The catalogue resource a kind's listing lives under. */
-export const RESOURCE_OF_TARGET: Readonly<Record<VerificationTarget, "destinations" | "stays" | "foods">> = {
+export const RESOURCE_OF_TARGET: Readonly<Record<VerificationTarget, "destinations" | "stays" | "foods" | "activities">> = {
   DESTINATION: "destinations",
   STAY: "stays",
   FOOD: "foods",
+  ACTIVITY: "activities",
 };
 
 export interface VerificationResponse {

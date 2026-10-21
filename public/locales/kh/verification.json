@@ -78,7 +78,8 @@
     "kind": {
       "DESTINATION": "កន្លែងទាក់ទាញ",
       "STAY": "កន្លែងស្នាក់នៅ",
-      "FOOD": "កន្លែងអាហារ"
+      "FOOD": "កន្លែងអាហារ",
+      "ACTIVITY": "សកម្មភាព"
     },
     "searchLabel": "ស្វែងរកគោលដៅ",
     "searchPlaceholder": "ស្វែងរកគោលដៅ…",

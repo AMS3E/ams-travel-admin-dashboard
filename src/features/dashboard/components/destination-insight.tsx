@@ -26,11 +26,11 @@ import { PeriodControl, inWindow, usePeriodDates, windowOf, type Period } from "
 import { StatGrid, StatTile } from "./stat-tile";
 
 /** The kinds of listing the page reads: the catalogue resource, and how the API files its reviews and browses. */
-export type PlaceResource = "destinations" | "stays" | "foods";
-const TARGET: Readonly<Record<PlaceResource, StampTarget>> = { destinations: "DESTINATION", stays: "STAY", foods: "FOOD" };
+export type PlaceResource = "destinations" | "stays" | "foods" | "activities";
+const TARGET: Readonly<Record<PlaceResource, StampTarget>> = { destinations: "DESTINATION", stays: "STAY", foods: "FOOD", activities: "ACTIVITY" };
 
 /**
- * One place's insight, an attraction, a stay or a food place: the listing as
+ * One place's insight, an attraction, a stay, a food place or an activity: the listing as
  * it stands, what travellers made of it over a period, every review, its
  * check-in code, and the Verified badge with its history. Read-only but for
  * moderating a review and filing a verification, which open their own

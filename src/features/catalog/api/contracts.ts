@@ -162,8 +162,8 @@ export interface DestinationResponse {
 
 export type MediaType = "IMAGE" | "VIDEO";
 
-/** Whose photos a media row is: the four galleries at `/media`, and a review's own photos. */
-export type MediaOwnerType = "DESTINATION" | "STAY" | "FOOD" | "CORRIDOR" | "REVIEW";
+/** Whose photos a media row is: the five galleries at `/media`, and a review's own photos. */
+export type MediaOwnerType = "DESTINATION" | "STAY" | "FOOD" | "ACTIVITY" | "CORRIDOR" | "REVIEW";
 
 /** One gallery photo of any owner, as `/media` and a review's `photos` give it. */
 export interface MediaItemResponse {
@@ -268,6 +268,62 @@ export interface FoodResponse {
   readonly categoryIds: readonly string[] | null;
   readonly tagIds: readonly string[] | null;
   readonly interestIds: readonly string[] | null;
+}
+
+/** The kinds of activity and experience, the API's `ActivityType`: the ten of the mind map and a catch-all. */
+export type ActivityType =
+  | "DIVING"
+  | "KAYAK"
+  | "BIRD_SANCTUARY"
+  | "WILDLIFE"
+  | "HIKING_TREKKING"
+  | "FISHING"
+  | "CAMPING"
+  | "VIEWPOINT"
+  | "CRUISE"
+  | "SHOPPING"
+  | "OTHER";
+
+/** `/activities`: something a traveller does, written like an attraction, with the contact of whoever runs it (2026-10-21). */
+export interface ActivityResponse {
+  readonly id: string;
+  readonly destinationId: string | null;
+  readonly ownerUserId: string | null;
+  readonly name: string;
+  readonly slug: string;
+  readonly type: ActivityType;
+  readonly shortDescription: string | null;
+  readonly description: string | null;
+  readonly slogan: string | null;
+  readonly sloganBy: string | null;
+  readonly provinceId: string | null;
+  readonly address: string | null;
+  readonly latitude: number | null;
+  readonly longitude: number | null;
+  readonly phone: string | null;
+  readonly contactEmail: string | null;
+  readonly website: string | null;
+  readonly telegram: string | null;
+  readonly whatsapp: string | null;
+  readonly facebookUrl: string | null;
+  readonly coverKey: string | null;
+  readonly coverUrl: string | null;
+  readonly status: PublicationStatus;
+  readonly viewCount: number | null;
+  readonly createdBy: string | null;
+  readonly publishedAt: string | null;
+  readonly createdAt: string | null;
+  readonly updatedAt: string | null;
+  readonly categoryIds: readonly string[] | null;
+  readonly tagIds: readonly string[] | null;
+  readonly interestIds: readonly string[] | null;
+  readonly tourismRegionIds: readonly string[] | null;
+  readonly nameKm: string | null;
+  readonly descriptionKm: string | null;
+  readonly sloganKm: string | null;
+  readonly sloganByKm: string | null;
+  readonly addressKm: string | null;
+  readonly missingKhmer: readonly string[];
 }
 
 export type PartnerType =

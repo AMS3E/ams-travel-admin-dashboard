@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ArrowRight, BedDouble, ImageIcon, Inbox, Loader2, MapPin, Pencil, Search, Send, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { ArrowRight, BedDouble, ImageIcon, Inbox, Loader2, MapPin, Mountain, Pencil, Search, Send, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -24,6 +24,7 @@ import { Pager } from "@/components/ui/pager";
 
 const ICONS: Readonly<Record<DestinationTypeKey, LucideIcon>> = {
   destinations: MapPin,
+  activities: Mountain,
   foods: UtensilsCrossed,
   stays: BedDouble,
 };

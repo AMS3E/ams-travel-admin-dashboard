@@ -99,7 +99,7 @@ export function CmsDashboard() {
   const returned = requests?.filter((request) => request.status === "DRAFT");
   const rows = listings && requests ? contentSummary(listings, requests) : null;
   const counts = data?.overview?.counts;
-  const total = counts?.destinations != null ? counts.destinations + (counts.stays ?? 0) + (counts.foods ?? 0) : listings?.length;
+  const total = counts?.destinations != null ? counts.destinations + (counts.stays ?? 0) + (counts.foods ?? 0) + (counts.activities ?? 0) : listings?.length;
   const hiddenReviews = data?.overview?.reviews.hidden ?? 0;
 
   /* Today's work, by the Cambodian day the office keeps, with yesterday to read it against. */

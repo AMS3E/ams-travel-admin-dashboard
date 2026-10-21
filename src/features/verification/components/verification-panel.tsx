@@ -9,7 +9,7 @@ interface VerificationPanelProps {
   readonly destinationId: string;
   readonly name: string;
   /** Which kind of listing; an attraction when left out. */
-  readonly resource?: "destinations" | "stays" | "foods";
+  readonly resource?: "destinations" | "stays" | "foods" | "activities";
   /** The public status; null when the API could not say. */
   readonly status: VerifiedStatusResponse | null;
   /** The decisions, newest first; null for an account whose desk may not verify this destination. */

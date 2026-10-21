@@ -19,13 +19,14 @@ export type PublishDesk = "PARTNER" | "CONTRIBUTOR" | "STAFF";
 export type RequesterRole = "ADMIN" | "EDITOR" | "BDO" | "CONTRIBUTOR" | "PARTNER";
 
 /** What a request puts forward. */
-export type ListingType = "DESTINATION" | "STAY" | "FOOD";
+export type ListingType = "DESTINATION" | "STAY" | "FOOD" | "ACTIVITY";
 
 /** The catalogue table each kind of listing is kept in, and so its pages' path. */
 export const LISTING_RESOURCES = {
   DESTINATION: "destinations",
   STAY: "stays",
   FOOD: "foods",
+  ACTIVITY: "activities",
 } as const satisfies Record<ListingType, string>;
 
 export type ListingResource = (typeof LISTING_RESOURCES)[ListingType];
@@ -41,6 +42,7 @@ export const LISTING_NOUNS: Readonly<Record<ListingType, string>> = {
   DESTINATION: "attraction",
   STAY: "stay",
   FOOD: "food listing",
+  ACTIVITY: "activity",
 };
 
 /** Where the listing a request puts forward is opened in the dashboard. */

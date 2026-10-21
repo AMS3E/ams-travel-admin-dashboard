@@ -25,12 +25,14 @@
   "listing": {
     "DESTINATION": "Attraction",
     "STAY": "Stay",
-    "FOOD": "Food listing"
+    "FOOD": "Food listing",
+    "ACTIVITY": "Activity"
   },
   "listingNoun": {
     "DESTINATION": "attraction",
     "STAY": "stay",
-    "FOOD": "food listing"
+    "FOOD": "food listing",
+    "ACTIVITY": "activity"
   },
   "page": {
     "title": "Publishing",

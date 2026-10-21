@@ -117,7 +117,13 @@ export function PhonePreview({ definition, values, options, photos, className }:
   const attraction = definition.key === "destinations";
   const categories = attraction ? labelsOf("categoryIds", options.categories) : labelsOf("interestIds", options.interests);
   const asksSlogan = definition.fields.some((field) => field.name === "slogan");
-  const untitled = attraction ? t("untitled.destinations") : definition.key === "stays" ? t("untitled.stays") : t("untitled.foods");
+  const untitled = attraction
+    ? t("untitled.destinations")
+    : definition.key === "stays"
+      ? t("untitled.stays")
+      : definition.key === "activities"
+        ? t("untitled.activities")
+        : t("untitled.foods");
   const latitude = coordinate(values.latitude, 90);
   const longitude = coordinate(values.longitude, 180);
   const dots = Math.min(8, Math.max(1, photos));

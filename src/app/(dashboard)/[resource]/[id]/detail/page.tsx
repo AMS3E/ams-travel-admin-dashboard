@@ -16,9 +16,9 @@ type Params = {
   readonly searchParams: Promise<{ readonly from?: string | string[] }>;
 };
 
-const RESOURCES: readonly PlaceResource[] = ["destinations", "stays", "foods"];
+const RESOURCES: readonly PlaceResource[] = ["destinations", "stays", "foods", "activities"];
 /** The pencil's words, `stats.detail`, by kind. */
-const EDIT: Readonly<Record<PlaceResource, "edit" | "editStay" | "editFood">> = { destinations: "edit", stays: "editStay", foods: "editFood" };
+const EDIT: Readonly<Record<PlaceResource, "edit" | "editStay" | "editFood" | "editActivity">> = { destinations: "edit", stays: "editStay", foods: "editFood", activities: "editActivity" };
 
 type BackLabel = "backAll" | "back" | "backRegion";
 /** Where the page was opened from, and so where Back goes: a tab of All Destinations, Destination Stats or a region's page; All Destinations otherwise. */
@@ -26,6 +26,7 @@ const BACK: Readonly<Record<string, { readonly href: string; readonly label: Bac
   attractions: { href: "/destinations?type=attractions", label: "backAll" },
   food: { href: "/destinations?type=food", label: "backAll" },
   stays: { href: "/destinations?type=stays", label: "backAll" },
+  activities: { href: "/destinations?type=activities", label: "backAll" },
   stats: { href: "/destination-stats", label: "back" },
 };
 const BACK_DEFAULT = { href: "/destinations", label: "backAll" } as const;
