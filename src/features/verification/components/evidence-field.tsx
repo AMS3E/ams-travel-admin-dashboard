@@ -2,12 +2,13 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { ExternalLink, FileText, ImageOff, Loader2, RefreshCw, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUploadMedia } from "@/features/media/api/media-api";
 import { prepareImage } from "@/features/catalog/media-upload";
 import { cn } from "@/lib/utils";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
 import { EVIDENCE_TYPES, MAX_EVIDENCE_BYTES, evidenceHref, isPdfEvidence } from "../evidence";
 
 interface EvidenceFieldProps {
@@ -42,8 +43,11 @@ export function EvidenceField({
   describedBy,
   invalid,
   onUploadingChange,
-  noun = "the invoice or receipt",
+  noun: nounGiven,
 }: EvidenceFieldProps) {
+  const t = useTranslations("verification.evidence");
+  const errorMessage = useApiErrorMessage();
+  const noun = nounGiven ?? t("defaultNoun");
   const fileInput = useRef<HTMLInputElement>(null);
   const uploadMedia = useUploadMedia();
   const [uploading, setUploading] = useState(false);
@@ -62,7 +66,7 @@ export function EvidenceField({
   async function upload(chosen: File | undefined) {
     if (!chosen) return;
     if (!EVIDENCE_TYPES.includes(chosen.type)) {
-      setFailure(`${chosen.name} is not a PDF or a JPEG, PNG, WebP or AVIF image.`);
+      setFailure(t("wrongType", { file: chosen.name }));
       return;
     }
     busy(true);
@@ -70,7 +74,7 @@ export function EvidenceField({
     try {
       const file = chosen.type === "application/pdf" ? chosen : await prepareImage(chosen);
       if (file.size > MAX_EVIDENCE_BYTES) {
-        setFailure(`${chosen.name} is larger than 8 MB.`);
+        setFailure(t("tooLarge", { file: chosen.name }));
         return;
       }
       const body = new FormData();
@@ -81,7 +85,7 @@ export function EvidenceField({
       setPicked({ name: chosen.name, size: file.size });
       onChange(payload.key);
     } catch (error) {
-      setFailure(apiErrorMessage(error));
+      setFailure(errorMessage(error));
     } finally {
       busy(false);
       /* Let the same file be chosen again after a failure. */
@@ -99,7 +103,7 @@ export function EvidenceField({
             </span>
           ) : href && !broken ? (
             <Image
-              alt="Evidence preview"
+              alt={t("previewAlt")}
               className="size-16 shrink-0 rounded-md border border-line object-cover"
               height={64}
               onError={() => setBroken(true)}
@@ -114,9 +118,9 @@ export function EvidenceField({
           )}
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-ink">{picked?.name ?? (pdf ? "Invoice (PDF)" : "Invoice photo")}</p>
+            <p className="truncate text-sm font-medium text-ink">{picked?.name ?? (pdf ? t("invoicePdf") : t("invoicePhoto"))}</p>
             <p className="text-xs text-muted">
-              {[pdf ? "PDF" : "Image", picked ? sizeOf(picked.size) : null, "Private to verifying desks"].filter(Boolean).join(" · ")}
+              {[pdf ? t("kindPdf") : t("kindImage"), picked ? sizeOf(picked.size) : null, t("private")].filter(Boolean).join(" · ")}
             </p>
             {href ? (
               <a
@@ -125,7 +129,7 @@ export function EvidenceField({
                 rel="noreferrer"
                 target="_blank"
               >
-                Open to check it
+                {t("open")}
                 <ExternalLink aria-hidden className="size-3" />
               </a>
             ) : null}
@@ -134,10 +138,9 @@ export function EvidenceField({
           <div className="flex shrink-0 flex-col gap-1">
             <Button disabled={uploading} onClick={() => fileInput.current?.click()} size="sm" type="button" variant="secondary">
               {uploading ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <RefreshCw aria-hidden className="size-3.5" />}
-              Replace
+              {t("replace")}
             </Button>
             <Button
-              className="text-heritage hover:bg-heritage-soft hover:text-heritage"
               disabled={uploading}
               onClick={() => {
                 setPicked(null);
@@ -147,10 +150,10 @@ export function EvidenceField({
               }}
               size="sm"
               type="button"
-              variant="ghost"
+              variant="dangerGhost"
             >
               <Trash2 aria-hidden className="size-3.5" />
-              Remove
+              {t("remove")}
             </Button>
           </div>
         </div>
@@ -187,16 +190,17 @@ export function EvidenceField({
           )}
           <span className="text-sm text-ink">
             {uploading ? (
-              "Uploading…"
+              t("uploading")
             ) : dragging ? (
-              "Drop to attach"
+              t("drop")
             ) : (
-              <>
-                <span className="font-medium text-teal-deep">Attach {noun}</span> or drag it here
-              </>
+              t.rich("attach", {
+                noun,
+                attach: (chunks) => <span className="font-medium text-teal-deep">{chunks}</span>,
+              })
             )}
           </span>
-          <span className="text-xs text-muted">PDF, or a clear photo of the paper (JPEG, PNG, WebP, AVIF) · up to 8 MB</span>
+          <span className="text-xs text-muted">{t("formats")}</span>
         </button>
       )}
 

@@ -1,16 +1,14 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { useMessages, useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
-import { formatDateTime } from "@/features/dashboard/format";
+import { dateTimeOf } from "@/i18n/dates";
 import {
-  DESK_LABELS,
-  REQUEST_LABELS,
   REQUEST_TONES,
   listingHref,
   type ListingType,
   type PublishRequestResponse,
 } from "@/features/publishing/api/contracts";
-import { listingLabel } from "@/features/publishing/listings";
 
 interface RequestRowsProps {
   readonly requests: readonly PublishRequestResponse[];
@@ -31,6 +29,9 @@ export function RequestRows({
   actions,
   limit,
 }: RequestRowsProps) {
+  const t = useTranslations("publishing");
+  const dates = useMessages().common.dates;
+
   if (!requests.length) {
     return <p className="panel px-4 py-6 text-center text-sm text-muted">{empty}</p>;
   }
@@ -55,31 +56,30 @@ export function RequestRows({
                   {request.targetName}
                 </span>
               )}
-              <Badge tone="neutral">{listingLabel(request.targetType)}</Badge>
+              <Badge tone="neutral">{t(`listing.${request.targetType}`)}</Badge>
               <Badge dot tone={REQUEST_TONES[request.status]}>
-                {REQUEST_LABELS[request.status]}
+                {t(`status.${request.status}`)}
               </Badge>
               <Badge tone="neutral">
-                {DESK_LABELS[request.desk]}
+                {t(`desk.${request.desk}`)}
               </Badge>
             </span>
 
             <span className="text-xs text-muted tabular-nums">
-              {formatDateTime(request.requestedAt)}
+              {dateTimeOf(request.requestedAt, dates)}
             </span>
           </div>
 
           {showRequester ? (
             <p className="text-xs text-muted">
-              Submitted by {request.requestedByName ?? "an account that no longer exists"}
+              {t("rows.submittedBy", { name: request.requestedByName ?? t("rows.goneAccount") })}
             </p>
           ) : null}
 
           {request.status !== "PENDING_REVIEW" ? (
             <p className="text-xs text-ink-soft">
-              {REQUEST_LABELS[request.status]} by{" "}
-              {request.reviewerName ?? "a reviewer"}
-              {request.reviewedAt ? ` · ${formatDateTime(request.reviewedAt)}` : ""}
+              {t("rows.decidedBy", { status: t(`status.${request.status}`), reviewer: request.reviewerName ?? t("rows.aReviewer") })}
+              {request.reviewedAt ? ` · ${dateTimeOf(request.reviewedAt, dates)}` : ""}
               {request.reviewNote ? ` — ${request.reviewNote}` : ""}
             </p>
           ) : request.status === "PENDING_REVIEW" && request.reviewNote ? (
@@ -88,7 +88,7 @@ export function RequestRows({
              * feedback they gave in front of them to judge whether it was met.
              */
             <p className="text-xs text-ink-soft">
-              Resubmitted · {request.reviewerName ?? "a reviewer"} asked for:{" "}
+              {t("rows.resubmitted", { reviewer: request.reviewerName ?? t("rows.aReviewer") })}{" "}
               {request.reviewNote}
             </p>
           ) : null}

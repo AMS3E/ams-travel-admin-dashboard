@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Loader2, Trash2, Upload } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { initials } from "@/features/auth/types";
 import { cn } from "@/lib/utils";
@@ -58,13 +59,6 @@ export interface AvatarPickerLabels {
   readonly instructions: string;
 }
 
-const OWN_PHOTO: AvatarPickerLabels = {
-  empty: "Add a photo",
-  filled: "Your photo",
-  uploading: "Uploading your photo…",
-  instructions: "Drag an image here, or choose one from your device.",
-};
-
 interface AvatarPickerProps {
   readonly id: string;
   readonly name: string;
@@ -72,7 +66,7 @@ interface AvatarPickerProps {
   readonly value: string;
   /** Where to show the photo from: the account's `avatarUrl`, or the upload's address. */
   readonly previewUrl: string;
-  /** Someone else's photo — a customer's, on the Users screen — needs other words. */
+  /** Someone else's photo — a customer's, on the Users screen — needs other words; your own photo's are the default. */
   readonly labels?: AvatarPickerLabels;
   /** The photo is removed. */
   readonly onRemove: () => void;
@@ -97,7 +91,7 @@ export function AvatarPicker({
   name,
   value,
   previewUrl,
-  labels = OWN_PHOTO,
+  labels: given,
   onRemove,
   onChoose,
   onFile,
@@ -106,7 +100,14 @@ export function AvatarPicker({
   describedBy,
   invalid,
 }: AvatarPickerProps) {
+  const t = useTranslations("profile.photo");
   const [dragging, setDragging] = useState(false);
+  const labels: AvatarPickerLabels = given ?? {
+    empty: t("empty"),
+    filled: t("filled"),
+    uploading: t("uploading"),
+    instructions: t("instructions"),
+  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -130,7 +131,7 @@ export function AvatarPicker({
         <ProfileAvatar className="size-20 text-xl ring-4 ring-paper" name={name} src={value ? previewUrl : ""} />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-ink">
-            {uploading ? labels.uploading : dragging ? "Drop to upload" : value ? labels.filled : labels.empty}
+            {uploading ? labels.uploading : dragging ? t("drop") : value ? labels.filled : labels.empty}
           </p>
           <p className="mt-0.5 text-xs text-muted">{labels.instructions}</p>
           <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
@@ -149,19 +150,18 @@ export function AvatarPicker({
               ) : (
                 <Upload aria-hidden className="size-3.5" />
               )}
-              {value ? "Replace photo" : "Upload photo"}
+              {value ? t("replace") : t("upload")}
             </Button>
             {value ? (
               <Button
-                className="text-heritage hover:bg-heritage-soft hover:text-heritage"
                 disabled={uploading}
                 onClick={onRemove}
                 size="sm"
                 type="button"
-                variant="ghost"
+                variant="dangerGhost"
               >
                 <Trash2 aria-hidden className="size-3.5" />
-                Remove
+                {t("remove")}
               </Button>
             ) : null}
           </div>

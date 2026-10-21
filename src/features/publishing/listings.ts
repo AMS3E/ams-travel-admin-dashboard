@@ -88,7 +88,7 @@ export function listingPath(row: Pick<ListingRow, "type" | "id">): string {
   return `/${LISTING_RESOURCES[row.type]}/${row.id}`;
 }
 
-/** "Attraction", "Stay", "Food listing" — as a badge reads. */
+/** "Attraction", "Stay", "Food listing" — as a badge reads, in English; screens use `publishing.listing`. */
 export function listingLabel(type: ListingType): string {
   const noun = LISTING_NOUNS[type];
   return noun.charAt(0).toUpperCase() + noun.slice(1);

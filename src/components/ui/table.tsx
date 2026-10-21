@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 export function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     /* Wide tables scroll inside their surface, never the page body. */
-    <div className="w-full overflow-x-auto" data-slot="table-scroll">
+    <div className="relative w-full overflow-x-auto" data-slot="table-scroll">
       <table
         className={cn("w-full border-collapse text-left text-sm", className)}
         data-slot="table"

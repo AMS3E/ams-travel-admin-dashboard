@@ -1,0 +1,201 @@
+{
+  "title": "Verification",
+  "basis": {
+    "OFFICIAL_SITE": "Official site",
+    "PARTNER": "Partner",
+    "PAID": "Paid",
+    "TRAVELER_SCORE": "Travellers' reviews"
+  },
+  "badge": {
+    "verifiedBasis": "Verified · {basis}",
+    "verified": "Verified",
+    "notVerified": "Not verified",
+    "revoked": "Revoked",
+    "travelerRecommended": "Recommended by Traveler"
+  },
+  "destinationStatus": {
+    "PUBLISHED": "Published",
+    "DRAFT": "Draft",
+    "ARCHIVED": "Archived"
+  },
+  "line": {
+    "verifiedBy": "Verified by {name}",
+    "revokedBy": "Revoked by {name}",
+    "deletedAccount": "a deleted account",
+    "byTravellers": "Verified by the travellers' reviews",
+    "never": "Never verified",
+    "ratings": "{count, plural, one {# rating} other {# ratings}}",
+    "ratingsAt": "{count, plural, one {# rating} other {# ratings}} at {average}"
+  },
+  "actions": {
+    "history": "History",
+    "verify": "Verify",
+    "renew": "Renew",
+    "revoke": "Revoke",
+    "renewOrRevoke": "Renew or revoke"
+  },
+  "noDecision": "No decision has been recorded yet.",
+  "panel": {
+    "sentence": "{text}.",
+    "verifiedSince": "Verified since {date}.",
+    "whoVerifies": "A BDO or an administrator verifies a destination: an official site on its standing, a partner's listing on its agreement, a paid one on its invoice.",
+    "byTravellers": "Verified by the travellers' reviews.",
+    "recommended": "Shows as Recommended by AMS Travel in the app.",
+    "ratings": "{count, plural, one {# rating} other {# ratings}}.",
+    "ratingsAt": "{count, plural, one {# rating} other {# ratings}} at {average}."
+  },
+  "history": {
+    "title": "History",
+    "openPdf": "Open the PDF",
+    "openEvidence": "Open the evidence",
+    "evidenceAlt": "Evidence for the decision of {date}",
+    "noFile": "No file",
+    "deletedAccount": "A deleted account"
+  },
+  "queue": {
+    "label": "Verification queue",
+    "scopeAdmin": "As an administrator you verify every destination, staff content included.",
+    "scopeDesk": "You verify every destination, whoever wrote it — a partner's, a contributor's and the team's own.",
+    "intro": "{scope} A verified place shows as Recommended by AMS Travel in the app. Verify on what it rests on: an official site needs no paperwork, a partner's listing its agreement, a paid one its invoice or receipt; renew when new paperwork comes in, and say why when you revoke. Recommended by Traveler is earned from reviews and is nobody's to file or revoke.",
+    "filterLabel": "Filter by verification",
+    "filters": {
+      "awaiting": "Awaiting verification",
+      "verified": "Verified",
+      "all": "All"
+    },
+    "deskFilterLabel": "Filter by who wrote it",
+    "writtenByAnyone": "Written by anyone",
+    "writtenBy": {
+      "PARTNER": "Written by a partner",
+      "CONTRIBUTOR": "Written by a contributor",
+      "STAFF": "Written by our team"
+    },
+    "writtenByFilter": {
+      "PARTNER": "By a partner",
+      "CONTRIBUTOR": "By a contributor",
+      "STAFF": "By our team"
+    },
+    "kind": {
+      "DESTINATION": "Attraction",
+      "STAY": "Stay",
+      "FOOD": "Food"
+    },
+    "searchLabel": "Search destinations",
+    "searchPlaceholder": "Search destinations…",
+    "empty": {
+      "awaiting": "Nothing is waiting: every destination here has been verified.",
+      "verified": "No destination is verified yet. Verify one on what it rests on: an official site, a partnership, or an invoice.",
+      "all": "There is no destination to verify yet.",
+      "noMatch": "No destination matches that search."
+    },
+    "by": "by {name}",
+    "historyOf": "History of {name}"
+  },
+  "drawer": {
+    "close": "Close verification",
+    "closeButton": "Close",
+    "listingLabel": "The listing being verified",
+    "compare": "Compare the paperwork with this listing",
+    "noAddress": "No address on the listing yet.",
+    "openListing": "Open listing",
+    "seePin": "See the pin on a map"
+  },
+  "filed": {
+    "number": "Number {reference}",
+    "paperworkAttached": "Paperwork attached",
+    "paperworkAttachedLower": "paperwork attached",
+    "revokedTitle": "Verification revoked",
+    "verifiedTitle": "Destination verified",
+    "revokedBody": "The app no longer shows it as verified, nor as Recommended by AMS Travel.",
+    "officialBody": "The app now shows it as verified and as Recommended by AMS Travel.",
+    "paperworkBody": "The app now shows it as verified and as Recommended by AMS Travel. Renew it when new paperwork comes in.",
+    "another": "Record another decision",
+    "done": "Done"
+  },
+  "form": {
+    "headingRenew": "Renew or revoke this verification",
+    "headingVerify": "Verify this destination",
+    "introRevoke": "The app stops showing it as verified, and as Recommended by AMS Travel, straight away.",
+    "introRenew": "Renew it when new paperwork comes in, such as next year's invoice, or when what it rests on changes.",
+    "introVerify": "A verified destination shows as Recommended by AMS Travel in the app, with the Verified tag on its photo.",
+    "decision": "Decision",
+    "renewLabel": "Renew verification",
+    "renewDescription": "File new paperwork, such as this year's invoice.",
+    "revokeLabel": "Revoke verification",
+    "revokeDescription": "It shows as not verified in the app.",
+    "basisLegend": "What does it rest on?",
+    "notTheirs": "Only for a listing written by a partner's own account.",
+    "bases": {
+      "OFFICIAL_SITE": "A national or official place. No paperwork needed.",
+      "PARTNER": "Partnered with AMS Travel. The agreement is the evidence.",
+      "PAID": "Paid for verification. The invoice or receipt is the evidence."
+    },
+    "paperwork": {
+      "partner": {
+        "label": "Partnership agreement",
+        "noun": "the agreement",
+        "number": "Agreement reference",
+        "placeholder": "e.g. AGR-2026-07"
+      },
+      "paid": {
+        "label": "Invoice or receipt",
+        "noun": "the invoice or receipt",
+        "number": "Invoice or receipt number",
+        "placeholder": "e.g. INV-2026-0042"
+      }
+    },
+    "checksTitle": "Before you verify, check the paperwork",
+    "checks": {
+      "agreementBusiness": "The business on the agreement is the one this listing is for.",
+      "agreementAccount": "The listing was written by that partner's own account.",
+      "agreementCurrent": "The agreement is current.",
+      "invoiceName": "The business or place name on it matches this listing.",
+      "invoiceAddress": "The address matches the listing's address and map pin.",
+      "invoiceRecent": "It is recent, such as this year's invoice or receipt."
+    },
+    "officialNote": "An official site is verified on its standing alone. Say in the note which list or decree names it, so the next person knows.",
+    "proofErrorNumber": "Attach {noun}, or type its number.",
+    "proofErrorReference": "Attach {noun}, or type its reference.",
+    "noteError": "Say why the verification is being revoked.",
+    "evidenceHintRevoke": "A letter or notice the revocation rests on, if there is one.",
+    "evidenceHint": "Kept with this decision for the verifying desks only. It never reaches the app.",
+    "supportingDocument": "Supporting document",
+    "paperworkFallback": "Paperwork",
+    "nounRevoke": "the letter or notice",
+    "nounFallback": "the paperwork",
+    "numberHintRevoke": "The letter's or notice's reference.",
+    "numberHint": "As printed on the paperwork. Enough on its own when there is no copy to attach.",
+    "referenceNumber": "Reference number",
+    "reference": "Reference",
+    "referencePlaceholderRevoke": "e.g. INV-2026-0042",
+    "reasonHintRevoke": "Kept in the verification history, so whoever checks it next knows why.",
+    "reasonHintOfficial": "Which list or decree names it, if you know. Kept for the next person to check this.",
+    "reasonHint": "Anything the next person to check this should know.",
+    "reasonLabelRevoke": "Why is it being revoked?",
+    "note": "Note",
+    "reasonPlaceholderRevoke": "e.g. The business has closed, or the invoice turned out not to match.",
+    "cancel": "Cancel",
+    "waitingUpload": "Waiting for the upload…",
+    "submitRevoke": "Revoke verification",
+    "submitRenew": "Renew verification",
+    "submitVerify": "Verify destination"
+  },
+  "evidence": {
+    "defaultNoun": "the invoice or receipt",
+    "wrongType": "{file} is not a PDF or a JPEG, PNG, WebP or AVIF image.",
+    "tooLarge": "{file} is larger than 8 MB.",
+    "previewAlt": "Evidence preview",
+    "invoicePdf": "Invoice (PDF)",
+    "invoicePhoto": "Invoice photo",
+    "kindPdf": "PDF",
+    "kindImage": "Image",
+    "private": "Private to verifying desks",
+    "open": "Open to check it",
+    "replace": "Replace",
+    "remove": "Remove",
+    "uploading": "Uploading…",
+    "drop": "Drop to attach",
+    "attach": "<attach>Attach {noun}</attach> or drag it here",
+    "formats": "PDF, or a clear photo of the paper (JPEG, PNG, WebP, AVIF) · up to 8 MB"
+  }
+}

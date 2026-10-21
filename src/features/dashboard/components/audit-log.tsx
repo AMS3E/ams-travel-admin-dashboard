@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useEffectEvent, useId, useMemo, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useLocale, useMessages, useTranslations } from "next-intl";
 import { ChevronLeft, ChevronRight, CircleAlert, FileClock, Info, RotateCcw, RotateCw, Search, SearchX, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,6 @@ import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from "@/components/ui/table";
 import type { AuditAction, AuditLogResponse } from "@/features/dashboard/api/contracts";
 import {
-  AUDIT_ACTION_LABELS,
   AUDIT_ACTION_TONES,
   AUDIT_ACTIONS,
   AUDIT_DEFAULT_PAGE_SIZE,
@@ -19,15 +19,14 @@ import {
   AUDIT_PAGE_SIZES,
   auditCountsOf,
   auditRowsOf,
-  formatCount,
   matchesSearch,
-  plural,
   type AuditEntityOption,
   type AuditPerson,
   type AuditRow,
   type AuditServerFilters,
   type AuditSummary,
 } from "@/features/dashboard/audit";
+import { auditTypePlural, auditWordsOf } from "@/features/dashboard/audit-words";
 import { AuditEventDrawer } from "@/features/dashboard/components/audit-event-drawer";
 import { isUuid } from "@/lib/ids";
 import { cn } from "@/lib/utils";
@@ -78,9 +77,9 @@ function sizeOf(value: string | null): number {
   return (AUDIT_PAGE_SIZES as readonly number[]).includes(size) ? size : AUDIT_DEFAULT_PAGE_SIZE;
 }
 
-function summaryText(summary: AuditSummary): string {
+function summaryText(summary: AuditSummary, more: (count: number) => string): string {
   if (summary.note) return summary.note;
-  return summary.more ? `${summary.fields.join(", ")} +${summary.more} more` : summary.fields.join(", ");
+  return summary.more ? `${summary.fields.join(", ")} ${more(summary.more)}` : summary.fields.join(", ");
 }
 
 /** The browser-side part of the URL: the search and the page size. */
@@ -99,7 +98,22 @@ export function AuditLog({ entries, filters, now, people, typeOptions }: AuditLo
   const applied: AuditQuery = { ...filters, q, size };
   const filtered = SERVER_KEYS.some((key) => Boolean(filters[key])) || Boolean(q);
 
-  const rows = useMemo(() => (entries ? auditRowsOf(entries, new Date(now)) : []), [entries, now]);
+  const t = useTranslations("audit");
+  const locale = useLocale();
+  const messages = useMessages();
+  const words = useMemo(
+    () => auditWordsOf(messages, locale, (count) => t("words.removed", { count })),
+    [messages, locale, t],
+  );
+  const recordTypes = useMemo(
+    () =>
+      typeOptions
+        .map((option) => ({ value: option.value, label: auditTypePlural(messages.audit, option.value, option.label) }))
+        /* "en" collation: the server and a browser without Khmer data must sort alike. */
+        .sort((a, b) => a.label.localeCompare(b.label, "en")),
+    [typeOptions, messages.audit],
+  );
+  const rows = useMemo(() => (entries ? auditRowsOf(entries, new Date(now), words) : []), [entries, now, words]);
   const { visible, counts } = useMemo(() => {
     const matching = q ? rows.filter((row) => matchesSearch(row, q)) : rows;
     return { visible: matching, counts: auditCountsOf(matching) };
@@ -173,26 +187,26 @@ export function AuditLog({ entries, filters, now, people, typeOptions }: AuditLo
     apply(CLEARED);
   };
   const retry = () => startTransition(() => router.refresh());
-  const recordName = rows.find((row) => row.entityId === filters.entityId && row.name)?.name ?? "This record";
+  const recordName = rows.find((row) => row.entityId === filters.entityId && row.name)?.name ?? t("filters.thisRecord");
 
   return (
     <>
-      <section aria-label="Changes" className="panel min-w-0 scroll-mt-20 overflow-hidden" ref={surface}>
+      <section aria-label={t("title")} className="panel min-w-0 scroll-mt-20 overflow-hidden" ref={surface}>
         <div className="flex flex-col gap-2 border-b border-line p-3" role="search">
           <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-[minmax(14rem,1fr)_11rem_10rem_12rem_auto]">
             <div className="relative sm:col-span-3 xl:col-span-1">
               <Search aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" />
               <Input
-                aria-label="Search changes"
+                aria-label={t("filters.label")}
                 className="h-8 pr-8 pl-8 text-sm [&::-webkit-search-cancel-button]:hidden"
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search by record or person"
+                placeholder={t("filters.placeholder")}
                 type="search"
                 value={search}
               />
               {search ? (
                 <button
-                  aria-label="Clear the search"
+                  aria-label={t("filters.clearSearch")}
                   className="absolute top-1/2 right-1.5 grid size-5 -translate-y-1/2 place-items-center rounded-sm text-muted hover:bg-sand-deep hover:text-ink"
                   onClick={() => setSearch("")}
                   type="button"
@@ -202,9 +216,9 @@ export function AuditLog({ entries, filters, now, people, typeOptions }: AuditLo
               ) : null}
             </div>
 
-            <Select aria-label="Record type" className="h-8 text-sm" onChange={(event) => apply({ entityType: event.target.value })} value={filters.entityType}>
-              <option value="">All records</option>
-              {typeOptions.map((option) => (
+            <Select aria-label={t("filters.recordType")} className="h-8 text-sm" onChange={(event) => apply({ entityType: event.target.value })} value={filters.entityType}>
+              <option value="">{t("filters.allRecords")}</option>
+              {recordTypes.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -212,24 +226,24 @@ export function AuditLog({ entries, filters, now, people, typeOptions }: AuditLo
             </Select>
 
             <Select
-              aria-label="Action"
+              aria-label={t("filters.action")}
               className="h-8 text-sm"
               onChange={(event) => apply({ action: event.target.value as AuditAction | "" })}
               value={filters.action}
             >
-              <option value="">All actions</option>
+              <option value="">{t("filters.allActions")}</option>
               {AUDIT_ACTIONS.map((value) => (
                 <option key={value} value={value}>
-                  {AUDIT_ACTION_LABELS[value]}
+                  {t(`actions.${value}`)}
                 </option>
               ))}
             </Select>
 
-            <Select aria-label="By" className="h-8 text-sm" onChange={(event) => apply({ userId: event.target.value })} value={filters.userId}>
-              <option value="">By: anyone</option>
+            <Select aria-label={t("filters.by")} className="h-8 text-sm" onChange={(event) => apply({ userId: event.target.value })} value={filters.userId}>
+              <option value="">{t("filters.byAnyone")}</option>
               {people.map((person) => (
                 <option key={person.id} value={person.id}>
-                  By: {person.name}
+                  {t("filters.byPerson", { name: person.name })}
                 </option>
               ))}
             </Select>
@@ -237,16 +251,16 @@ export function AuditLog({ entries, filters, now, people, typeOptions }: AuditLo
             {filtered ? (
               <Button className="justify-self-start" disabled={pending} onClick={reset} size="sm" type="button" variant="ghost">
                 <RotateCcw aria-hidden className="size-3.5" />
-                Clear filters
+                {t("filters.clear")}
               </Button>
             ) : null}
           </div>
 
           {filters.entityId ? (
             <div className="flex items-center gap-2 text-xs text-muted">
-              Showing every change to
+              {t("filters.recordOnly")}
               <button
-                aria-label={`Show changes to every record, not only ${recordName}`}
+                aria-label={t("filters.recordOnlyRemove", { name: recordName })}
                 className="inline-flex h-6 max-w-72 items-center gap-1 rounded-md border border-line-strong bg-sand pr-1 pl-2 font-medium text-ink-soft hover:border-line-hover hover:text-ink"
                 onClick={() => apply({ entityId: "" })}
                 type="button"
@@ -260,14 +274,14 @@ export function AuditLog({ entries, filters, now, people, typeOptions }: AuditLo
 
         {entries && visible.length && !pending ? (
           <p aria-live="polite" className="border-b border-line px-4 py-2 text-xs text-muted tabular-nums">
-            <span className="font-medium text-ink-soft">{plural(counts.total, "change", "changes")}</span>
-            {q ? `${counts.total === 1 ? " matches" : " match"} “${q}”` : null}
+            <span className="font-medium text-ink-soft">{t("counts.changes", { count: counts.total })}</span>
+            {q ? ` ${t("counts.match", { count: counts.total, query: q })}` : null}
             <span aria-hidden> · </span>
-            {formatCount(counts.CREATE)} created
+            {t("counts.created", { count: counts.CREATE })}
             <span aria-hidden> · </span>
-            {formatCount(counts.UPDATE)} updated
+            {t("counts.updated", { count: counts.UPDATE })}
             <span aria-hidden> · </span>
-            {formatCount(counts.DELETE)} deleted
+            {t("counts.deleted", { count: counts.DELETE })}
           </p>
         ) : null}
 
@@ -278,33 +292,33 @@ export function AuditLog({ entries, filters, now, people, typeOptions }: AuditLo
         ) : visible.length === 0 ? (
           rows.length === 0 && !filtered ? (
             <EmptyState
-              description="Changes to destinations, stays, photos and every other record appear here as they are made."
+              description={t("empty.noneText")}
               icon={FileClock}
-              title="No changes yet"
+              title={t("empty.noneTitle")}
             />
           ) : rows.length === 0 ? (
             <EmptyState
               action={
                 <Button onClick={reset} size="sm" type="button" variant="secondary">
                   <RotateCcw aria-hidden className="size-3.5" />
-                  Clear filters
+                  {t("filters.clear")}
                 </Button>
               }
-              description="Try another record type, action or person."
+              description={t("empty.filteredText")}
               icon={SearchX}
-              title="No changes match these filters"
+              title={t("empty.filteredTitle")}
             />
           ) : (
             <EmptyState
               action={
                 <Button onClick={() => setSearch("")} size="sm" type="button" variant="secondary">
                   <X aria-hidden className="size-3.5" />
-                  Clear search
+                  {t("empty.clearSearch")}
                 </Button>
               }
-              description="Check the spelling, or search for a person's name or another record."
+              description={t("empty.searchText")}
               icon={SearchX}
-              title={`Nothing matches “${q}”`}
+              title={t("empty.searchTitle", { query: q })}
             />
           )
         ) : (
@@ -312,12 +326,12 @@ export function AuditLog({ entries, filters, now, people, typeOptions }: AuditLo
             <AuditTable onOpen={setSelectedId} rows={pageRows} selectedId={selected?.id ?? null} />
             <footer className="flex flex-col gap-2 border-t border-line px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-muted tabular-nums">
-                Showing{" "}
-                <span className="font-medium text-ink-soft">
-                  {formatCount((page - 1) * size + 1)}–{formatCount((page - 1) * size + pageRows.length)}
-                </span>{" "}
-                of <span className="font-medium text-ink-soft">{formatCount(visible.length)}</span>{" "}
-                {visible.length === 1 ? "change" : "changes"}
+                {t.rich("footer.showing", {
+                  b: (chunks) => <span className="font-medium text-ink-soft">{chunks}</span>,
+                  from: (page - 1) * size + 1,
+                  to: (page - 1) * size + pageRows.length,
+                  total: visible.length,
+                })}
               </p>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <PageSize onChange={(next) => apply({ size: next })} value={size} />
@@ -330,7 +344,7 @@ export function AuditLog({ entries, filters, now, people, typeOptions }: AuditLo
         {capped && !pending ? (
           <p className="flex items-start gap-2 border-t border-line bg-sand px-3 py-2 text-xs text-muted">
             <Info aria-hidden className="mt-px size-3.5 shrink-0" />
-            Showing the newest {AUDIT_FETCH_LIMIT} changes. Choose a record type, action or person to see older ones.
+            {t("capped", { limit: AUDIT_FETCH_LIMIT })}
           </p>
         ) : null}
       </section>
@@ -372,20 +386,21 @@ function AuditTable({
   readonly busy?: boolean;
   readonly skeleton?: number;
 }) {
+  const t = useTranslations("audit.table");
   return (
     <Table aria-busy={busy || undefined} className="table-fixed">
-      <caption className="sr-only">Changes, newest first, grouped by day. Times are Cambodia time.</caption>
+      <caption className="sr-only">{t("caption")}</caption>
       <TableHead>
         <TableRow className="hover:bg-transparent">
-          <TableHeaderCell className="w-16 sm:w-20" title="Cambodia time (UTC+7)">
-            Time
+          <TableHeaderCell className="w-16 sm:w-20" title={t("timeHint")}>
+            {t("time")}
           </TableHeaderCell>
-          <TableHeaderCell className="hidden w-32 xl:table-cell">Action</TableHeaderCell>
-          <TableHeaderCell>Record</TableHeaderCell>
-          <TableHeaderCell className="hidden w-[20%] xl:table-cell">By</TableHeaderCell>
-          <TableHeaderCell className="hidden w-[26%] xl:table-cell">What changed</TableHeaderCell>
+          <TableHeaderCell className="hidden w-40 xl:table-cell">{t("action")}</TableHeaderCell>
+          <TableHeaderCell>{t("record")}</TableHeaderCell>
+          <TableHeaderCell className="hidden w-[20%] xl:table-cell">{t("by")}</TableHeaderCell>
+          <TableHeaderCell className="hidden w-[26%] xl:table-cell">{t("whatChanged")}</TableHeaderCell>
           <TableHeaderCell className="w-12 sm:w-20">
-            <span className="sr-only">View</span>
+            <span className="sr-only">{t("view")}</span>
           </TableHeaderCell>
         </TableRow>
       </TableHead>
@@ -422,12 +437,13 @@ function AuditTableRow({
   readonly selected: boolean;
   readonly onOpen: (id: number) => void;
 }) {
+  const t = useTranslations("audit");
   const purge = row.action === "PURGE";
-  const primary = purge ? "Audit log" : (row.name ?? row.typeLabel);
-  const secondary = purge ? "Every entry" : row.name ? row.typeLabel : null;
+  const primary = purge ? t("table.auditLog") : (row.name ?? row.typeLabel);
+  const secondary = purge ? t("table.everyEntry") : row.name ? row.typeLabel : null;
   const badge = (
     <Badge dot tone={AUDIT_ACTION_TONES[row.action]}>
-      {AUDIT_ACTION_LABELS[row.action]}
+      {t(`actions.${row.action}`)}
     </Badge>
   );
 
@@ -456,7 +472,7 @@ function AuditTableRow({
         </span>
         {secondary ? <span className="block truncate text-xs text-muted">{secondary}</span> : null}
         <span className="block truncate text-xs text-muted xl:hidden" title={row.summary.title || undefined}>
-          {summaryText(row.summary)} · by {row.actor}
+          {t("table.summaryBy", { summary: summaryText(row.summary, (count) => t("table.more", { count })), actor: row.actor })}
         </span>
       </TableCell>
 
@@ -469,7 +485,7 @@ function AuditTableRow({
             {row.actorEmail}
           </span>
         ) : !row.userId ? (
-          <span className="block text-xs text-muted">Automatic change</span>
+          <span className="block text-xs text-muted">{t("table.automatic")}</span>
         ) : null}
       </TableCell>
 
@@ -480,14 +496,14 @@ function AuditTableRow({
       <TableCell className="py-2 text-right align-top">
         <Button
           aria-haspopup="dialog"
-          aria-label={`View the change to ${primary} at ${row.time}`}
+          aria-label={t("table.viewLabel", { name: primary, time: row.time })}
           onClick={() => onOpen(row.id)}
           className="px-2"
           size="sm"
           type="button"
           variant="ghost"
         >
-          <span className="hidden sm:inline">View</span>
+          <span className="hidden sm:inline">{t("table.view")}</span>
           <ChevronRight aria-hidden className="size-4 sm:hidden" />
         </Button>
       </TableCell>
@@ -496,6 +512,7 @@ function AuditTableRow({
 }
 
 function ChangeSummary({ summary }: { readonly summary: AuditSummary }) {
+  const t = useTranslations("audit.table");
   if (summary.note) {
     return <span className="block truncate text-sm text-muted">{summary.note}</span>;
   }
@@ -504,7 +521,7 @@ function ChangeSummary({ summary }: { readonly summary: AuditSummary }) {
       <span className="truncate text-sm text-ink-soft">{summary.fields.join(", ")}</span>
       {summary.more ? (
         <span className="shrink-0 rounded-sm bg-sand-deep px-1.5 text-2xs leading-5 font-medium text-muted tabular-nums">
-          +{summary.more} more
+          {t("more", { count: summary.more })}
         </span>
       ) : null}
     </span>
@@ -539,27 +556,30 @@ function SkeletonRow() {
 }
 
 function LoadFailed({ onRetry }: { readonly onRetry: () => void }) {
+  const t = useTranslations("audit.failed");
+  const common = useTranslations("common");
   return (
     <div className="flex flex-col items-center px-6 py-10 text-center" role="alert">
       <span className="mb-3 grid size-9 place-items-center rounded-lg border border-heritage/20 bg-heritage-soft text-heritage">
         <CircleAlert aria-hidden className="size-4" />
       </span>
-      <p className="text-sm font-semibold text-ink">The changes could not be loaded</p>
-      <p className="mt-1 max-w-sm text-sm text-muted">The API did not answer. Check that it is running, then try again.</p>
+      <p className="text-sm font-semibold text-ink">{t("title")}</p>
+      <p className="mt-1 max-w-sm text-sm text-muted">{t("text")}</p>
       <Button className="mt-4" onClick={onRetry} size="sm" type="button" variant="secondary">
         <RotateCw aria-hidden className="size-3.5" />
-        Try again
+        {common("tryAgain")}
       </Button>
     </div>
   );
 }
 
 function PageSize({ value, onChange }: { readonly value: number; readonly onChange: (size: number) => void }) {
+  const t = useTranslations("common.pagination");
   const id = useId();
   return (
     <span className="flex items-center gap-2">
       <label className="text-xs text-muted" htmlFor={id}>
-        Rows per page
+        {t("rowsPerPage")}
       </label>
       <Select className="h-8 w-19 text-sm" id={id} onChange={(event) => onChange(Number(event.target.value))} value={String(value)}>
         {AUDIT_PAGE_SIZES.map((option) => (
@@ -591,10 +611,11 @@ function Pagination({
   readonly pageCount: number;
   readonly onPage: (page: number) => void;
 }) {
+  const t = useTranslations("common.pagination");
   return (
-    <nav aria-label="Pagination" className="flex items-center gap-1">
+    <nav aria-label={t("label")} className="flex items-center gap-1">
       <Button
-        aria-label="Previous page"
+        aria-label={t("previous")}
         disabled={page <= 1}
         onClick={() => onPage(page - 1)}
         size="icon-sm"
@@ -604,7 +625,7 @@ function Pagination({
         <ChevronLeft aria-hidden className="size-4" />
       </Button>
       <span className="px-1.5 text-xs text-muted tabular-nums sm:hidden">
-        Page {page} of {pageCount}
+        {t("pageOf", { page, count: pageCount })}
       </span>
       <span className="hidden items-center gap-0.5 sm:flex">
         {pageWindow(page, pageCount).map((item, index) =>
@@ -615,7 +636,7 @@ function Pagination({
           ) : (
             <button
               aria-current={item === page ? "page" : undefined}
-              aria-label={`Page ${item}`}
+              aria-label={t("page", { page: item })}
               className={cn(
                 "h-8 min-w-8 rounded-md px-2 text-xs font-medium tabular-nums transition-colors",
                 item === page ? "bg-teal-soft text-teal-deep" : "text-ink-soft hover:bg-sand-deep hover:text-ink",
@@ -630,7 +651,7 @@ function Pagination({
         )}
       </span>
       <Button
-        aria-label="Next page"
+        aria-label={t("next")}
         disabled={page >= pageCount}
         onClick={() => onPage(page + 1)}
         size="icon-sm"

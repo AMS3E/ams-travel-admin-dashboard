@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Plus } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -24,6 +25,7 @@ import {
 import { getRecords } from "@/features/catalog/api/catalog.server";
 import { AllDestinationsTable } from "@/features/catalog/components/all-destinations-table";
 import { ResourceTable } from "@/features/catalog/components/resource-table";
+import { localizeDefinition, localizedResource } from "@/features/catalog/localize.server";
 import { withoutField } from "@/features/catalog/resource";
 import { getResource } from "@/features/catalog/resources";
 import { PageHeader } from "@/features/shell/components/page-header";
@@ -43,6 +45,7 @@ import { cn } from "@/lib/utils";
  * switched on; an author who cannot publish sends theirs for review from here.
  */
 export async function AllDestinationsPage({ roles, tab }: { readonly roles: readonly string[]; readonly tab: unknown }) {
+  const t = await getTranslations("catalog");
   const types = destinationTypes(roles);
   const chosen = chosenType(tab, types);
   const userId = await getBackendUserId();
@@ -50,13 +53,16 @@ export async function AllDestinationsPage({ roles, tab }: { readonly roles: read
   /* Each type's rows, for the counts on the tabs and the All table. A type the API will not list shows no count. */
   const reviewer = hasAnyPermission(roles, ["PERM_PARTNER_PUBLISH_APPROVE", "PERM_CONTRIBUTOR_PUBLISH_APPROVE"]);
   const submitter = hasPermission(roles, "PERM_PUBLISH_REQUEST_VIEW_OWN");
-  const [queue, mine, [provinces, ...lists]] = await Promise.all([
+  const [queue, mine, [provinces, ...lists], definitions] = await Promise.all([
     reviewer ? getReviewQueue() : [],
     submitter ? getMyRequests() : [],
     Promise.allSettled([getRecords("provinces"), ...types.map((type) => getRecords(type.key))]),
+    Promise.all(types.map((type) => localizedResource(type.key))),
   ]);
   const marks = reviewMarks([...queue, ...mine], roles, userId);
-  const approvals = approvalMarks([...queue, ...mine]);
+  const approvals = approvalMarks([...queue, ...mine], (await getTranslations("publishing"))("decision.aReviewer"));
+  /* Destination Detail reads the stats, so only who may read those opens it from a name. */
+  const insight = hasPermission(roles, "PERM_DESTINATION_EDIT_ANY");
   const provinceNames = new Map(
     provinces.status === "fulfilled" ? provinces.value.map((row) => [row.id, String(row.name ?? "")]) : [],
   );
@@ -66,7 +72,13 @@ export async function AllDestinationsPage({ roles, tab }: { readonly roles: read
       if (list.status !== "fulfilled") return [];
       /* A partner's stays and foods are theirs alone. */
       const records = seesOwnListingsOnly(roles, type.key) ? list.value.filter((row) => row.ownerUserId === userId) : list.value;
-      return [[type.key, toRows(type.key, records, provinceNames)] as const];
+      const words = {
+        definition: definitions[index],
+        typeLabel: t(`types.${type.key}.one`),
+        untitled: t(`types.${type.key}.untitled`),
+        kindWords: { CAFE: t("kinds.CAFE") },
+      };
+      return [[type.key, toRows(type.key, records, words, provinceNames, insight)] as const];
     }),
   );
   const rows = allRows([...rowsByType.values()]);
@@ -92,17 +104,17 @@ export async function AllDestinationsPage({ roles, tab }: { readonly roles: read
           create ? (
             <Link className={buttonVariants()} href={create}>
               <Plus aria-hidden className="size-4" />
-              {chosen ? `New ${chosen.one}` : "Create destination"}
+              {chosen ? t(`types.${chosen.key}.new`) : t("allDestinations.create")}
             </Link>
           ) : null
         }
-        description={`Every attraction, place to eat and stay in one place. Open a tab to manage one type.${scoped ? " You are shown your own." : ""}`}
-        eyebrow="Content Management"
-        title="All Destinations"
+        description={scoped ? t("allDestinations.descriptionScoped") : t("allDestinations.description")}
+        eyebrow={t("contentManagement")}
+        title={t("allDestinations.title")}
       />
 
       {types.length > 1 ? (
-        <nav aria-label="Main types" className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-line">
+        <nav aria-label={t("allDestinations.mainTypes")} className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-line">
           {[null, ...types].map((type) => {
             const on = (type?.tab ?? null) === (chosen?.tab ?? null);
             const count = type ? rowsByType.get(type.key)?.length : rows.length;
@@ -116,7 +128,7 @@ export async function AllDestinationsPage({ roles, tab }: { readonly roles: read
                 href={type ? `/destinations?type=${type.tab}` : "/destinations"}
                 key={type?.tab ?? "all"}
               >
-                {type?.label ?? "All"}
+                {type ? t(`types.${type.key}.tab`) : t("allDestinations.all")}
                 <span className={cn("rounded-full px-1.5 text-xs tabular-nums", on ? "bg-sand-deep text-ink-soft" : "bg-sand text-muted")}>
                   {count ?? "–"}
                 </span>
@@ -128,7 +140,7 @@ export async function AllDestinationsPage({ roles, tab }: { readonly roles: read
 
       {missing.length && !chosen ? (
         <p className="rounded-md border border-heritage/20 bg-heritage-soft px-3 py-2 text-sm text-heritage" role="alert">
-          {missing.map((type) => type.label).join(", ")} could not be loaded, so they are missing from All. Refresh to try again.
+          {t("allDestinations.missing", { list: missing.map((type) => t(`types.${type.key}.tab`)).join(", ") })}
         </p>
       ) : null}
 
@@ -147,7 +159,7 @@ export async function AllDestinationsPage({ roles, tab }: { readonly roles: read
 }
 
 /** A type's own table, with everything its list can do. */
-function TypeTable({ roles, type, userId, marks, approvals }: {
+async function TypeTable({ roles, type, userId, marks, approvals }: {
   readonly roles: readonly string[];
   readonly type: DestinationType;
   readonly userId: string | null;
@@ -156,21 +168,28 @@ function TypeTable({ roles, type, userId, marks, approvals }: {
 }) {
   const attractions = type.key === "destinations";
   const scoped = seesOwnRowsOnly(roles, type.key);
+  /* A name opens Destination Detail for who may read the stats; the pencil keeps the form. */
+  const detailHref = hasPermission(roles, "PERM_DESTINATION_EDIT_ANY") ? `/${type.key}/{id}/detail?from=${type.tab}` : undefined;
   /* A reviewer's workspace is neither everything nor their own — say which. */
   const reviewing = attractions && !hasPermission(roles, "PERM_DESTINATION_EDIT_ANY") && hasPermission(roles, "PERM_PARTNER_LISTING_EDIT");
+  const t = await getTranslations("catalog.allDestinations");
+  const definition = await localizeDefinition(
+    namesListingOwner(roles, type.key) ? getResource(type.key) : withoutField(getResource(type.key), "ownerUserId"),
+  );
   return (
     <>
-      {reviewing ? <p className="text-sm text-muted">You are shown the attractions partners have submitted to you.</p> : null}
+      {reviewing ? <p className="text-sm text-muted">{t("reviewing")}</p> : null}
       <ResourceTable
         canDelete={canDeleteResource(roles, type.key)}
         canSetStatus={canSetStatus(roles, type.key)}
-        definition={namesListingOwner(roles, type.key) ? getResource(type.key) : withoutField(getResource(type.key), "ownerUserId")}
+        definition={definition}
+        detailHref={detailHref}
         grants={roles}
         key={type.key}
         approvals={approvals}
         marks={marks}
         ownedBy={seesOwnListingsOnly(roles, type.key) ? userId : null}
-        verifiable={attractions}
+        verifiable
         ownerFilter={attractions && !scoped && canCreateResource(roles, type.key)}
         referenceOptions={{}}
         userId={attractions ? userId : null}

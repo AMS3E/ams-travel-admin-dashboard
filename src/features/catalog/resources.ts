@@ -80,6 +80,9 @@ const CORRIDOR_ROUTE_STATUSES: readonly EnumOption[] = [
  * A season on or off the tourist calendar. Its badge periods follow the flag,
  * and only a season on the calendar is kept from overlapping another.
  */
+/* Badges carry an ACTIVE / INACTIVE `status`, not an `isActive` flag. */
+const BADGE_STATUS: ResourceStatus = { ...ACTIVE_FLAG, field: "status" };
+
 const SEASON_STATUS: ResourceStatus = {
   ...ACTIVE_FLAG,
   options: [
@@ -117,12 +120,11 @@ const BADGE_CRITERIA: readonly EnumOption[] = [
   { value: "STAMPS", label: "Stamps collected" },
   { value: "DESTINATION_STAMPS", label: "Stamps at chosen destinations" },
 ];
-/* Worked out by the API from the criteria; shown, never written. */
-const BADGE_TRACKS = options(["BROWSER", "REVIEWER", "ADVENTURE"]);
 const BADGE_TIERS = options(["SILVER", "GOLDEN", "PLATINUM"]);
-const SEASON_KINDS: readonly EnumOption[] = [
-  { value: "HIGH", label: "High season" },
-  { value: "GREEN", label: "Green season" },
+/* The API's SeasonType. */
+const SEASON_TYPES: readonly EnumOption[] = [
+  { value: "HIGH_SEASON", label: "High season" },
+  { value: "GREEN_SEASON", label: "Green season" },
 ];
 /* --- a stay's house rules, services and ways to pay ------------------------- */
 
@@ -252,6 +254,25 @@ const stayTrust: readonly ResourceField[] = [
   { name: "telegram", label: "Telegram", kind: "text", maxLength: 100, section: "Contact", hint: "A handle such as @riversidehotel, or a t.me link." },
   { name: "whatsapp", label: "WhatsApp", kind: "text", maxLength: 50, section: "Contact", hint: "The number WhatsApp answers on, with the country code." },
   { name: "facebookUrl", label: "Facebook page", kind: "text", maxLength: 512, section: "Contact" },
+];
+
+/**
+ * What the API stores but no form asks any more: the short food form (2026-09-23)
+ * dropped these. Carried as stored, so saving a listing keeps them instead of
+ * sending them empty — the API writes every one of them on each update.
+ */
+const keptAsStored = (names: readonly string[], kind: "enums" | "enum" | "number" | "text"): ResourceField[] =>
+  names.map((name) => ({ name, label: name, kind, derived: true, ...(kind === "enums" || kind === "enum" ? { options: [] } : {}), ...(kind === "text" ? { blank: "null" as const } : {}) }));
+
+const foodKept: readonly ResourceField[] = [
+  ...keptAsStored(["cuisines", "mealsServed", "dietary", "serviceOptions", "goodFor", "menuLanguages", "deliveryPartners", "languagesSpoken", "amenities"], "enums"),
+  ...keptAsStored(["alcohol", "parkingOption", "reservations"], "enum"),
+  ...keptAsStored(["seatingCapacity", "yearOpened"], "number"),
+];
+
+const stayKept: readonly ResourceField[] = [
+  ...keptAsStored(["licenseNumber"], "text"),
+  ...keptAsStored(["yearOpened"], "number"),
 ];
 
 /* --- food ---------------------------------------------------------------- */
@@ -694,6 +715,16 @@ const shortDescription: ResourceField = {
   hint: "One or two sentences. This is the text on every card across the website.",
 };
 
+/** A row's Khmer name, typed by hand beside its English one; the API's column is as long as the English. */
+const nameKm = (maxLength: number, hint = "Typed by hand, never machine-translated. Leave it empty until it is written."): ResourceField => ({
+  name: "nameKm",
+  label: "Name in Khmer",
+  kind: "text",
+  maxLength,
+  khmerOf: "name",
+  hint,
+});
+
 const iconKey: ResourceField = {
   name: "iconKey",
   label: "Icon",
@@ -965,6 +996,27 @@ const pinProvince: ResourceField = ref("provinceId", "Province", "provinces", {
  * from every save (see `derived`).
  */
 const listingShortDescription: ResourceField = { ...shortDescription, maxLength: 500, derived: true };
+/*
+ * A listing's Khmer, typed by hand: each one takes its English field's place
+ * when the form's language switch is on Khmer. Khmer is optional for now
+ * (2026-10-21): the form counts what is still to write, nothing waits on it.
+ */
+const listingKhmer: readonly ResourceField[] = [
+  { ...nameKm(255), span: 2 },
+  { name: "sloganKm", label: "Slogan in Khmer", kind: "text", maxLength: 300, span: 2, khmerOf: "slogan" },
+  { name: "sloganByKm", label: "Said by, in Khmer", kind: "text", maxLength: 120, khmerOf: "sloganBy" },
+  {
+    name: "descriptionKm",
+    label: "About in Khmer",
+    kind: "textarea",
+    rich: true,
+    span: 2,
+    khmerOf: "description",
+    hint: "The full story in Khmer, written for Khmer readers rather than word for word.",
+  },
+  /* Beside the province, under the map, as the English address is. */
+  { name: "addressKm", label: "Address in Khmer", kind: "text", section: "Location", khmerOf: "address" },
+];
 const contact = (websiteLength: number): readonly ResourceField[] => [
   { name: "phone", label: "Phone", kind: "text", section: "Contact", maxLength: 50 },
   { name: "contactEmail", label: "E-mail", kind: "text", section: "Contact", maxLength: 255 },
@@ -1042,15 +1094,14 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     description:
       "Every place a visitor can open. The richest record in the catalogue.",
     titleField: "name",
-    searchFields: ["name", "slug", "address", "shortDescription"],
+    searchFields: ["name", "nameKm", "slug", "address", "shortDescription"],
     status: DESTINATION_PUBLICATION,
+    /* As the All Destinations table reads: the place under the name, no column of its own. */
     columns: [
-      { name: "name", label: "Name" },
-      { name: "address", label: "Address", secondary: true },
+      { name: "name", label: "Name", detail: { text: "address", ref: { field: "provinceId", resource: "provinces" } } },
       { name: "createdBy", label: "Created by", kind: "ref", ref: "users", secondary: true },
-      { name: "approvedBy", label: "Approved by", kind: "approval", secondary: true },
       { name: "verified", label: "Verified", kind: "verified", secondary: true },
-      { name: "provinceId", label: "Province", kind: "ref", ref: "provinces", secondary: true },
+      { name: "missingKhmer", label: "Khmer", kind: "khmer", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
     /*
@@ -1093,6 +1144,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       ...regionClassification,
       /* Its address sits beside its province, under the map. */
       ...location.map((field): ResourceField => (field.name === "address" ? { ...field, span: 1 } : field)),
+      ...listingKhmer,
     ] satisfies readonly ResourceField[],
   },
 
@@ -1127,14 +1179,14 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     description:
       "Hotels, resorts, guesthouses and homestays — a partner's own, or listed by the editors. Each shows on the page of every destination within 50 km of its map pin.",
     titleField: "name",
-    searchFields: ["name", "address", "shortDescription"],
+    searchFields: ["name", "nameKm", "address", "shortDescription"],
     status: PUBLICATION,
     columns: [
-      { name: "name", label: "Name" },
-      { name: "address", label: "Address", secondary: true },
+      { name: "name", label: "Name", detail: { text: "address", ref: { field: "provinceId", resource: "provinces" } } },
       { name: "ownerUserId", label: "Created by", kind: "ref", ref: "users", secondary: true },
-      { name: "approvedBy", label: "Approved by", kind: "approval", secondary: true },
+      { name: "verified", label: "Verified", kind: "verified", secondary: true },
       { name: "type", label: "Type", kind: "enum", options: STAY_TYPES, secondary: true },
+      { name: "missingKhmer", label: "Khmer", kind: "khmer", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
     /*
@@ -1202,6 +1254,8 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       ),
       ...stayRules,
       ...stayPayments,
+      ...stayKept,
+      ...listingKhmer,
       /* The policies in the host's own words, as Markdown; the app shows it under Stay policies. The one-box-per-rule fields above are kept, never asked. */
       {
         name: "policies",
@@ -1242,15 +1296,14 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     description:
       "Restaurants, cafes, markets and street food, and the local specialities worth the trip. Each shows on the page of every destination within 50 km of its map pin.",
     titleField: "name",
-    searchFields: ["name", "slug", "address", "shortDescription"],
+    searchFields: ["name", "nameKm", "slug", "address", "shortDescription"],
     status: PUBLICATION,
     columns: [
-      { name: "name", label: "Name" },
-      { name: "address", label: "Address", secondary: true },
+      { name: "name", label: "Name", detail: { text: "address", ref: { field: "provinceId", resource: "provinces" } } },
       { name: "createdBy", label: "Created by", kind: "ref", ref: "users", secondary: true },
-      { name: "approvedBy", label: "Approved by", kind: "approval", secondary: true },
+      { name: "verified", label: "Verified", kind: "verified", secondary: true },
       { name: "type", label: "Type", kind: "enum", options: FOOD_TYPES, secondary: true },
-      { name: "isLocalSpecialty", label: "Speciality", kind: "boolean", secondary: true },
+      { name: "missingKhmer", label: "Khmer", kind: "khmer", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
     /*
@@ -1317,6 +1370,8 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { name: "whatsapp", label: "WhatsApp", kind: "text", maxLength: 50, section: "Contact", hint: "The number WhatsApp answers on, with the country code." },
       { name: "facebookUrl", label: "Facebook page", kind: "text", maxLength: 512, section: "Contact", hint: "Where most places here post today's dishes." },
       /* "Known for a local speciality" is no longer asked; the API keeps a record's value when it is not sent. */
+      ...foodKept,
+      ...listingKhmer,
     ] satisfies readonly ResourceField[],
   },
 
@@ -1498,7 +1553,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     description:
       "The regions travellers discover Cambodia by. Each has its own categories and search filters.",
     titleField: "name",
-    searchFields: ["name", "code"],
+    searchFields: ["name", "nameKm", "code"],
     /* In the curators' order, 1 to 9: Discover, the theme tiles and every region list follow it. */
     orderField: "sortOrder",
     status: ACTIVE_FLAG,
@@ -1509,6 +1564,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { name: "code", label: "Code", secondary: true },
       { name: "categoryIds", label: "Categories", kind: "refs", ref: "categories" },
       { name: "tagIds", label: "Search filters", kind: "refs", ref: "tags", secondary: true },
+      { name: "nameKm", label: "Khmer", kind: "khmer", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
     /*
@@ -1522,6 +1578,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { name: "code", label: "Code", kind: "text", blank: "null", derived: true },
       ref("parentId", "Part of", "regions", { derived: true }),
       { ...name(), hint: "As the website's Discover page names it. A new region's page address is made from it." },
+      nameKm(150),
       {
         name: "sortOrder",
         label: "Its number on Discover",
@@ -1531,6 +1588,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         hint: "Discover, the attraction form's themes and every list of regions show them in this order. The others move to make room.",
       },
       { ...description, label: "Overview", rich: true, hint: "The lines under its name on its Discover page, under Overview." },
+      { ...description, name: "descriptionKm", label: "Overview in Khmer", rich: true, khmerOf: "description" },
       { ...cover("region", "Cover picture"), hint: "Its card on Explore and the banner of its page in the app. A wide photograph of the region's best-known place reads best." },
       {
         name: "mapKey",
@@ -1665,17 +1723,19 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     group: "Places",
     description: "Cambodia's provinces. A destination is placed by its province; the app lists them with a cover and puts each on its map by its centre.",
     titleField: "name",
-    searchFields: ["name", "slug"],
+    searchFields: ["name", "nameKm", "slug"],
     status: ACTIVE_FLAG,
     columns: [
       { name: "name", label: "Name" },
       { name: "placeCount", label: "Places", kind: "number", secondary: true },
       { name: "createdBy", label: "Created by", kind: "ref", ref: "users", secondary: true },
+      { name: "nameKm", label: "Khmer", kind: "khmer", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
     /* Its name, its picture and its centre: no zone, the API makes its address, and the country is always Cambodia. */
     fields: [
       { ...name(), hint: "For example: Kampot." },
+      nameKm(150),
       { ...cover("province", "Cover picture"), hint: "Its card on the app's list of provinces and the top of its page. A wide photograph of its best-known place reads best." },
       ...centre("province"),
     ],
@@ -1688,7 +1748,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     group: "Places",
     description: "What travellers explore by, in six groups: the Explore shelves and each province's page. A Tourism Corridors interest lists corridors.",
     titleField: "name",
-    searchFields: ["name", "slug"],
+    searchFields: ["name", "nameKm", "slug"],
     groupBy: { field: "groupName", order: INTEREST_GROUPS.map((option) => option.value) },
     /* Numbered within the group: the Explore shelves and each province's page follow it. */
     orderField: "sortOrder",
@@ -1698,12 +1758,14 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { name: "groupName", label: "Group", secondary: true },
       { name: "sortOrder", label: "#", kind: "number", secondary: true },
       { name: "createdBy", label: "Created by", kind: "ref", ref: "users", secondary: true },
+      { name: "nameKm", label: "Khmer", kind: "khmer", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
     /* Compact, with a live preview beside it: name, group, its place in the group, picture. */
     preview: "interest",
     fields: [
       { ...name(), span: 2, hint: "For example: Waterfalls." },
+      { ...nameKm(100), span: 2 },
       {
         name: "groupName",
         label: "Group",
@@ -1723,6 +1785,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         hint: "Click between two, or use the arrows. The others move to make room.",
       },
       { ...description, hint: "Optional. The line under its name on its page." },
+      { ...description, name: "descriptionKm", label: "Description in Khmer", khmerOf: "description" },
       { ...cover("interest", "Cover picture"), hint: "Its picture on its shelf and at the top of its page. A clear photograph of the activity reads best." },
     ],
   },
@@ -1734,18 +1797,20 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     group: "Taxonomy",
     description: "What each tourism region's places are sorted by, such as Temples or Beach. An attraction is offered only its region's own.",
     titleField: "name",
-    searchFields: ["name", "slug"],
+    searchFields: ["name", "nameKm", "slug"],
     status: ACTIVE_FLAG,
     columns: [
       { name: "name", label: "Name" },
       { name: "tourismRegionIds", label: "Tourism regions", kind: "refs", ref: "tourism-regions" },
       { name: "createdBy", label: "Created by", kind: "ref", ref: "users", secondary: true },
+      { name: "nameKm", label: "Khmer", kind: "khmer", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
     /* Its regions first, and what they already have. Its web name comes from its name; the list is A to Z. */
     fields: [
       { ...regionsOf("category", "categoryIds"), tiles: true, siblings: true },
       { ...name(), hint: "What a traveller browsing the region looks for, e.g. Temples." },
+      nameKm(100),
       { ...description, hint: "Optional. A line on what belongs in it." },
     ],
   },
@@ -1757,18 +1822,20 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     group: "Taxonomy",
     description: "The search filters each tourism region offers, such as UNESCO or Kayak. An attraction is offered only its region's own.",
     titleField: "name",
-    searchFields: ["name", "slug"],
+    searchFields: ["name", "nameKm", "slug"],
     status: ACTIVE_FLAG,
     columns: [
       { name: "name", label: "Name" },
       { name: "tourismRegionIds", label: "Tourism regions", kind: "refs", ref: "tourism-regions" },
       { name: "createdBy", label: "Created by", kind: "ref", ref: "users", secondary: true },
+      { name: "nameKm", label: "Khmer", kind: "khmer", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
     /* Its regions first, and the tags they already have. */
     fields: [
       { ...regionsOf("tag", "tagIds"), tiles: true, siblings: true },
       { ...name(), hint: "The filter a traveller ticks on the region's page, e.g. Kayak." },
+      nameKm(100),
       { ...description, hint: "Optional. A line on when it applies." },
     ],
   },
@@ -1844,15 +1911,14 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     description:
       "What a traveller earns for exploring: browsing, reviewing and collecting stamps. The track and tier follow from how a badge is earned; a new badge gets a period for every season.",
     titleField: "name",
-    searchFields: ["name", "code", "track", "tier"],
-    status: ACTIVE_FLAG,
+    searchFields: ["name", "code", "type", "level"],
+    status: BADGE_STATUS,
     columns: [
       { name: "name", label: "Name" },
       { name: "code", label: "Code", secondary: true },
-      { name: "track", label: "Track", kind: "enum", options: BADGE_TRACKS, secondary: true },
-      { name: "tier", label: "Tier", kind: "enum", options: BADGE_TIERS },
-      { name: "criteriaType", label: "Earned by", kind: "enum", options: BADGE_CRITERIA, secondary: true },
-      { name: "criteriaValue", label: "Threshold", kind: "number", secondary: true },
+      { name: "level", label: "Tier", kind: "enum", options: BADGE_TIERS },
+      { name: "type", label: "Earned by", kind: "enum", options: BADGE_CRITERIA, secondary: true },
+      { name: "threshold", label: "Threshold", kind: "number", secondary: true },
       { name: "status", label: "Status", kind: "status" },
     ],
     fields: [
@@ -1868,7 +1934,7 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       iconKey,
       description,
       {
-        name: "criteriaType",
+        name: "type",
         label: "Earned by",
         kind: "enum",
         options: BADGE_CRITERIA,
@@ -1876,13 +1942,23 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         section: "Criteria",
       },
       {
-        name: "criteriaValue",
+        name: "threshold",
         label: "Threshold",
         kind: "number",
         min: 1,
         required: true,
         section: "Criteria",
         hint: "How many it takes within one badge period.",
+      },
+      { name: "level", label: "Tier", kind: "enum", options: BADGE_TIERS, section: "Criteria", scale: true },
+      {
+        name: "destinationIds",
+        label: "Destinations",
+        kind: "refs",
+        ref: "destinations",
+        span: 2,
+        section: "Criteria",
+        hint: "Only for stamps at chosen destinations.",
       },
     ],
   },
@@ -1924,14 +2000,14 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     status: SEASON_STATUS,
     columns: [
       { name: "name", label: "Name" },
-      { name: "kind", label: "Kind", kind: "enum", options: SEASON_KINDS, secondary: true },
+      { name: "type", label: "Kind", kind: "enum", options: SEASON_TYPES, secondary: true },
       { name: "startsOn", label: "Starts" },
       { name: "endsOn", label: "Ends" },
       { name: "status", label: "Status", kind: "status" },
     ],
     fields: [
       name("Season name"),
-      { name: "kind", label: "Kind", kind: "enum", options: SEASON_KINDS, required: true, initial: "HIGH" },
+      { name: "type", label: "Kind", kind: "enum", options: SEASON_TYPES, required: true, initial: "HIGH_SEASON" },
       {
         name: "startsOn",
         label: "Starts on",
@@ -1990,6 +2066,7 @@ export function referencedResources(
   if (include !== "fields") {
     for (const column of definition.columns) {
       if (column.ref) keys.add(column.ref);
+      if (column.detail?.ref) keys.add(column.detail.ref.resource);
     }
   }
   if (include !== "columns") {

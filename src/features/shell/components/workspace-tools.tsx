@@ -1,5 +1,8 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+import { useNavText } from "@/features/shell/nav-text";
+
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MapPin, Search, X } from "lucide-react";
@@ -20,6 +23,8 @@ export function WorkspaceTools({ accountId, grants }: {
   readonly accountId: string;
   readonly grants: readonly string[];
 }) {
+  const t = useTranslations("shell.search");
+  const nav = useNavText();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState<"search" | "notifications" | null>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -27,8 +32,9 @@ export function WorkspaceTools({ accountId, grants }: {
   const catalog = useGetCatalogPageQuery({ resource: "destinations", search, page: 0, size: 5 }, {
     skip: search.trim().length < 2 || !canManageResource(grants, "destinations"),
   });
-  const matches = navGroups(grants).flatMap((group) => group.items.map((item) => ({ ...item, group: group.title })))
-    .filter((item) => `${item.label} ${item.group}`.toLowerCase().includes(search.toLowerCase())).slice(0, 6);
+  /* Pages are found by the names the person reads, and by their English names too. */
+  const matches = navGroups(grants).flatMap((group) => group.items.map((item) => ({ ...item, label: nav.label(item.text), englishLabel: item.label, group: nav.group(group) })))
+    .filter((item) => `${item.label} ${item.englishLabel} ${item.group}`.toLowerCase().includes(search.toLowerCase())).slice(0, 6);
 
   useEffect(() => {
     function dismiss(event: Event) {
@@ -66,20 +72,20 @@ export function WorkspaceTools({ accountId, grants }: {
         <label className="flex h-8 w-56 items-center gap-2 rounded-md border border-line-strong bg-field px-2.5 text-muted transition-[border-color,box-shadow] focus-within:border-teal focus-within:ring-3 focus-within:ring-teal/15 hover:border-line-hover lg:w-72">
           <Search aria-hidden className="size-4 shrink-0" />
           <input
-            aria-label="Search destinations and CMS tools"
-            className="w-full min-w-0 bg-transparent text-sm text-ink outline-none placeholder:text-muted/80"
+            aria-label={t("label")}
+            className="w-full min-w-0 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
             onChange={(event) => {
               setSearch(event.target.value);
               setOpen("search");
             }}
             onFocus={() => setOpen("search")}
-            placeholder="Search…"
+            placeholder={t("placeholder")}
             ref={input}
             value={search}
           />
           {search ? (
             <button
-              aria-label="Clear search"
+              aria-label={t("clear")}
               className="grid size-5 place-items-center rounded-sm hover:bg-sand-deep hover:text-ink"
               onClick={() => {
                 setSearch("");
@@ -98,7 +104,7 @@ export function WorkspaceTools({ accountId, grants }: {
           <div className="glass absolute top-10 right-0 z-50 max-h-96 w-[min(24rem,calc(100vw-2rem))] overflow-y-auto rounded-lg border border-line p-1 shadow-pop">
             {matches.length ? (
               <>
-                <p className="px-2 pt-1.5 pb-1 text-2xs font-medium text-muted">Pages</p>
+                <p className="px-2 pt-1.5 pb-1 text-2xs font-medium text-muted">{t("pages")}</p>
                 {matches.map((item) => (
                   <Link
                     className="flex items-center gap-2.5 rounded-md px-2 py-1.5 hover:bg-sand-deep"
@@ -115,7 +121,7 @@ export function WorkspaceTools({ accountId, grants }: {
             ) : null}
             {destinations.length ? (
               <>
-                <p className="px-2 pt-2 pb-1 text-2xs font-medium text-muted">Destinations</p>
+                <p className="px-2 pt-2 pb-1 text-2xs font-medium text-muted">{t("destinations")}</p>
                 {destinations.map((item) => (
                   <Link
                     className="flex items-center gap-2.5 rounded-md px-2 py-1.5 hover:bg-sand-deep"
@@ -132,10 +138,10 @@ export function WorkspaceTools({ accountId, grants }: {
             {!matches.length && !destinations.length ? (
               <p className="px-2 py-3 text-sm text-muted">
                 {catalog.isFetching
-                  ? "Searching destinations…"
+                  ? t("searching")
                   : catalog.isError
-                    ? "Destination search is unavailable. Try again."
-                    : "No results found."}
+                    ? t("unavailable")
+                    : t("none")}
               </p>
             ) : null}
           </div>

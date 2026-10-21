@@ -9,6 +9,15 @@ import {
 import type { ResourceKey } from "@/features/catalog/resource";
 import type { PublishDesk } from "@/features/publishing/api/contracts";
 import { canManageResource, hasAnyPermission, primaryRole, type BusinessRole } from "@/features/auth/permissions";
+import type shellMessages from "@locales/en/shell.json";
+
+/** Where an entry's words are in `shell.json`; a desk's entries name their desk. */
+export type NavItemKey = keyof (typeof shellMessages)["nav"]["items"];
+export type NavGroupKey = keyof (typeof shellMessages)["nav"]["groups"];
+export interface NavText {
+  readonly key: NavItemKey;
+  readonly desk?: Desk;
+}
 
 const ICONS: Readonly<Record<ResourceKey, LucideIcon>> = {
   destinations: MapPin, "destination-media": Images, stays: BedDouble,
@@ -20,7 +29,9 @@ const ICONS: Readonly<Record<ResourceKey, LucideIcon>> = {
 export const resourceIcon = (key: ResourceKey) => ICONS[key];
 export interface NavItem {
   readonly href: string;
+  /** The English name; screens show `text` in the chosen language. */
   readonly label: string;
+  readonly text: NavText;
   readonly icon: LucideIcon;
   readonly description: string;
   readonly resource?: ResourceKey;
@@ -29,21 +40,24 @@ export interface NavItem {
   readonly exact?: boolean;
 }
 export interface NavGroup {
+  /** The English title; screens show `key` in the chosen language. */
   readonly title: string;
+  readonly key: NavGroupKey;
+  readonly desk?: Desk;
   readonly items: readonly NavItem[];
 }
 export const dashboardItem: NavItem = {
-  href: "/dashboard", label: "Dashboard", icon: LayoutDashboard,
+  href: "/dashboard", label: "Dashboard", text: { key: "dashboard" }, icon: LayoutDashboard,
   description: "Your workspace at a glance", aliases: ["/"],
 };
 const writing = ["PERM_LISTING_EDIT_OWN", "PERM_DESTINATION_DRAFT_CREATE", "PERM_DESTINATION_EDIT_ANY"];
 const publishing = ["PERM_PUBLISH_REQUEST_SUBMIT", "PERM_PUBLISH_REQUEST_VIEW_OWN", "PERM_PARTNER_PUBLISH_APPROVE", "PERM_CONTRIBUTOR_PUBLISH_APPROVE"];
 const listingAccess = [...writing, "PERM_PARTNER_LISTING_EDIT"];
-function catalog(href: string, label: string, resource: ResourceKey, description: string): NavItem {
-  return { href, label, resource, description, icon: ICONS[resource] };
+function catalog(href: string, label: string, resource: ResourceKey, description: string, text: NavText): NavItem {
+  return { href, label, text, resource, description, icon: ICONS[resource] };
 }
-function tool(href: string, label: string, icon: LucideIcon, permissions: readonly string[], description: string): NavItem {
-  return { href, label, icon, permissions, description };
+function tool(href: string, label: string, icon: LucideIcon, permissions: readonly string[], description: string, text: NavText): NavItem {
+  return { href, label, text, icon, permissions, description };
 }
 
 /* --- what each role's sidebar is built from ------------------------------ */
@@ -54,12 +68,12 @@ function tool(href: string, label: string, icon: LucideIcon, permissions: readon
  * those two entries.
  */
 const destinations: NavItem = {
-  ...catalog("/destinations", "All Destinations", "destinations", "Every attraction, place to eat and stay, with a tab per main type"),
+  ...catalog("/destinations", "All Destinations", "destinations", "Every attraction, place to eat and stay, with a tab per main type", { key: "destinations" }),
   aliases: ["/stays", "/foods"],
 };
 /* Asks the main type first — attraction, food, stay — then opens that form. */
 const createDestination: NavItem = {
-  ...tool("/create", "Create Destination", Plus, writing, "Choose the main type — attraction, food or stay — then fill in its form"),
+  ...tool("/create", "Create Destination", Plus, writing, "Choose the main type — attraction, food or stay — then fill in its form", { key: "create" }),
   aliases: ["/destinations/new", "/stays/new", "/foods/new"],
   exact: true,
 };
@@ -76,6 +90,7 @@ const CREATE_PAGES: ReadonlySet<string> = new Set([
  */
 const ownContent: NavGroup = {
   title: "Content Management",
+  key: "content",
   items: [destinations],
 };
 
@@ -94,26 +109,28 @@ const VERIFY_PERMISSIONS = ["PERM_VERIFIED_BADGE_SET"];
  */
 const catalogueContent: NavGroup = {
   title: "Content Management",
+  key: "content",
   items: [
     destinations,
-    catalog("/corridors", "Tourism Corridors", "corridors", "Day-by-day travel plans with routes on the map"),
-    catalog("/regions", "Tourism Regions", "regions", "The regions travellers discover Cambodia by, and their own lists"),
-    tool("/verification", "Verification", BadgeCheck, VERIFY_PERMISSIONS, "Verified places show as Recommended by AMS Travel: file what it rests on, renew it, or revoke it"),
-    catalog("/destination-media", "Media Library", "destination-media", "Every photo in the catalogue, in one gallery"),
+    catalog("/corridors", "Tourism Corridors", "corridors", "Day-by-day travel plans with routes on the map", { key: "corridors" }),
+    catalog("/regions", "Tourism Regions", "regions", "The regions travellers discover Cambodia by, and their own lists", { key: "regions" }),
+    tool("/verification", "Verification", BadgeCheck, VERIFY_PERMISSIONS, "Verified places show as Recommended by AMS Travel: file what it rests on, renew it, or revoke it", { key: "verification" }),
+    catalog("/destination-media", "Media Library", "destination-media", "Every photo in the catalogue, in one gallery", { key: "mediaLibrary" }),
     /* Read-only: what travellers make of each place, and what its Verified badge rests on. */
-    tool("/destination-stats", "Destination Stats", ChartColumn, ["PERM_DESTINATION_EDIT_ANY"], "Ratings, reviews, browses and the Verified standing of every destination"),
+    tool("/destination-stats", "Destination Stats", ChartColumn, ["PERM_DESTINATION_EDIT_ANY"], "Ratings, reviews, browses and the Verified standing of every destination", { key: "destinationStats" }),
   ],
 };
 
 /* What a place is sorted and filtered by, most used first; the provinces, which rarely change, last. */
 const taxonomy: NavGroup = {
   title: "Taxonomy",
+  key: "taxonomy",
   items: [
     /* One tree, by region: each tourism region's own categories and search filters. The two old lists answer bookmarks. */
-    { ...catalog("/categories-and-tags", "Tourism Regions", "categories", "Each tourism region's own categories and search filters, in one tree"), aliases: ["/categories", "/tags"] },
-    catalog("/amenities", "Amenities", "amenities", "What a stay offers, at the property and in the room"),
-    catalog("/interests", "Interests", "interests", "Ways for travelers to explore"),
-    catalog("/provinces", "Provinces", "provinces", "Manage Cambodia's provinces"),
+    { ...catalog("/categories-and-tags", "Tourism Regions", "categories", "Each tourism region's own categories and search filters, in one tree", { key: "taxonomyTree" }), aliases: ["/categories", "/tags"] },
+    catalog("/amenities", "Amenities", "amenities", "What a stay offers, at the property and in the room", { key: "amenities" }),
+    catalog("/interests", "Interests", "interests", "Ways for travelers to explore", { key: "interests" }),
+    catalog("/provinces", "Provinces", "provinces", "Manage Cambodia's provinces", { key: "provinces" }),
   ],
 };
 
@@ -144,27 +161,31 @@ export type Desk = keyof typeof DESKS;
  */
 function management(desk: Desk, submitterOnly = false): NavGroup {
   const { name, reviewer } = DESKS[desk];
-  const requests = tool(`/${desk}-requests`, `${name} Requests`, ClipboardCheck, publishing, `Publishing requests from the ${name.toLowerCase()} desk`);
-  const approvals = tool(`/${desk}-listing-approvals`, "All List Approvals", ShieldCheck, publishing, "Approved and rejected listings, and those still waiting");
+  const requests = tool(`/${desk}-requests`, `${name} Requests`, ClipboardCheck, publishing, `Publishing requests from the ${name.toLowerCase()} desk`, { key: "deskRequests", desk });
+  const approvals = tool(`/${desk}-listing-approvals`, "All List Approvals", ShieldCheck, publishing, "Approved and rejected listings, and those still waiting", { key: "deskApprovals", desk });
   /* A desk that publishes what it writes answers its own request; the others wait on their reviewer. */
   const ownDrafts = tool(`/${desk}-draft`, "Drafts", FilePenLine, listingAccess,
-    DESKS[desk].desk === "STAFF" ? "Your drafts, to publish or send for review" : `Your drafts waiting for ${reviewer} review`);
+    DESKS[desk].desk === "STAFF" ? "Your drafts, to publish or send for review" : `Your drafts waiting for ${reviewer} review`,
+    { key: DESKS[desk].desk === "STAFF" ? "deskStaffDrafts" : "deskOwnDrafts", desk });
   return {
     title: `${name} Management`,
+    key: "desk",
+    desk,
     items: submitterOnly
       ? [ownDrafts, requests, approvals]
-      : [requests, approvals, tool(`/${desk}-draft`, `${name} Drafts`, FilePenLine, listingAccess, `Unpublished ${name.toLowerCase()} destinations`)],
+      : [requests, approvals, tool(`/${desk}-draft`, `${name} Drafts`, FilePenLine, listingAccess, `Unpublished ${name.toLowerCase()} destinations`, { key: "deskReviewDrafts", desk })],
   };
 }
 
 /* People first, then who may do what, then the record of what they did, then the settings. */
 const administration: NavGroup = {
   title: "Administration",
+  key: "administration",
   items: [
-    tool("/users", "Users", Users, ["PERM_USER_MANAGE"], "Customers who registered on the public site"),
-    { ...tool("/roles", "Roles & Permissions", ShieldCheck, ["PERM_ROLE_ASSIGN"], "Partner, contributor, editor, BDO, and administrator accounts"), aliases: ["/people"] },
-    { ...tool("/audit-logs", "Audit Logs", FileClock, ["PERM_AUDIT_VIEW"], "A record of changes across your CMS"), aliases: ["/audit"] },
-    tool("/settings", "Settings", Settings, ["PERM_FULL_CONTROL"], "Workspace preferences and catalog configuration"),
+    tool("/users", "Users", Users, ["PERM_USER_MANAGE"], "Customers who registered on the public site", { key: "users" }),
+    { ...tool("/roles", "Roles & Permissions", ShieldCheck, ["PERM_ROLE_ASSIGN"], "Partner, contributor, editor, BDO, and administrator accounts", { key: "roles" }), aliases: ["/people"] },
+    { ...tool("/audit-logs", "Audit Logs", FileClock, ["PERM_AUDIT_VIEW"], "A record of changes across your CMS", { key: "auditLogs" }), aliases: ["/audit"] },
+    tool("/settings", "Settings", Settings, ["PERM_FULL_CONTROL"], "Workspace preferences and catalog configuration", { key: "settings" }),
   ],
 };
 
@@ -200,12 +221,12 @@ export const roleNavigation: Readonly<Record<BusinessRole, readonly NavGroup[]>>
  * Create Destination and Drafts left the sidebar on 2026-10-09: creating is
  * the button on All Destinations, and drafts are its status filter.
  */
-export const legacyNavigation: readonly NavGroup[] = [{ title: "Workspace", items: [
+export const legacyNavigation: readonly NavGroup[] = [{ title: "Workspace", key: "workspace", items: [
   createDestination,
-  tool("/drafts", "Drafts", FilePenLine, listingAccess, "Destinations that have not been published"),
-  tool("/publish-requests", "Publish Requests", ClipboardCheck, publishing, "Review submissions and track publication"),
-  tool("/reviews", "Reviews", MessageSquare, ["PERM_REVIEW_MODERATE"], "Moderate traveler feedback"),
-  tool("/partner-listings", "Partner Listings", Store, ["PERM_PARTNER_PUBLISH_APPROVE", "PERM_LISTING_EDIT_OWN"], "Listings submitted by travel partners"),
+  tool("/drafts", "Drafts", FilePenLine, listingAccess, "Destinations that have not been published", { key: "drafts" }),
+  tool("/publish-requests", "Publish Requests", ClipboardCheck, publishing, "Review submissions and track publication", { key: "publishRequests" }),
+  tool("/reviews", "Reviews", MessageSquare, ["PERM_REVIEW_MODERATE"], "Moderate traveler feedback", { key: "reviews" }),
+  tool("/partner-listings", "Partner Listings", Store, ["PERM_PARTNER_PUBLISH_APPROVE", "PERM_LISTING_EDIT_OWN"], "Listings submitted by travel partners", { key: "partnerListings" }),
 ] }];
 
 function allowed(grants: readonly string[], item: NavItem): boolean {
@@ -235,7 +256,7 @@ export function navigationForPath(pathname: string, grants?: readonly string[]) 
     ...Object.values(roleNavigation).flat(),
     ...legacyNavigation,
   ];
-  return groups.flatMap((group) => group.items.map((item) => ({ ...item, group: group.title })))
+  return groups.flatMap((group) => group.items.map((item) => ({ ...item, group: group.title, navGroup: group })))
     .sort((a, b) => b.href.length - a.href.length)
     .find((item) => isNavigationActive(item, pathname));
 }

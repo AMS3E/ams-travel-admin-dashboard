@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Plus } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -15,7 +16,10 @@ import { getBackendUserId, requireAdmin } from "@/features/auth/session";
 import { BulkPhotoUpload } from "@/features/catalog/components/bulk-photo-upload";
 import { ResourceTable } from "@/features/catalog/components/resource-table";
 import { galleryOf } from "@/features/catalog/resource";
-import { getResource, isResourceKey } from "@/features/catalog/resources";
+import { isResourceKey } from "@/features/catalog/resources";
+import { localizedResource } from "@/features/catalog/localize.server";
+import { navWords } from "@/features/shell/nav-words";
+import { dashboardItem } from "@/features/shell/nav";
 import { PageHeader } from "@/features/shell/components/page-header";
 import { navGroups, navigationForPath } from "@/features/shell/nav";
 import { CmsPage } from "@/features/cms/components/cms-page";
@@ -29,14 +33,16 @@ export async function generateMetadata(
   props: PageProps<"/[resource]">,
 ): Promise<Metadata> {
   const { resource } = await props.params;
+  const [t, nav] = await Promise.all([getTranslations("shell.lists"), getTranslations("shell.nav")]);
+  const words = navWords(nav);
+  /* The sidebar's name where the page has an entry: All Destinations, Tourism Regions, a desk's page. */
+  const item = navigationForPath("/" + resource);
   return {
-    title: isResourceKey(resource)
-      ? resource === "destinations"
-        ? "All Destinations"
-        : resource === "regions"
-        ? "Tourism Regions"
-        : getResource(resource).labelPlural
-      : (navigationForPath("/" + resource)?.label ?? "Not found"),
+    title: item && item.href !== dashboardItem.href
+      ? words.label(item.text)
+      : isResourceKey(resource)
+        ? (await localizedResource(resource)).labelPlural
+        : t("notFound"),
   };
 }
 
@@ -45,6 +51,8 @@ export default async function ResourceListPage(
 ) {
   const { resource } = await props.params;
   const admin = await requireAdmin();
+  const [t, nav] = await Promise.all([getTranslations("shell.lists"), getTranslations("shell.nav")]);
+  const words = navWords(nav);
   if (!isResourceKey(resource)) {
     const group = navGroups(admin.roles, true).find((entry) =>
       entry.items.some((item) => item.href === "/" + resource),
@@ -54,9 +62,9 @@ export default async function ResourceListPage(
     return (
       <div className="mx-auto flex max-w-7xl flex-col gap-5">
         <PageHeader
-          eyebrow={group.title}
-          title={item.label}
-          description={item.description}
+          eyebrow={words.group(group)}
+          title={words.label(item.text)}
+          description={words.description(item.text)}
         />
         <CmsPage key={resource} grants={admin.roles} resource={resource} userId={await getBackendUserId()} />
       </div>
@@ -90,7 +98,7 @@ export default async function ResourceListPage(
     );
   }
 
-  const definition = getResource(resource);
+  const definition = await localizedResource(resource);
   /* A gallery is filled, not written: offer many photographs at once. */
   const gallery = galleryOf(definition);
   /* Only destinations are shown to their author alone, and they are listed on All Destinations. */
@@ -118,24 +126,19 @@ export default async function ResourceListPage(
     return typeof value === "string" && value ? [value] : [];
   };
   const owners = linkField ? (references?.[linkField.ref!] ?? []) : (groupField?.options ?? []);
-  const noun = linkField ? "region" : "group";
   const orphans = rows.filter((row) => belongsTo(row).length === 0).length;
   const chips: ListChip[] = [
     ...owners.map((owner) => ({ value: owner.value, label: owner.label, count: rows.filter((row) => belongsTo(row).includes(owner.value)).length })),
-    ...(orphans ? [{ value: "none", label: `No ${noun}`, count: orphans }] : []),
+    ...(orphans ? [{ value: "none", label: linkField ? t("chips.noRegion") : t("chips.noGroup"), count: orphans }] : []),
   ];
   const chipParam = linkField ? "region" : "group";
   const chosen = chips.find((chip) => chip.value === query[chipParam]) ?? null;
   const plural = definition.labelPlural.toLowerCase();
   const chipHint = !chosen
-    ? `Choose a ${linkField ? "tourism region" : "group"} to see its own ${plural}.`
+    ? t(linkField ? "chips.chooseRegion" : "chips.chooseGroup", { plural })
     : chosen.value === "none"
-      ? linkField
-        ? `In no tourism region yet, so no region's page offers them. Open one and choose its regions.`
-        : `In no group yet, so the Interests tab does not list them. Open one and choose its group.`
-      : linkField
-        ? `${chosen.label}'s own ${plural} — the only ones its page and its destinations are offered.`
-        : `The ${chosen.label} group's own ${plural} — the Interests tab lists them under ${chosen.label}.`;
+      ? t(linkField ? "chips.noRegionHint" : "chips.noGroupHint")
+      : t(linkField ? "chips.regionHint" : "chips.groupHint", { name: chosen.label, plural });
   /* "New" from a chip starts in it. */
   const preset = chosen && chosen.value !== "none"
     ? linkField
@@ -154,23 +157,25 @@ export default async function ResourceListPage(
           canCreateResource(admin.roles, resource) ? (
             <Link className={buttonVariants()} href={`/${resource}/new${preset}`}>
               <Plus aria-hidden className="size-4" />
-              New {definition.label.toLowerCase()}
+              {t("new", { label: definition.label.toLowerCase() })}
             </Link>
           ) : null
         }
         description={
           scoped
-            ? `${definition.description} You are shown the ones you created.`
+            ? t("scopedCreated", { description: definition.description })
             : ownListings
-              ? `${definition.description} You are shown the ones you own.`
+              ? t("scopedOwned", { description: definition.description })
               : definition.description
         }
-        eyebrow={
-          navGroups(admin.roles).find((group) => group.items.some((item) => item.href === "/" + resource))?.title ?? "Settings"
-        }
-        title={
-          navigationForPath("/" + resource, admin.roles)?.label ?? definition.labelPlural
-        }
+        eyebrow={(() => {
+          const group = navGroups(admin.roles).find((each) => each.items.some((item) => item.href === "/" + resource));
+          return group ? words.group(group) : nav("items.settings.label");
+        })()}
+        title={(() => {
+          const item = navigationForPath("/" + resource, admin.roles);
+          return item ? words.label(item.text) : definition.labelPlural;
+        })()}
       />
 
       {gallery && canCreateResource(admin.roles, resource) ? (
@@ -180,11 +185,11 @@ export default async function ResourceListPage(
       {chips.length ? (
         <ListChips
           active={chosen?.value ?? null}
-          allLabel={linkField ? "All regions" : "All groups"}
+          allLabel={linkField ? t("chips.allRegions") : t("chips.allGroups")}
           chips={chips}
           hint={chipHint}
           href={(value) => (value ? `/${resource}?${chipParam}=${encodeURIComponent(value)}` : `/${resource}`)}
-          label={linkField ? "Tourism regions" : "Groups"}
+          label={linkField ? t("chips.regions") : t("chips.groups")}
           total={rows.length}
         />
       ) : null}

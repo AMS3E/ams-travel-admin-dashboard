@@ -132,10 +132,16 @@ export interface DestinationStatsPeriod {
   readonly to?: string;
 }
 
+/** The kinds of place Destination Detail reads the standing of. */
+export type PlaceType = "DESTINATION" | "STAY" | "FOOD";
+
 export interface DestinationStatsRow {
   readonly id: string;
+  /** An attraction, a stay or a food place; the Destination Stats list holds attractions only. */
+  readonly type: PlaceType;
   readonly name: string;
-  readonly slug: string;
+  /** A stay has none. */
+  readonly slug: string | null;
   readonly provinceId: string | null;
   readonly status: PublicationStatus;
   readonly browses: number;
@@ -149,4 +155,39 @@ export interface DestinationStatsRow {
   readonly verified: boolean;
   readonly basis: VerificationBasis | null;
   readonly travelerRecommended: boolean;
+}
+
+/**
+ * `GET /admin/destination-stats/{id}` — one place's standing, for Destination
+ * Detail: an attraction, a stay or a food place, told apart by `place.type`.
+ * The same figures and period as the list; a stay or a food place is never
+ * verified.
+ */
+export interface PlaceStatsResponse {
+  readonly from: string | null;
+  readonly to: string | null;
+  readonly place: DestinationStatsRow;
+}
+
+/** The kinds of destination a check-in code is posted at: all three alike. */
+export type StampTarget = "DESTINATION" | "STAY" | "FOOD";
+
+/**
+ * `GET /stamps/codes?targetType=&targetId=` — a destination's check-in codes,
+ * current first; `POST /stamps/codes` issues one and replaces the current;
+ * `DELETE /stamps/codes/{id}` withdraws one for good. A check-in needs the
+ * code scanned on site and the phone within the radius.
+ */
+export interface StampCodeResponse {
+  readonly id: string;
+  readonly targetType: StampTarget;
+  readonly targetId: string;
+  /** Printed under the QR, for a visitor to read. */
+  readonly code: string;
+  /** What the QR encodes: the scan page's link, whose last part is the code. */
+  readonly payload: string;
+  readonly issuedAt: string;
+  readonly issuedBy: string | null;
+  /** Null while current. */
+  readonly replacedAt: string | null;
 }

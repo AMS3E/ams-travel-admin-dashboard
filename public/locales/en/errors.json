@@ -1,0 +1,41 @@
+{
+  "notFound": {
+    "title": "There is nothing here",
+    "text": "The row or screen you followed does not exist. It may have been deleted since the link was made.",
+    "back": "Back to the overview"
+  },
+  "screen": {
+    "title": "This screen could not load",
+    "text": "The catalogue API did not answer as expected. Check that the Spring Boot service is running on the address in <code>API_BASE_URL</code>, then try again.",
+    "digest": "Digest {digest}"
+  },
+  "api": {
+    "invalidOrigin": "Invalid request origin.",
+    "unknownResource": "Unknown catalogue resource.",
+    "unknownRow": "Unknown catalogue row.",
+    "unknownCms": "Unknown CMS operation.",
+    "invalidPagination": "Invalid pagination parameters.",
+    "invalidAuthor": "Invalid author.",
+    "invalidRecord": "Invalid record.",
+    "noStatus": "{label} have no status.",
+    "cannotPublish": "This account cannot change whether this is on the public site.",
+    "statusOneOf": "Status must be one of {list}.",
+    "unknownFolder": "Unknown media folder \"{folder}\".",
+    "chooseImage": "Choose an image to upload.",
+    "chooseImages": "Choose images to upload.",
+    "tooManyImages": "Upload at most {max} images at a time.",
+    "imageTypes": "Use a JPEG, PNG, WebP, or AVIF image.",
+    "evidenceTypes": "Use a PDF, or a JPEG, PNG, WebP, or AVIF image.",
+    "imageTooLarge": "Images must be 8 MB or smaller.",
+    "fileTooLarge": "Files must be 8 MB or smaller.",
+    "notAnImage": "{file} is not a JPEG, PNG, WebP, or AVIF image.",
+    "largerThan": "{file} is larger than 8 MB.",
+    "pasteLink": "Paste a Google Maps share link.",
+    "linkDown": "Google Maps did not answer. Copy the coordinates from the map instead.",
+    "noPointInLink": "That link does not say where the place is. Open it in Google Maps, right-click (or long-press) the spot, and copy the numbers instead.",
+    "typePlace": "Type the name of a place to search for.",
+    "searchDown": "Place search is not answering right now. Drop the pin on the map instead.",
+    "notAPoint": "That is not a point on the map.",
+    "reverseDown": "The map could not say where that is."
+  }
+}

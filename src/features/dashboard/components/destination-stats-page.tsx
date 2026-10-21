@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useFormatter, useTranslations } from "next-intl";
 import { BadgeCheck, Eye, Star, ThumbsUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
@@ -12,7 +13,6 @@ import { useGetCatalogQuery } from "@/features/catalog/api/catalog-api";
 import { HelpIcon } from "@/features/catalog/components/listing-form/listing-field";
 import { byName } from "@/features/catalog/resources";
 import { QueryState } from "@/features/cms/components/query-state";
-import { BASIS_LABELS } from "@/features/verification/api/contracts";
 import { useGetDestinationStatsQuery } from "../api/dashboard-api";
 import type { DestinationStatsPeriod, DestinationStatsRow } from "../api/contracts";
 import { PeriodControl, windowOf, type Period } from "./period-control";
@@ -21,19 +21,30 @@ import { StatGrid, StatTile } from "./stat-tile";
 type Scope = "published" | "all";
 type SortKey = "rating" | "reviews" | "browses" | "views" | "name";
 
-const SORTS: readonly { readonly value: SortKey; readonly label: string }[] = [
-  { value: "rating", label: "Rating, highest first" },
-  { value: "reviews", label: "Most reviewed" },
-  { value: "browses", label: "Most browsed" },
-  { value: "views", label: "Most viewed, all time" },
-  { value: "name", label: "Name A–Z" },
-];
+const SORTS: readonly SortKey[] = ["rating", "reviews", "browses", "views", "name"];
 
-const STATUS: Readonly<Record<string, { label: string; tone: "active" | "neutral" | "inactive" }>> = {
-  PUBLISHED: { label: "Published", tone: "active" },
-  DRAFT: { label: "Draft", tone: "neutral" },
-  ARCHIVED: { label: "Archived", tone: "inactive" },
-};
+export const STATUS_TONES = {
+  PUBLISHED: "active",
+  DRAFT: "neutral",
+  ARCHIVED: "neutral",
+} as const satisfies Record<string, "active" | "neutral" | "inactive">;
+
+export type ListingStatus = keyof typeof STATUS_TONES;
+
+export function isListingStatus(value: unknown): value is ListingStatus {
+  return typeof value === "string" && value in STATUS_TONES;
+}
+
+/** "Verified · Partner", "Verified" or "Not verified", in the reader's language. */
+export function useStandingText(): (row: Pick<DestinationStatsRow, "verified" | "basis">) => string {
+  const t = useTranslations("stats");
+  return (row) =>
+    row.verified && row.basis
+      ? t("badge.verifiedOn", { basis: t(`basis.${row.basis}`) })
+      : row.verified
+        ? t("badge.verified")
+        : t("badge.notVerified");
+}
 
 /** Highest first, the better-known place winning a tie, then by name. */
 function compare(a: DestinationStatsRow, b: DestinationStatsRow, sort: SortKey): number {
@@ -51,8 +62,6 @@ function compare(a: DestinationStatsRow, b: DestinationStatsRow, sort: SortKey):
   }
 }
 
-const count = (value: number) => value.toLocaleString();
-
 /**
  * Content Management → Destination Stats: what travellers make of each
  * destination, and what its Verified badge rests on. Browses, reviews and
@@ -61,6 +70,10 @@ const count = (value: number) => value.toLocaleString();
  * are the visitors', and verification is decided on the Verification page.
  */
 export function DestinationStatsPage() {
+  const t = useTranslations("stats");
+  const format = useFormatter();
+  const count = (value: number) => format.number(value);
+  const standing = useStandingText();
   const [period, setPeriod] = useState<Period>("all");
   const [custom, setCustom] = useState<DestinationStatsPeriod>({});
   const window = windowOf(period, custom);
@@ -93,33 +106,35 @@ export function DestinationStatsPage() {
   return (
     <div className="flex flex-col gap-4">
       <StatGrid>
-        <StatTile icon={BadgeCheck} label="Verified" value={query.data ? count(verified) : null} />
-        <StatTile icon={ThumbsUp} label="Recommended by Traveler" value={query.data ? count(traveler) : null} />
-        <StatTile icon={Star} label="Average rating" value={query.data ? (average == null ? "—" : average.toFixed(1)) : null} />
-        <StatTile icon={Eye} label="Browses" value={query.data ? count(browses) : null} />
+        <StatTile icon={BadgeCheck} label={t("tiles.verified")} value={query.data ? count(verified) : null} />
+        <StatTile icon={ThumbsUp} label={t("badge.traveler")} value={query.data ? count(traveler) : null} />
+        <StatTile icon={Star} label={t("tiles.average")} value={query.data ? (average == null ? "—" : average.toFixed(1)) : null} />
+        <StatTile icon={Eye} label={t("tiles.browses")} value={query.data ? count(browses) : null} />
       </StatGrid>
 
-      <Surface aria-label="Destination stats">
+      <Surface aria-label={t("list.label")}>
         <Toolbar>
           <PeriodControl custom={custom} onCustom={setCustom} onPeriod={setPeriod} period={period} />
-          <SearchField label="Search destinations" onChange={setSearch} placeholder="Search by name…" value={search} />
+          <SearchField label={t("list.search")} onChange={setSearch} placeholder={t("list.searchPlaceholder")} value={search} />
           <SegmentedControl
-            label="Which destinations"
+            label={t("list.scope")}
             onChange={setScope}
             options={[
-              { value: "published", label: "Published", count: published },
-              { value: "all", label: "All", count: places.length },
+              { value: "published", label: t("list.scopePublished"), count: published },
+              { value: "all", label: t("list.scopeAll"), count: places.length },
             ]}
             value={scope}
           />
-          <Select aria-label="Sort" className="h-8 w-52 text-sm" onChange={(event) => setSort(event.target.value as SortKey)} value={sort}>
-            {SORTS.filter((option) => allTime || option.value !== "views").map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+          <Select aria-label={t("list.sort")} className="h-8 w-52 text-sm" onChange={(event) => setSort(event.target.value as SortKey)} value={sort}>
+            {SORTS.filter((option) => allTime || option !== "views").map((option) => (
+              <option key={option} value={option}>
+                {t(`list.sorts.${option}`)}
               </option>
             ))}
           </Select>
-          {query.data ? <span className="ml-auto text-xs text-muted tabular-nums">{count(rows.length)} of {count(inScope.length)}</span> : null}
+          {query.data ? (
+            <span className="ml-auto text-xs text-muted tabular-nums">{t("list.shown", { shown: rows.length, total: inScope.length })}</span>
+          ) : null}
         </Toolbar>
 
         {query.isLoading || query.error ? (
@@ -133,63 +148,60 @@ export function DestinationStatsPage() {
             <Table>
               <TableHead>
                 <TableRow className="hover:bg-transparent">
-                  <TableHeaderCell>Name</TableHeaderCell>
-                  <TableHeaderCell className="text-right">Rating</TableHeaderCell>
-                  <TableHeaderCell className="text-right">Reviews</TableHeaderCell>
-                  <TableHeaderCell className="text-right">Browses</TableHeaderCell>
-                  {allTime ? <TableHeaderCell className="text-right">Views</TableHeaderCell> : null}
+                  <TableHeaderCell>{t("table.name")}</TableHeaderCell>
+                  <TableHeaderCell className="text-right">{t("table.rating")}</TableHeaderCell>
+                  <TableHeaderCell className="text-right">{t("table.reviews")}</TableHeaderCell>
+                  <TableHeaderCell className="text-right">{t("table.browses")}</TableHeaderCell>
+                  {allTime ? <TableHeaderCell className="text-right">{t("table.views")}</TableHeaderCell> : null}
                   <TableHeaderCell>
                     <span className="inline-flex items-center gap-1">
-                      Verified
-                      <HelpIcon id="stats-verified-help" label="Verified" text="As of today, whatever the period. A badge is never filtered by date." />
+                      {t("table.verified")}
+                      <HelpIcon id="stats-verified-help" label={t("table.verified")} text={t("table.verifiedHelp")} />
                     </span>
                   </TableHeaderCell>
                   <TableHeaderCell>
                     <span className="inline-flex items-center gap-1">
-                      Status
-                      <HelpIcon id="stats-status-help" label="Status" text="Today's status, whatever the period." />
+                      {t("table.status")}
+                      <HelpIcon id="stats-status-help" label={t("table.status")} text={t("table.statusHelp")} />
                     </span>
                   </TableHeaderCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {rows.map((row) => {
-                  const status = STATUS[row.status];
-                  return (
-                    <TableRow data-destination-id={row.id} key={row.id}>
-                      <TableCell>
-                        <Link className="font-medium text-ink hover:text-teal-deep hover:underline" href={`/destination-stats/${row.id}`}>
-                          {row.name}
-                        </Link>
-                        <p className="truncate text-xs text-muted">{(row.provinceId && provinceName.get(row.provinceId)) || row.slug}</p>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        <span className="font-medium text-ink">{row.averageRating == null ? "—" : row.averageRating.toFixed(1)}</span>
-                        <span className="block text-xs text-muted">{count(row.ratingCount)} {row.ratingCount === 1 ? "rating" : "ratings"}</span>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">{count(row.reviewCount)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{count(row.browses)}</TableCell>
-                      {allTime ? <TableCell className="text-right tabular-nums">{count(row.viewCount)}</TableCell> : null}
-                      <TableCell>
-                        <span className="flex flex-wrap items-center gap-1.5">
-                          <Badge tone={row.verified ? "info" : "neutral"}>
-                            {row.verified && row.basis ? `Verified · ${BASIS_LABELS[row.basis]}` : row.verified ? "Verified" : "Not verified"}
-                          </Badge>
-                          {row.travelerRecommended ? <Badge tone="success">Recommended by Traveler</Badge> : null}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge dot tone={status?.tone ?? "neutral"}>{status?.label ?? row.status}</Badge>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {rows.map((row) => (
+                  <TableRow data-destination-id={row.id} key={row.id}>
+                    <TableCell>
+                      <Link className="font-medium text-ink hover:text-teal-deep hover:underline" href={`/destinations/${row.id}/detail?from=stats`}>
+                        {row.name}
+                      </Link>
+                      <p className="truncate text-xs text-muted">{(row.provinceId && provinceName.get(row.provinceId)) || row.slug}</p>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      <span className="font-medium text-ink">{row.averageRating == null ? "—" : row.averageRating.toFixed(1)}</span>
+                      <span className="block text-xs text-muted">{t("ratings", { count: row.ratingCount })}</span>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{count(row.reviewCount)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{count(row.browses)}</TableCell>
+                    {allTime ? <TableCell className="text-right tabular-nums">{count(row.viewCount)}</TableCell> : null}
+                    <TableCell>
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <Badge tone={row.verified ? "info" : "neutral"}>{standing(row)}</Badge>
+                        {row.travelerRecommended ? <Badge tone="success">{t("badge.traveler")}</Badge> : null}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {isListingStatus(row.status) ? (
+                        <Badge dot tone={STATUS_TONES[row.status]}>{t(`status.${row.status}`)}</Badge>
+                      ) : (
+                        <Badge dot tone="neutral">{row.status}</Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           ) : (
-            <p className="px-4 py-6 text-center text-sm text-muted">
-              {needle ? "No destination matches that search." : "No destination yet."}
-            </p>
+            <p className="px-4 py-6 text-center text-sm text-muted">{needle ? t("list.noMatch") : t("list.none")}</p>
           )
         ) : null}
       </Surface>

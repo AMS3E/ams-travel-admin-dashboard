@@ -1,0 +1,703 @@
+{
+  "actions": {
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "saveChanges": "Save changes",
+    "create": "Create {noun}",
+    "deleteConfirm": "Delete permanently?",
+    "yesDelete": "Yes, delete",
+    "keepIt": "Keep it",
+    "delete": "Delete",
+    "done": "Done",
+    "edit": "Edit",
+    "clear": "Clear",
+    "close": "Close"
+  },
+  "steps": {
+    "labels": {
+      "name": "Name",
+      "slogan": "Slogan",
+      "about": "About",
+      "address": "Address",
+      "tourismRegion": "Tourism region",
+      "categories": "Categories",
+      "tags": "Tags",
+      "interests": "Interests",
+      "cover": "Cover and gallery",
+      "pin": "Map pin",
+      "type": "Type",
+      "starRating": "Star rating",
+      "facilities": "Facilities",
+      "rooms": "Rooms",
+      "policies": "Stay policies",
+      "owner": "Who runs it",
+      "contactDetails": "Contact details",
+      "messaging": "Messaging apps",
+      "priceRange": "Price range",
+      "pay": "Ways to pay",
+      "hours": "Opening hours",
+      "khmer": "Khmer text"
+    },
+    "slogan": {
+      "description": "A quote the app shows at the top of the page, with who said it if anyone did."
+    },
+    "about": {
+      "title": "Details",
+      "question": "What's this {noun, select, stay {stay} other {place}} called, and what's it like?",
+      "description": "A name, and the full story.",
+      "tipTitle": "Write for a first-time visitor",
+      "tipBody": "Lead with what makes it worth the trip. The app shows the first lines on the page; the rest opens under Read more."
+    },
+    "foodAbout": {
+      "tipTitle": "Lead with what people come for",
+      "tipBody": "“Charcoal-grilled river fish, open late” tells a traveller more than “good food and friendly service”. The app shows the first lines on the page; the rest opens under Read more."
+    },
+    "location": {
+      "title": "Location",
+      "question": "Where is it?",
+      "description": "Paste the {noun, select, stay {stay} other {place}}'s Google Maps link, or find it on the map. Its province and address are filled in from the pin, for you to check.",
+      "tipTitle": "Putting the pin on the place",
+      "tipBody": "Copy the {noun, select, stay {stay} other {place}}'s link in Google Maps (Share, then Copy link) and paste it here, or search it by name. Then switch to Satellite and drag the pin onto the entrance. At the place with a phone? Use the crosshair on the map. A pair of coordinates typed into the box works too.",
+      "found": {
+        "stays": "Travellers see this stay on the page of every destination within 50 km of its pin — a hotel in Siem Reap on Angkor Wat's page, say.",
+        "foods": "Travellers see this place on the page of every destination within 50 km of its pin — a noodle shop in Siem Reap on Angkor Wat's page, say."
+      }
+    },
+    "contact": {
+      "title": "Contact",
+      "question": "Who runs it, and how do travellers get in touch?",
+      "description": "Who looks after this listing, and the ways to reach it.",
+      "tipTitle": "One number that answers",
+      "tipBody": "A number that is answered beats three that are not. Put the one travellers should use, and the chat app it is on.",
+      "detailsDescription": "Shown on the listing so travellers can ask before they go.",
+      "messagingDescription": "Most travellers in Cambodia ask on Telegram or WhatsApp first; the {noun, select, stay {stay} other {place}}'s page opens a chat."
+    },
+    "photos": {
+      "title": "Photos",
+      "question": "Show it at its best",
+      "description": "Every photo travellers can page through. The cover is the first thing they see of this {noun, select, stay {stay} other {place}} — on cards, in search, and across the top of its page: choose it among them.",
+      "tipTitle": "What makes a great cover",
+      "tipBody": "A bright landscape photo of the place itself, with no text, logos or collages. 1600 × 900 pixels or larger stays sharp everywhere."
+    },
+    "review": {
+      "title": "Review",
+      "question": "Ready to go live?",
+      "description": "Check what is still missing. Publishing and saving are the buttons at the top.",
+      "tipTitle": "Nothing here is final",
+      "tipBody": "A published listing appears on the website straight away. A draft stays in the dashboard until it is published, and either can be changed later."
+    },
+    "classification": {
+      "title": "Where it appears",
+      "question": "What kind of place is it?",
+      "description": "Its tourism region with that region's own categories and tags, then the interests travellers find it under.",
+      "tipTitle": "One region, its own lists",
+      "tipBody": "Choose the region the place is best known for. Only that region's categories and tags are offered, and the place is listed on its Discover page. Interests are separate: tick what a traveller comes for, whatever the region.",
+      "interestsDescription": "The Interests tab and province pages it is listed under."
+    },
+    "facilities": {
+      "title": "Rooms & facilities",
+      "question": "What is the property, and what does it offer?",
+      "description": "The type of property, its facilities and policies, and each kind of room once.",
+      "tipTitle": "Only list what is there",
+      "tipBody": "A guest who chooses a stay for its pool expects to find one. Leave out anything seasonal or on request. Add each kind of room once; copy a room to make the next one like it, and mark one unavailable instead of deleting it.",
+      "policiesDescription": "Check-in and check-out, children, pets, smoking, how guests pay — written out, the way the app shows them."
+    },
+    "menu": {
+      "title": "Food & drink",
+      "question": "What does it serve, and what does it cost?",
+      "description": "The type of place, its price range, how people pay, and when it is open.",
+      "tipTitle": "What travellers check first",
+      "tipBody": "The type and the price range are what the app filters by, and the opening hours save a wasted trip. Today's dishes live on the place's Facebook page, which has its own box under Contact."
+    },
+    "more": {
+      "title": "More details",
+      "question": "Anything else?",
+      "description": "The last few details this listing can hold.",
+      "tipTitle": "Optional",
+      "tipBody": "Fill in what you know; everything here can be added later."
+    }
+  },
+  "listing": {
+    "tip": "{title}. {body}",
+    "reviewStep": {
+      "title": "Review & send",
+      "question": "Ready to send for review?",
+      "description": "Check what is still missing, then send it to {reviewer}. It goes on the website once they approve it.",
+      "tipTitle": "What happens next",
+      "tipBody": "{reviewer} approves it, asks for changes, or rejects it with a reason — you see the answer on your Requests page. You can keep editing it while it waits."
+    },
+    "reviewers": {
+      "a": {
+        "PARTNER": "a BDO",
+        "CONTRIBUTOR": "an editor",
+        "STAFF": "an administrator"
+      },
+      "capital": {
+        "PARTNER": "A BDO",
+        "CONTRIBUTOR": "An editor",
+        "STAFF": "An administrator"
+      },
+      "the": {
+        "PARTNER": "the BDO",
+        "CONTRIBUTOR": "the editor",
+        "STAFF": "the administrator"
+      }
+    },
+    "problems": {
+      "photos": "The {noun} was saved, but {failed} of {total} gallery photos could not be added: {error}",
+      "rooms": "The {noun} was saved, but {failed} of {total} rooms could not be: {errors}",
+      "send": "The {noun} was saved as a draft, but it could not be sent to {reviewer}: {error}",
+      "invalid": "A few details need attention before this can be saved — they are marked in red.",
+      "savedLink": "<link>Open the saved {noun}</link> to add them again.",
+      "khmer": "Write the Khmer before publishing: the boxes marked on the ខ្មែរ side are still empty. Save changes keeps it as it is.",
+      "khmerField": "Write this in Khmer before it is published."
+    },
+    "bar": {
+      "saveDraft": "Save draft",
+      "sendBack": "Send back for review",
+      "saveAndSend": "Save and send for review",
+      "send": "Send for review",
+      "unpublish": "Unpublish",
+      "publish": "Publish",
+      "publishNoun": "Publish {noun}",
+      "waitingForPhotos": "Waiting for photos…",
+      "unsaved": "Unsaved changes",
+      "notSaved": "Not saved yet",
+      "showPreview": "Show preview",
+      "hidePreview": "Hide preview"
+    },
+    "readOnly": "This {noun} is read-only for your account. Contributors can edit their own unpublished drafts.",
+    "visibility": {
+      "title": "Visibility",
+      "description": "Who can see this {noun}.",
+      "editorManages": "An editor manages publication and changes to this {noun}.",
+      "correcting": "You are correcting this {noun} before deciding on it. Save your changes, then approve it, send it back or reject it on the review.",
+      "currently": "Currently {status}. Whether it is on the website is decided by a reviewer, not here.",
+      "unknown": "unknown",
+      "newDrafts": "New {nouns} start as drafts. You can publish it once it exists.",
+      "savedAsDraft": "It is saved as a draft. Whether it is on the website is decided by a reviewer, not here.",
+      "submitFromPublishing": "Submit it from the publishing screen when it is ready."
+    },
+    "previewTitle": "Preview, as the app shows it",
+    "delete": {
+      "title": "Delete this {noun}",
+      "description": "It is removed from the website and the dashboard for good. This cannot be undone.",
+      "button": "Delete {noun}"
+    },
+    "gated": "Choose the type above to see the rest of the form. Every section after it is written for that choice.",
+    "nav": {
+      "label": "Form sections",
+      "onThisPage": "On this page",
+      "required": ", required"
+    },
+    "readiness": {
+      "description": "{done} of {total} details in place. The recommended ones help travellers choose it.",
+      "missing": "{count, plural, one {# required detail missing} other {# required details missing}}",
+      "complete": "Everything required is in place",
+      "done": "Done",
+      "requiredAdd": "Required · Add",
+      "add": "Add"
+    },
+    "reviewNote": {
+      "waiting": "Waiting for {reviewer} to review it, since {day} {month}. You can keep changing it — {theReviewer} reviews what is saved.",
+      "changes": "<b>{name} asked for changes</b>. Send it back with the button at the top when it is ready.",
+      "changesWithNote": "<b>{name} asked for changes</b>: “{note}”. Send it back with the button at the top when it is ready."
+    },
+    "language": {
+      "label": "Language of the text boxes",
+      "missing": "{count, plural, one {# Khmer field missing} other {# Khmer fields missing}}",
+      "complete": "Khmer complete"
+    }
+  },
+  "field": {
+    "and": "{rest} and {last}",
+    "about": "About {label}",
+    "webAddress": "Web address",
+    "typeHints": {
+      "HOTEL": "Rooms, a front desk, daily service",
+      "GUESTHOUSE": "A small, family-run place to stay",
+      "HOSTEL": "Shared dorms and social spaces",
+      "RESORT": "Pools, gardens, everything on site",
+      "HOMESTAY": "A room in a local family's home",
+      "VILLA": "A whole private house",
+      "RESTAURANT": "Meals at a table. Bars too.",
+      "CAFE": "Coffee and cakes. Bakeries too.",
+      "STREET_FOOD": "Stalls, carts and night markets",
+      "MARKET": "Food stalls and fresh produce",
+      "OTHER": "Anything that fits none of these"
+    },
+    "priceHints": {
+      "budget": "Budget",
+      "moderate": "Moderate",
+      "upscale": "Upscale",
+      "fine": "Fine dining"
+    },
+    "narrowed": {
+      "chooseTheme": "Choose its theme first to see only that theme's {noun}.",
+      "chooseRegion": "Choose a tourism region above to see only its {noun}.",
+      "only": "Only the {noun} of {names}.",
+      "outside": "{count, plural, one {# chosen earlier is not in {where}: select it to take it away.} other {# chosen earlier are not in {where}: select them to take them away.}}",
+      "thisRegion": "this region",
+      "theseRegions": "these regions",
+      "empty": "{names} has no {noun} yet."
+    },
+    "storyPrompt": "The full story, in your own words.",
+    "chooseA": "Choose a {label}",
+    "notSet": "Not set",
+    "retired": "(retired)",
+    "notInRegion": "(not in region)",
+    "notInRegionTitle": "Not in the chosen region. Select to take it away.",
+    "placeholders": {
+      "name": "e.g. Angkor Wat",
+      "address": "Street, village or landmark it is on"
+    },
+    "facilities": "Facilities & services",
+    "chooseFacilities": "Choose facilities",
+    "noneChosen": "None chosen yet.",
+    "remove": "Remove {name}",
+    "stars": "{count, plural, one {# star} other {# stars}}",
+    "starProperty": "{count}-star property",
+    "notRated": "Not rated",
+    "noneExist": "No {label} exist yet.",
+    "search": "Search {label}",
+    "searchPlaceholder": "Search {label}…",
+    "selected": "{count} of {total} selected",
+    "noMatch": "Nothing matches “{term}”.",
+    "clearSearch": "Clear search",
+    "otherGroup": "Other",
+    "on": "On",
+    "off": "Off",
+    "toggleHints": {
+      "isLocalSpecialty": "A dish or a place the area is known for — worth the trip on its own."
+    }
+  },
+  "map": {
+    "loading": "Loading the map…",
+    "errors": {
+      "blocked": "Location is blocked for this site. Allow it from the icon beside the address bar, then try again — or drop the pin by hand.",
+      "unavailable": "This device could not work out where it is. Turn on location services, or drop the pin by hand.",
+      "timeout": "Finding your position took too long. Try again with a clear view of the sky, or drop the pin by hand.",
+      "noGeolocation": "This browser cannot share its location. Drop the pin on the map instead.",
+      "insecure": "Browsers share your location only with a secure (https) address. Open the dashboard over https, or drop the pin by hand.",
+      "linkUnreadable": "That link could not be read. Copy the coordinates instead.",
+      "linkNoPlace": "That link does not say where the place is. In Google Maps, right-click (or long-press) the spot and copy the numbers instead.",
+      "searchFailed": "Place search failed. Drop the pin on the map instead.",
+      "searchUnreachable": "Place search could not be reached. Drop the pin on the map instead."
+    },
+    "notices": {
+      "pinnedCoordinates": "Pinned at the coordinates you gave.",
+      "rough": "This is only roughly where you are — within {distance}. A computer guesses from Wi-Fi; drag the pin onto the exact spot, or try again on a phone at the place.",
+      "precise": "Pinned where you are standing, to within {distance}. Drag the pin if the entrance is somewhere else.",
+      "pinnedAt": "Pinned at {name}.",
+      "pinnedFromGoogle": "Pinned from your Google Maps link.",
+      "pinnedFromLink": "Pinned from your link. Links can be slightly off, so check the pin is on the place and drag it if not.",
+      "pasteKeys": "Press Ctrl+V (⌘V on a Mac) to paste the link here.",
+      "nothingCopied": "Nothing copied looks like a map link yet. In Google Maps: Share, then Copy link.",
+      "stopped": "Stopped. The pin stays at the last position found.",
+      "filled": "{what, select, both {Province and address} province {Province} other {Address}} filled in from the pin.",
+      "lookingUp": "Looking up the {what, select, both {province and address} province {province} other {address}}…"
+    },
+    "fullWindow": "Map, over the whole window",
+    "find": "Find the place",
+    "findPlaceholder": "Google Maps link or place name",
+    "pasteLink": "Paste link",
+    "findButton": "Find",
+    "finding": "Finding the place…",
+    "howToCopy": "In Google Maps: Share, then Copy link.",
+    "results": "{count, plural, one {# place in Cambodia} other {# places in Cambodia}}",
+    "noResults": "No places found",
+    "closeResults": "Close the results",
+    "noMatch": "Nothing in Cambodia matches “{query}”. Try another spelling, or click the map.",
+    "backToForm": "Back to the form (Esc)",
+    "overWindow": "The map over the whole window",
+    "exitFullScreen": "Exit full screen",
+    "fullScreen": "Full screen",
+    "style": "Map style",
+    "layers": {
+      "map": "Map",
+      "satellite": "Satellite"
+    },
+    "stopLocating": "Stop finding my location",
+    "useLocation": "Use my location",
+    "stop": "Stop",
+    "useLocationTitle": "Use my location — when you are at the place",
+    "locating": "Finding your position… allow location if the browser asks.",
+    "improving": "Improving the position… within {distance} so far.",
+    "checkGoogle": "Check in Google Maps",
+    "removePin": "Remove pin",
+    "noPin": "No pin yet. Paste a link above, or click the map where the place is.",
+    "enterCoordinates": "Enter coordinates",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "disagrees": "The pin is in {map}, but the province says {chosen}.",
+    "another": "another",
+    "use": "Use {name}",
+    "offered": "The map has this pin at “{address}”.",
+    "useAddress": "Use this address",
+    "pinTitle": "Listing location",
+    "mapLabel": "Map: click to place the pin, or drag the pin"
+  },
+  "preview": {
+    "untitled": {
+      "destinations": "Untitled destination",
+      "stays": "Untitled stay",
+      "foods": "Untitled place"
+    },
+    "coverHere": "The cover photo goes here",
+    "photos": "{count} photos",
+    "gallery": "Gallery",
+    "categoriesHere": "Categories appear here",
+    "typeHere": "Its type appears here",
+    "sloganHere": "A line someone said about it appears here.",
+    "readMore": "Read more",
+    "storyHere": "The full story appears here.",
+    "gettingThere": "How to get there",
+    "thisPlace": "This place",
+    "pinHere": "Drop the map pin to see it here"
+  },
+  "rooms": {
+    "words": {
+      "fresh": "New room",
+      "edit": "Edit room",
+      "add": "Add room",
+      "save": "Save room",
+      "copy": "Copy to a new room",
+      "none": "No rooms yet",
+      "noneHint": "Add each kind of room once. Guests choose by beds, how many it sleeps, and price."
+    },
+    "beds": {
+      "singleBeds": "{count, plural, one {# single bed} other {# single beds}}",
+      "doubleBeds": "{count, plural, one {# double bed} other {# double beds}}",
+      "queenBeds": "{count, plural, one {# queen bed} other {# queen beds}}",
+      "kingBeds": "{count, plural, one {# king bed} other {# king beds}}",
+      "bunkBeds": "{count, plural, one {# bunk bed} other {# bunk beds}}",
+      "sofaBeds": "{count, plural, one {# sofa bed} other {# sofa beds}}",
+      "futonBeds": "{count, plural, one {# futon mat} other {# futon mats}}"
+    },
+    "bedSizes": {
+      "singleBeds": "90–130 cm wide",
+      "doubleBeds": "131–150 cm wide",
+      "queenBeds": "151–180 cm wide",
+      "kingBeds": "181–210 cm wide",
+      "bunkBeds": "Two beds, one above the other",
+      "sofaBeds": "Folds out for one",
+      "futonBeds": "On the floor, for one"
+    },
+    "roomFallback": "Room",
+    "cancellation": {
+      "none": "Non-refundable",
+      "sameDay": "Free cancellation until the day of arrival",
+      "days": "Free cancellation until {count, plural, one {# day} other {# days}} before arrival"
+    },
+    "layout": {
+      "bedrooms": "{count, plural, one {# bedroom} other {# bedrooms}}",
+      "livingRooms": "{count, plural, one {# living room} other {# living rooms}}",
+      "bathroomCount": "{count, plural, one {# bathroom} other {# bathrooms}}"
+    },
+    "floor": {
+      "basement": "Basement",
+      "basementLevel": "Basement level {level}",
+      "ground": "Ground floor",
+      "up": "{floor, selectordinal, one {#st floor} two {#nd floor} few {#rd floor} other {#th floor}}"
+    },
+    "warnings": {
+      "week": "A week for {week} is less than two nights at {nightly}. Check the weekly price.",
+      "month": "A month for {month} is less than five nights at {nightly}. Check the monthly price.",
+      "noBed": "Add at least one bed.",
+      "capacity": "The beds sleep {sleeps}; {adults} adults need {more, plural, one {# more bed} other {# more beds}}."
+    },
+    "card": {
+      "untitled": "Untitled room",
+      "noPhoto": "No photo",
+      "sleeps": "Sleeps {sleeps}",
+      "more": "+{count} more",
+      "perNight": "/ night",
+      "noPrice": "No price yet",
+      "breakfast": "Breakfast included",
+      "pending": "Not saved yet",
+      "hidden": "Hidden from guests"
+    },
+    "editor": {
+      "photos": "Photos",
+      "photosHint": "Uploaded here, for this room. The first one is its cover; the rest make its gallery.",
+      "removePhoto": "Remove photo {number}",
+      "uploading": "Uploading…",
+      "addPhoto": "Add photo",
+      "name": "Room name",
+      "namePlaceholder": "e.g. Deluxe Double Room",
+      "price": "Price per night",
+      "pricePlaceholder": "e.g. 45",
+      "weekend": "Weekend price (optional)",
+      "weekendPlaceholder": "Same as every night",
+      "weekendHint": "Friday and Saturday nights. Leave it empty when the price is the same all week.",
+      "breakfast": "Breakfast included in the price",
+      "adults": "Adults",
+      "children": "Children",
+      "about": "About this room",
+      "aboutHint": "The paragraph on the room's page: what it is like, and what makes it the one to choose.",
+      "aboutPlaceholder": "The layout, the light, what makes it the one to choose…",
+      "beds": "Bed type",
+      "bedsHint": "Every bed in the room.",
+      "sleeps": "The beds sleep {count}",
+      "amenities": "Amenities",
+      "amenitiesHint": "Only what every room like this has. Guests filter rooms by these.",
+      "availability": "Availability",
+      "available": "Available",
+      "unavailable": "Unavailable",
+      "guestView": "How guests will see it",
+      "photoNudge": "Rooms with a photo are chosen far more often than ones without.",
+      "fewer": "One fewer",
+      "more": "One more",
+      "check": "Check {problems}.",
+      "invalid": "invalid",
+      "attention": "A few details need attention — they are marked in red."
+    },
+    "manager": {
+      "title": "Rooms",
+      "count": "{count, plural, one {# room} other {# rooms}}",
+      "loading": "Loading rooms…",
+      "copyName": "{name} (copy)",
+      "closeUnsaved": "Close without saving",
+      "makeAvailable": "Make available",
+      "makeUnavailable": "Make unavailable",
+      "notices": {
+        "updatedDraft": "Room updated — it is saved with the stay.",
+        "addedDraft": "Room added — it is saved with the stay.",
+        "saved": "Room saved.",
+        "added": "Room added.",
+        "deleted": "Room deleted.",
+        "unavailable": "Marked unavailable.",
+        "available": "Available again."
+      }
+    }
+  },
+  "gallery": {
+    "partlyAdded": "{added} of {total} were added to the gallery: {error}",
+    "added": "{count, plural, one {# photo added.} other {# photos added.}}",
+    "coverNotChanged": "The cover could not be changed, because the current one could not be kept in the gallery: {error}",
+    "dropToUpload": "Drop the photos to upload them",
+    "dragOrBrowse": "Drag photos here, or <browse>browse</browse>",
+    "firstIsCover": "The first photo becomes the cover. You can choose another at any time.",
+    "none": "No photos yet.",
+    "count": "{count, plural, one {# photo} other {# photos}}",
+    "savedWithListing": "saved with the listing",
+    "hoverHint": "Hover a photo to make it the cover or remove it.",
+    "cover": "Cover",
+    "makeCover": "Make this the cover photo",
+    "setCover": "Set as cover",
+    "deletePhoto": "Delete this photo",
+    "removePhoto": "Remove this photo",
+    "remove": "Remove",
+    "dropToAdd": "Drop to add",
+    "addPhotos": "Add photos",
+    "orDrop": "or drop them here"
+  },
+  "cover": {
+    "onlyFirst": "Only the first photo is used as the cover.",
+    "unreadable": "No image could be read at this key.",
+    "alt": "Cover photo",
+    "replace": "Replace",
+    "remove": "Remove",
+    "uploading": "Uploading…",
+    "dropToUpload": "Drop to upload",
+    "uploadOrDrag": "<b>Upload a photo</b> or drag it here",
+    "formats": "JPEG, PNG, WebP or AVIF · large photos are resized · landscape works best",
+    "useUploaded": "Use a photo already uploaded",
+    "mediaKey": "Media key",
+    "keyExample": "e.g. {key}"
+  },
+  "upload": {
+    "problems": {
+      "type": "{name} is not a JPEG, PNG, WebP or AVIF image.",
+      "size": "{name} is larger than 40 MB."
+    },
+    "stillTooLarge": "{name} is still larger than 8 MB after resizing.",
+    "progress": {
+      "preparing": "Preparing photos · {done} of {total}",
+      "uploading": "Uploading photos · {done} of {total}",
+      "saving": "Adding to the gallery · {done} of {total}"
+    }
+  },
+  "hours": {
+    "everyDay": "Open every day, 08:00–22:00",
+    "sameEveryDay": "Same hours every day",
+    "dayOpen": "{day} open",
+    "opensAt": "{day} opens at",
+    "closesAt": "{day} closes at",
+    "dayHours": "{day} hours",
+    "closed": "Closed"
+  },
+  "amenities": {
+    "search": "{noun, select, list {Search this list} other {Search facilities}}",
+    "searchPlaceholder": "{noun, select, list {Search this list…} other {Search facilities…}}",
+    "selected": "{count} selected",
+    "clearAll": "Clear all",
+    "popular": "Most requested by guests",
+    "noMatch": "Nothing matches “{term}”.",
+    "otherGroup": "Other"
+  },
+  "tiles": {
+    "hints": {
+      "ANCIENT-CAPITALS": "Temples, ancient cities and museums",
+      "NORTHEASTERN": "Forests, crater lakes and hill peoples",
+      "MEKONG-TONLE-SAP": "Floating villages, islands and river life",
+      "MOUNTAIN-WATERFALL": "Peaks, parks, waterfalls and caves",
+      "COASTAL-ISLAND": "Beaches, islands and reefs",
+      "URBAN-LIFESTYLE": "Landmarks, markets and nights out",
+      "KHMER-CULINARY": "Farms, cooking classes and food streets",
+      "ECO-COMMUNITY": "Villages, homestays and crafts",
+      "LUXURY-TOURISM": "Private islands, yachts and spas",
+      "CAPITAL": "The capital, rice plains and silk islands",
+      "ANGKOR": "Siem Reap, Battambang and the great lake",
+      "NORTHEAST": "Crater lakes, forests and hill peoples",
+      "MEKONG": "River towns and paddy fields east of the Mekong",
+      "COAST": "Pepper farms, crab markets and islands",
+      "attractionSites": "Historical sites, culture, parks and caves",
+      "stays": "Hotels, homestays, resorts and eco lodges",
+      "food": "Restaurants, markets, drinks and street food",
+      "water": "Beaches, waterfalls and floating villages",
+      "activities": "Diving, trekking, cruises, camping and more",
+      "corridors": "Temple trails, river journeys and road trips"
+    },
+    "retired": "(retired)",
+    "icons": {
+      "briefcase": "Business",
+      "building": "City",
+      "camera": "Sights",
+      "compass": "Explore",
+      "globe": "World",
+      "home": "Home",
+      "leaf": "Nature",
+      "map": "Map",
+      "mountain": "Mountain",
+      "pin": "Place",
+      "route": "Route",
+      "sparkles": "Special",
+      "star": "Star",
+      "sun": "Sun",
+      "temple": "Temple",
+      "tree": "Forest",
+      "utensils": "Food",
+      "waves": "Water"
+    },
+    "keptAsSaved": "“{value}”, kept as saved",
+    "noIcon": "None chosen: the website shows a compass.",
+    "chosenCount": "{count} of {total} chosen",
+    "all": "All",
+    "none": "None"
+  },
+  "controls": {
+    "lockedHint": "Set when this was created.",
+    "notSet": "Not set",
+    "outside": "A row outside your workspace",
+    "chooseFirst": "Choose its {what, select, group {group} other {region}} first: its place shows here.",
+    "chooseGroupFirst": "Choose its group first.",
+    "chooseRegionFirst": "Choose its region first.",
+    "whereNow": "Where it is now",
+    "atEndAfter": "At the end, after {name}",
+    "atEnd": "At the end",
+    "firstBefore": "First, before {name}",
+    "after": "After {name}",
+    "lastAfter": "Last, after {name}",
+    "chooseA": "Choose a {label}",
+    "retired": "(retired)",
+    "noInterests": "No {groups} interests yet. Add one under Taxonomy → Interests.",
+    "noneExist": "No {label} exist yet.",
+    "closed": "Closed",
+    "siblings": {
+      "noneYet": "None yet.",
+      "already": "{count, plural, one {There is already # {one}:} other {There are already # {noun}:}}",
+      "groupNone": "<b>{label}</b> has no {noun} yet.",
+      "groupHas": "<b>{label}</b> already has {count, plural, one {# {one}} other {# {noun}}}:",
+      "clash": "“{clash}” is already one of them. Open it instead of making another."
+    },
+    "status": "Status"
+  },
+  "multiSelect": {
+    "unavailable": "Unavailable row",
+    "earlier": "Move {label} earlier",
+    "later": "Move {label} later",
+    "remove": "Remove {label}",
+    "filter": "Filter options",
+    "filterPlaceholder": "Filter…",
+    "retired": "Retired",
+    "noMatch": "Nothing matches that."
+  },
+  "spots": {
+    "first": "Put it first, before {name}",
+    "after": "Put it after {name}",
+    "here": "Put it here",
+    "itsName": "Its name",
+    "thisOne": "This one",
+    "new": "New",
+    "up": "Move up",
+    "down": "Move down",
+    "clash": "“{clash}” is already here. Open it instead of making another."
+  },
+  "image": {
+    "placeholder": "Upload, or paste a media key",
+    "uploading": "Uploading…",
+    "upload": "Upload",
+    "clear": "Clear image",
+    "unreadable": "No image could be read at this key."
+  },
+  "richText": {
+    "toolbar": "Formatting",
+    "bold": "Bold",
+    "italic": "Italic",
+    "heading": "Heading",
+    "bullets": "Bullet list",
+    "numbers": "Numbered list",
+    "removeLink": "Remove link",
+    "link": "Link",
+    "undo": "Undo",
+    "redo": "Redo",
+    "linkAddress": "Link address",
+    "addLink": "Add link",
+    "cancel": "Cancel"
+  },
+  "interestPreview": {
+    "title": "Preview",
+    "onWebsite": "On the website",
+    "onWebsiteGroup": "On the website · Explore › Interests › {group}",
+    "itsName": "Its name",
+    "thisOne": "This one",
+    "new": "New",
+    "chooseGroup": "Choose a group to see its shelf.",
+    "ownPage": "Its own page",
+    "noDescription": "No description: only its name shows."
+  },
+  "resourceForm": {
+    "readOnly": "This record is read-only for your account. Contributors can edit their own unpublished drafts.",
+    "publication": "Publication",
+    "editorManages": "An editor manages publication and changes to this {noun}.",
+    "currently": "Currently {status}.",
+    "unknown": "unknown",
+    "reviewerDecides": "Whether this is on the public site is decided by a reviewer, not here.",
+    "submitFromPublishing": "Submit it from the publishing screen when it is ready.",
+    "publishedNote": "Published goes on the public site as soon as it is created, with no approval step. Choose Draft to finish it first.",
+    "createdAs": "New {nouns} are created as {status}. You can change that once it exists.",
+    "drafts": "drafts",
+    "thisOne": "This one"
+  },
+  "create": {
+    "metaTitle": "Create destination",
+    "eyebrow": "Content Management",
+    "title": "What are you adding?",
+    "description": "Choose the main type. The form that follows is written for it and asks only what it needs.",
+    "kinds": {
+      "destinations": {
+        "title": "Attraction",
+        "description": "A temple, a beach, a waterfall, a museum, a village — a place worth the trip."
+      },
+      "foods": {
+        "title": "Food",
+        "description": "A restaurant, a cafe, a street-food stall, a market, a bakery or a bar."
+      },
+      "stays": {
+        "title": "Stay",
+        "description": "A hotel, a guesthouse, a hostel, a resort, a homestay or a villa."
+      }
+    }
+  }
+}

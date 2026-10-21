@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { PictureThumb } from "@/features/catalog/components/fields/picture-thumb";
 import { cn } from "@/lib/utils";
 
@@ -17,13 +18,14 @@ interface InterestPreviewProps {
 
 /** An interest as the website shows it: on its group's shelf under Explore, and at the top of its own page. */
 export function InterestPreview({ group, others, position, name, image, description, editing }: InterestPreviewProps) {
+  const t = useTranslations("forms.interestPreview");
   const shelf = [...others.slice(0, position).map((row) => ({ ...row, own: false })), { name, image, own: true }, ...others.slice(position).map((row) => ({ ...row, own: false }))];
 
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <p className="text-2xs font-semibold tracking-wide text-muted uppercase">Preview</p>
-        <p className="text-xs text-muted">On the website{group ? ` · Explore › Interests › ${group}` : ""}</p>
+        <p className="text-2xs font-semibold tracking-wide text-muted uppercase">{t("title")}</p>
+        <p className="text-xs text-muted">{group ? t("onWebsiteGroup", { group }) : t("onWebsite")}</p>
       </div>
 
       {group ? (
@@ -37,21 +39,21 @@ export function InterestPreview({ group, others, position, name, image, descript
               key={row.own ? "own" : `${index}-${row.name}`}
             >
               <PictureThumb className="size-6" src={row.image} />
-              <span className={cn("min-w-0 flex-1 truncate", row.own && !row.name && "font-normal text-muted italic")}>{row.name || "Its name"}</span>
-              {row.own ? <span className="text-2xs font-semibold text-teal">{editing ? "This one" : "New"}</span> : null}
+              <span className={cn("min-w-0 flex-1 truncate", row.own && !row.name && "font-normal text-muted italic")}>{row.name || t("itsName")}</span>
+              {row.own ? <span className="text-2xs font-semibold text-teal">{editing ? t("thisOne") : t("new")}</span> : null}
             </li>
           ))}
         </ol>
       ) : (
-        <p className="rounded-md border border-dashed border-line-strong px-3 py-4 text-center text-xs text-muted">Choose a group to see its shelf.</p>
+        <p className="rounded-md border border-dashed border-line-strong px-3 py-4 text-center text-xs text-muted">{t("chooseGroup")}</p>
       )}
 
       <div className="flex flex-col gap-1.5 border-t border-line pt-3">
-        <p className="text-xs text-muted">Its own page</p>
+        <p className="text-xs text-muted">{t("ownPage")}</p>
         <PictureThumb className="aspect-video w-full rounded-md" iconClassName="size-6" src={image} />
-        <span className={cn("min-w-0 truncate text-base font-semibold", name ? "text-ink" : "text-muted italic")}>{name || "Its name"}</span>
+        <span className={cn("min-w-0 truncate text-base font-semibold", name ? "text-ink" : "text-muted italic")}>{name || t("itsName")}</span>
         <p className={cn("text-xs leading-relaxed", description ? "text-ink-soft" : "text-muted italic")}>
-          {description || "No description: only its name shows."}
+          {description || t("noDescription")}
         </p>
       </div>
     </div>

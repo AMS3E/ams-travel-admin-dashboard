@@ -2,14 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Check, Loader2, Send, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Select } from "@/components/ui/select";
 import type { ListingType } from "@/features/publishing/api/contracts";
 import { useSubmitPublishRequestMutation } from "@/features/publishing/api/publishing-api";
-import { listingLabel } from "@/features/publishing/listings";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
 
 /** An attraction, a stay or a food listing this account may send for review. */
 export interface SubmittableListing {
@@ -31,6 +31,8 @@ export function SubmitRequestForm({
 }: {
   readonly options: readonly SubmittableListing[];
 }) {
+  const t = useTranslations("publishing");
+  const errorMessage = useApiErrorMessage();
   const router = useRouter();
   const [submitRequest] = useSubmitPublishRequestMutation();
   const [saving, startSaving] = useTransition();
@@ -40,8 +42,7 @@ export function SubmitRequestForm({
   if (!options.length) {
     return (
       <p className="panel px-4 py-6 text-center text-sm text-muted">
-        Nothing of yours is waiting to be submitted. Everything you own is either
-        live or already with a reviewer.
+        {t("submit.nothing")}
       </p>
     );
   }
@@ -50,18 +51,18 @@ export function SubmitRequestForm({
     event.preventDefault();
     const chosen = options.find((option) => option.id === listingId);
     if (!chosen) {
-      setBanner({ ok: false, text: "Choose which one to submit." });
+      setBanner({ ok: false, text: t("submit.choose") });
       return;
     }
 
     startSaving(async () => {
       try {
         await submitRequest({ targetType: chosen.type, targetId: chosen.id }).unwrap();
-        setBanner({ ok: true, text: "Submitted. It is now with a reviewer." });
+        setBanner({ ok: true, text: t("submit.done") });
         setListingId("");
         router.refresh();
       } catch (error) {
-        setBanner({ ok: false, text: apiErrorMessage(error) });
+        setBanner({ ok: false, text: errorMessage(error) });
       }
     });
   }
@@ -86,17 +87,17 @@ export function SubmitRequestForm({
         </div>
       ) : null}
 
-      <FormField label="Listing" required>
+      <FormField label={t("submit.listing")} required>
         {(field) => (
           <Select
             {...field}
             onChange={(event) => setListingId(event.target.value)}
             value={listingId}
           >
-            <option value="">Choose one…</option>
+            <option value="">{t("submit.placeholder")}</option>
             {options.map((option) => (
               <option key={option.id} value={option.id}>
-                {option.name} ({listingLabel(option.type).toLowerCase()})
+                {t("submit.option", { name: option.name, type: t(`listingNoun.${option.type}`) })}
               </option>
             ))}
           </Select>
@@ -110,7 +111,7 @@ export function SubmitRequestForm({
           ) : (
             <Send aria-hidden className="size-4" />
           )}
-          Submit for publishing
+          {t("submit.button")}
         </Button>
       </div>
     </form>

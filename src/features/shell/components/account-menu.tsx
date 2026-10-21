@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { ChevronDown, LogOut, Settings2, UserRound } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { logoutAction } from "@/features/auth/actions";
 import { AccountAvatar } from "@/features/auth/components/account-avatar";
@@ -14,25 +15,18 @@ import {
 import type { AdminUser } from "@/features/auth/types";
 import { cn } from "@/lib/utils";
 
-const ROLE_LABELS: Record<BusinessRole, string> = {
-  ADMIN: "Administrator",
-  EDITOR: "Editor",
-  CONTRIBUTOR: "Contributor",
-  PARTNER: "Partner",
-  BDO: "Business development",
-};
-
 const ITEM =
   "flex h-8 w-full items-center gap-2.5 rounded-md px-2 text-sm text-ink-soft transition-colors hover:bg-sand-deep hover:text-ink";
 
 export function AccountMenu({ admin }: { readonly admin: AdminUser }) {
+  const t = useTranslations("shell.account");
   const [open, setOpen] = useState(false);
   const [signingOut, startSignOut] = useTransition();
   const container = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const panelId = useId();
   const role = primaryRole(admin.roles);
-  const roleLabel = role ? ROLE_LABELS[role] : "Team member";
+  const roleLabel = role ? t(`roles.${role satisfies BusinessRole}`) : t("teamMember");
 
   useEffect(() => {
     if (!open) return;
@@ -64,7 +58,7 @@ export function AccountMenu({ admin }: { readonly admin: AdminUser }) {
       <button
         aria-controls={panelId}
         aria-expanded={open}
-        aria-label={`Account options for ${admin.name}`}
+        aria-label={t("optionsFor", { name: admin.name })}
         className={cn(
           "flex h-9 items-center gap-2 rounded-md py-1 pr-1.5 pl-1 text-left transition-colors",
           open ? "bg-sand-deep" : "hover:bg-sand-deep",
@@ -86,12 +80,12 @@ export function AccountMenu({ admin }: { readonly admin: AdminUser }) {
 
       {open ? (
         <div
-          aria-label="Account options"
+          aria-label={t("options")}
           className="glass absolute top-full right-0 z-50 mt-1.5 w-64 max-w-[calc(100vw-2rem)] rounded-lg border border-line shadow-pop"
           id={panelId}
         >
           <div className="px-3 pt-3 pb-2.5">
-            <p className="text-2xs font-medium text-muted">Signed in as</p>
+            <p className="text-2xs font-medium text-muted">{t("signedInAs")}</p>
             <p className="mt-1 truncate text-sm font-semibold text-ink">{admin.name}</p>
             <p className="truncate text-xs text-muted" title={admin.email || admin.username}>
               {admin.email || admin.username}
@@ -104,12 +98,12 @@ export function AccountMenu({ admin }: { readonly admin: AdminUser }) {
           <div className="border-t border-line p-1">
             <Link className={ITEM} href="/profile" onClick={() => setOpen(false)}>
               <UserRound aria-hidden className="size-4 text-muted" strokeWidth={1.75} />
-              My profile
+              {t("profile")}
             </Link>
             {hasPermission(admin.roles, "PERM_FULL_CONTROL") ? (
               <Link className={ITEM} href="/settings" onClick={() => setOpen(false)}>
                 <Settings2 aria-hidden className="size-4 text-muted" strokeWidth={1.75} />
-                Workspace settings
+                {t("settings")}
               </Link>
             ) : null}
           </div>
@@ -122,7 +116,7 @@ export function AccountMenu({ admin }: { readonly admin: AdminUser }) {
               type="button"
             >
               <LogOut aria-hidden className="size-4" strokeWidth={1.75} />
-              {signingOut ? "Signing out…" : "Sign out"}
+              {signingOut ? t("signingOut") : t("signOut")}
             </button>
           </div>
         </div>

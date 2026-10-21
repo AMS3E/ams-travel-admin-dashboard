@@ -3,24 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, RotateCcw, Save } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useUpdateAccountMutation } from "@/features/people/api/people-api";
-import { ErrorBanner, PHOTO_HINT } from "@/features/people/components/customer-row";
+import { ErrorBanner, useTheirPhoto } from "@/features/people/components/customer-row";
 import type { Person } from "@/features/people/people.server";
-import { AvatarPicker, type AvatarPickerLabels } from "@/features/profile/components/avatar-picker";
+import { AvatarPicker } from "@/features/profile/components/avatar-picker";
 import { useAvatarUpload } from "@/features/profile/use-avatar-upload";
 import { cn } from "@/lib/utils";
 import { settled } from "@/store/api/api-error";
-
-const STAFF_PHOTO: AvatarPickerLabels = {
-  empty: "Add their photo",
-  filled: "Their profile photo",
-  uploading: "Uploading the photo…",
-  instructions: "Drag an image here, or choose one from this computer.",
-};
 
 interface AccountProfileFormProps {
   readonly person: Person;
@@ -41,6 +35,8 @@ export function AccountProfileForm({ person, self }: AccountProfileFormProps) {
   const [failure, setFailure] = useState<{ message: string; fields: Readonly<Record<string, string>> } | null>(null);
   const [saved, setSaved] = useState(false);
   const photo = useAvatarUpload(setAvatar);
+  const t = useTranslations("people");
+  const theirPhoto = useTheirPhoto();
 
   const dirty =
     firstName.trim() !== person.firstName ||
@@ -99,17 +95,17 @@ export function AccountProfileForm({ person, self }: AccountProfileFormProps) {
   }
 
   return (
-    <form aria-label={`Edit ${person.name}`} className="panel overflow-hidden" noValidate onSubmit={submit}>
+    <form aria-label={t("editing.editName", { name: person.name })} className="panel overflow-hidden" noValidate onSubmit={submit}>
       <div className="flex flex-col gap-4 p-4">
         {failure ? <ErrorBanner message={failure.message} /> : null}
 
-        <FormField error={failure?.fields.avatarKey} hint={PHOTO_HINT} label="Profile photo">
+        <FormField error={failure?.fields.avatarKey} hint={theirPhoto.hint} label={theirPhoto.label}>
           {(field) => (
             <AvatarPicker
               describedBy={field["aria-describedby"]}
               failure={photo.failure}
               id={field.id}
-              labels={STAFF_PHOTO}
+              labels={theirPhoto.labels}
               name={[firstName, lastName].join(" ").trim() || person.name}
               onChoose={photo.choose}
               onFile={(file) => void photo.upload(file)}
@@ -126,7 +122,7 @@ export function AccountProfileForm({ person, self }: AccountProfileFormProps) {
         <input {...photo.inputProps} />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField error={failure?.fields.firstName} label="First name" required>
+          <FormField error={failure?.fields.firstName} label={t("fields.firstName")} required>
             {(field) => (
               <Input
                 {...field}
@@ -139,7 +135,7 @@ export function AccountProfileForm({ person, self }: AccountProfileFormProps) {
             )}
           </FormField>
 
-          <FormField error={failure?.fields.lastName} label="Last name">
+          <FormField error={failure?.fields.lastName} label={t("fields.lastName")}>
             {(field) => (
               <Input
                 {...field}
@@ -151,7 +147,7 @@ export function AccountProfileForm({ person, self }: AccountProfileFormProps) {
             )}
           </FormField>
 
-          <FormField error={failure?.fields.email} hint="Their sign-in code is sent to this address." label="E-mail" required>
+          <FormField error={failure?.fields.email} hint={t("accountProfile.emailHint")} label={t("fields.email")} required>
             {(field) => (
               <Input
                 {...field}
@@ -164,7 +160,7 @@ export function AccountProfileForm({ person, self }: AccountProfileFormProps) {
             )}
           </FormField>
 
-          <FormField error={failure?.fields.phone} hint="Optional. Leave empty to remove it." label="Phone number">
+          <FormField error={failure?.fields.phone} hint={t("fields.phoneRemovable")} label={t("fields.phone")}>
             {(field) => (
               <Input
                 {...field}
@@ -177,13 +173,13 @@ export function AccountProfileForm({ person, self }: AccountProfileFormProps) {
             )}
           </FormField>
 
-          <FormField hint="Set when the account was created; it cannot be changed." label="Username">
+          <FormField hint={t("accountProfile.usernameHint")} label={t("fields.username")}>
             {(field) => <Input {...field} disabled readOnly value={person.username} />}
           </FormField>
 
           <FormField
-            hint={self ? "You cannot disable your own account." : "A disabled account cannot sign in."}
-            label="Status"
+            hint={self ? t("accountProfile.statusSelf") : t("accountProfile.statusHint")}
+            label={t("fields.status")}
           >
             {(field) => (
               <Select
@@ -192,8 +188,8 @@ export function AccountProfileForm({ person, self }: AccountProfileFormProps) {
                 onChange={(event) => changed(setEnabled)(event.target.value === "enabled")}
                 value={enabled ? "enabled" : "disabled"}
               >
-                <option value="enabled">Active — can sign in</option>
-                <option value="disabled">Disabled — sign-in blocked</option>
+                <option value="enabled">{t("status.activeOption")}</option>
+                <option value="disabled">{t("status.disabledOption")}</option>
               </Select>
             )}
           </FormField>
@@ -210,26 +206,26 @@ export function AccountProfileForm({ person, self }: AccountProfileFormProps) {
           {photo.uploading ? (
             <>
               <Loader2 aria-hidden className="size-3.5 animate-spin" />
-              Uploading the photo…
+              {t("editing.uploadingPhoto")}
             </>
           ) : dirty ? (
             <>
               <span aria-hidden className="size-1.5 rounded-full bg-gold" />
-              Unsaved changes.
+              {t("editing.unsaved")}
             </>
           ) : saved ? (
             <span className="flex items-center gap-1.5 text-success">
               <Check aria-hidden className="size-3.5" />
-              Saved.
+              {t("editing.saved")}
             </span>
           ) : (
-            <span className="text-muted">No changes yet.</span>
+            <span className="text-muted">{t("editing.noChanges")}</span>
           )}
         </p>
         <div className="flex gap-2">
           <Button disabled={busy || !dirty} onClick={discard} size="sm" type="button" variant="ghost">
             <RotateCcw aria-hidden className="size-3.5" />
-            Discard
+            {t("editing.discard")}
           </Button>
           <Button disabled={busy || !dirty || !firstName.trim() || !email.trim()} size="sm" type="submit">
             {isLoading ? (
@@ -237,7 +233,7 @@ export function AccountProfileForm({ person, self }: AccountProfileFormProps) {
             ) : (
               <Save aria-hidden className="size-3.5" />
             )}
-            {isLoading ? "Saving…" : "Save changes"}
+            {isLoading ? t("editing.saving") : t("editing.save")}
           </Button>
         </div>
       </div>

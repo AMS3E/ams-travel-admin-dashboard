@@ -41,6 +41,7 @@ export const baseApi = createApi({
     "Role",
     "Permission",
     "Verification",
+    "StampCode",
   ],
   refetchOnFocus: true,
   refetchOnReconnect: true,

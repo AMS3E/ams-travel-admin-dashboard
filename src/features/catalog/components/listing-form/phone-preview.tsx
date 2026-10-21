@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import MarkdownIt from "markdown-it";
 import { ArrowLeft, Heart, ImageIcon, Images, MapPin, Quote, Share, Tag } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { mediaPath, type FormValues, type ReferenceOption, type ReferenceOptions, type ResourceDefinition } from "@/features/catalog/resource";
 import { cn } from "@/lib/utils";
 
@@ -97,6 +98,7 @@ function StillMap({ latitude, longitude, name, cover }: { latitude: number; long
 }
 
 export function PhonePreview({ definition, values, options, photos, className }: PhonePreviewProps) {
+  const t = useTranslations("forms.preview");
   const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
   const coverKey = text(values.coverKey);
   const cover = text(values.coverUrl) || (coverKey ? mediaPath(coverKey) : "");
@@ -115,7 +117,7 @@ export function PhonePreview({ definition, values, options, photos, className }:
   const attraction = definition.key === "destinations";
   const categories = attraction ? labelsOf("categoryIds", options.categories) : labelsOf("interestIds", options.interests);
   const asksSlogan = definition.fields.some((field) => field.name === "slogan");
-  const untitled = attraction ? "Untitled destination" : definition.key === "stays" ? "Untitled stay" : "Untitled place";
+  const untitled = attraction ? t("untitled.destinations") : definition.key === "stays" ? t("untitled.stays") : t("untitled.foods");
   const latitude = coordinate(values.latitude, 90);
   const longitude = coordinate(values.longitude, 180);
   const dots = Math.min(8, Math.max(1, photos));
@@ -133,7 +135,7 @@ export function PhonePreview({ definition, values, options, photos, className }:
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-[#6b4ee6]">
               <ImageIcon aria-hidden className="size-6" strokeWidth={1.5} />
-              <span className="text-[11px]">The cover photo goes here</span>
+              <span className="text-[11px]">{t("coverHere")}</span>
             </div>
           )}
           <div className="absolute inset-x-0 top-0 flex items-center justify-between px-6 pt-2.5 text-[12px] font-semibold text-white drop-shadow">
@@ -164,14 +166,14 @@ export function PhonePreview({ definition, values, options, photos, className }:
             </span>
           </div>
           <div className="absolute inset-x-0 bottom-7 flex items-center justify-between px-4">
-            <span aria-label={`${dots} photos`} className="flex items-center gap-1">
+            <span aria-label={t("photos", { count: dots })} className="flex items-center gap-1">
               {Array.from({ length: dots }, (_, index) => (
                 <span className={cn("rounded-full", index === 0 ? "size-1.5 bg-[#6b4ee6]" : "size-1 bg-white/80")} key={index} />
               ))}
             </span>
             <span className="flex items-center gap-1 rounded-md bg-white/70 px-2 py-1 text-[10px] font-medium text-[#1d1d24]">
               <Images aria-hidden className="size-3" />
-              Gallery
+              {t("gallery")}
             </span>
           </div>
         </div>
@@ -190,7 +192,7 @@ export function PhonePreview({ definition, values, options, photos, className }:
               ))
             ) : (
               <span className="rounded-full border border-dashed border-[#c9bdf0] px-2.5 py-1 text-[11px] text-[#9a9aa6]">
-                {attraction ? "Categories appear here" : "Its type appears here"}
+                {attraction ? t("categoriesHere") : t("typeHere")}
               </span>
             )}
             {categories.length > 3 ? (
@@ -204,7 +206,7 @@ export function PhonePreview({ definition, values, options, photos, className }:
             <div className="flex gap-2 rounded-xl border border-[#cdbdf6] bg-[#f6f2ff] px-3 py-2.5">
               <Quote aria-hidden className="mt-0.5 size-4 shrink-0 scale-x-[-1] text-[#8a6ff0]" />
               <p className={cn("text-[12px] leading-snug", slogan ? "text-[#4b2fb5]" : "text-[#9a9aa6]")}>
-                <span className="italic">{slogan ? `“${slogan}”` : "A line someone said about it appears here."}</span>
+                <span className="italic">{slogan ? `“${slogan}”` : t("sloganHere")}</span>
                 {slogan && sloganBy ? <span className="mt-0.5 block font-semibold not-italic">— {sloganBy}</span> : null}
               </p>
             </div>
@@ -218,23 +220,23 @@ export function PhonePreview({ definition, values, options, photos, className }:
                   dangerouslySetInnerHTML={{ __html: story }}
                 />
                 <span className="font-medium" style={{ color: PURPLE }}>
-                  Read more
+                  {t("readMore")}
                 </span>
               </div>
             ) : (
-              <p className="text-[#9a9aa6]">The full story appears here.</p>
+              <p className="text-[#9a9aa6]">{t("storyHere")}</p>
             )}
           </div>
 
           <div className="flex flex-col gap-2">
-            <h4 className="text-[14px] font-bold text-[#1d1d24]">How to get there</h4>
+            <h4 className="text-[14px] font-bold text-[#1d1d24]">{t("gettingThere")}</h4>
             <div className="overflow-hidden rounded-xl border border-[#cdbdf6]">
               {latitude !== null && longitude !== null ? (
-                <StillMap cover={showCover ? cover : ""} latitude={latitude} longitude={longitude} name={name || "This place"} />
+                <StillMap cover={showCover ? cover : ""} latitude={latitude} longitude={longitude} name={name || t("thisPlace")} />
               ) : (
                 <div className="flex flex-col items-center justify-center gap-1 bg-[#f6f2ff] text-[#9a9aa6]" style={{ width: MAP_WIDTH, height: 120 }}>
                   <MapPin aria-hidden className="size-5" strokeWidth={1.5} />
-                  <span className="text-[11px]">Drop the map pin to see it here</span>
+                  <span className="text-[11px]">{t("pinHere")}</span>
                 </div>
               )}
             </div>

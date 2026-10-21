@@ -4,6 +4,8 @@ import "leaflet/dist/leaflet.css";
 
 import L from "leaflet";
 import { useEffect, useEffectEvent, useRef } from "react";
+import { useTranslations } from "next-intl";
+import { useZoomTitles } from "@/lib/use-zoom-titles";
 import { CAMBODIA_BOUNDS, type GeoPoint } from "@/features/catalog/geo";
 
 export type MapLayer = "map" | "satellite";
@@ -73,6 +75,8 @@ function latLng(point: GeoPoint): L.LatLngTuple {
  * rendered in the browser.
  */
 export default function PinMap({ point, accuracy, focus, layer, readOnly, onPick }: PinMapProps) {
+  const t = useTranslations("forms.map");
+  const pinTitle = t("pinTitle");
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const marker = useRef<L.Marker | null>(null);
@@ -150,7 +154,7 @@ export default function PinMap({ point, accuracy, focus, layer, readOnly, onPick
         draggable: !readOnly,
         autoPan: true,
         keyboard: false,
-        title: "Listing location",
+        title: pinTitle,
       });
       created.on("dragend", () => {
         const at = created.getLatLng();
@@ -168,7 +172,7 @@ export default function PinMap({ point, accuracy, focus, layer, readOnly, onPick
     if (!fromMap && !current.getBounds().contains(latLng(point))) {
       current.setView(latLng(point), Math.max(current.getZoom(), 15));
     }
-  }, [point, readOnly]);
+  }, [point, readOnly, pinTitle]);
 
   useEffect(() => {
     if (!marker.current) return;
@@ -205,5 +209,7 @@ export default function PinMap({ point, accuracy, focus, layer, readOnly, onPick
     };
   }, [focus]);
 
-  return <div aria-label="Map: click to place the pin, or drag the pin" className="size-full" ref={container} role="application" />;
+  useZoomTitles(container);
+
+  return <div aria-label={t("mapLabel")} className="size-full" ref={container} role="application" />;
 }

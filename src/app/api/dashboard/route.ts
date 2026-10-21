@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { getBackendUserId, getCurrentAdmin } from "@/features/auth/session";
 import { hasAnyPermission, hasPermission } from "@/features/auth/permissions";
 import { requireAdminToken } from "@/lib/api-route.server";
@@ -12,6 +13,8 @@ export async function GET() {
   const admin = await getCurrentAdmin();
   const grants = admin?.roles ?? [];
   const failures: string[] = [];
+  /* The sections that could not be read, named in the reader's language. */
+  const source = await getTranslations("dashboard.sources");
   async function read<T>(
     label: string,
     path: string,
@@ -37,12 +40,12 @@ export async function GET() {
   const [overview, destinations, requests, audit, ownRequests, stays, foods, userId] = await Promise.all([
     /* A moderator reads the review tiles; the API adds table counts for full control alone. */
     read<NonNullable<DashboardResponse["overview"]>>(
-      "Overview",
+      source("overview"),
       "/admin/overview",
       hasAnyPermission(grants, ["PERM_FULL_CONTROL", "PERM_REVIEW_MODERATE"]),
     ),
     read<NonNullable<DashboardResponse["destinations"]>>(
-      "Destinations",
+      source("destinations"),
       "/destinations/workspace",
       hasAnyPermission(grants, [
         "PERM_LISTING_EDIT_OWN",
@@ -52,22 +55,22 @@ export async function GET() {
       ]),
     ),
     read<NonNullable<DashboardResponse["requests"]>>(
-      "Publish requests",
+      source("requests"),
       canReview ? "/publish-requests" : "/publish-requests/mine",
       canReview || hasPermission(grants, "PERM_PUBLISH_REQUEST_VIEW_OWN"),
     ),
     read<NonNullable<DashboardResponse["audit"]>>(
-      "Audit activity",
+      source("audit"),
       "/admin/audit?limit=200",
       hasPermission(grants, "PERM_AUDIT_VIEW"),
     ),
     read<NonNullable<DashboardResponse["mine"]>>(
-      "Your requests",
+      source("mine"),
       "/publish-requests/mine",
       canReview && viewsOwn,
     ),
-    read<NonNullable<DashboardResponse["stays"]>>("Stays", "/stays", writesListings),
-    read<NonNullable<DashboardResponse["foods"]>>("Food listings", "/foods", writesListings),
+    read<NonNullable<DashboardResponse["stays"]>>(source("stays"), "/stays", writesListings),
+    read<NonNullable<DashboardResponse["foods"]>>(source("foods"), "/foods", writesListings),
     managesListings ? Promise.resolve(null) : getBackendUserId(),
   ]);
   /*

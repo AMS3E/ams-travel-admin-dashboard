@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 /**
@@ -38,10 +39,11 @@ interface MetricProps {
 }
 
 export function Metric({ label, value, hint, tone = "neutral", href }: MetricProps) {
+  const t = useTranslations("common");
   const dot = TONE_DOT[tone];
   const shown =
     value === null ? (
-      <span aria-label="Loading" className="inline-block h-6 w-10 animate-pulse rounded-sm bg-sand-deep align-middle" />
+      <span aria-label={t("loading")} className="inline-block h-6 w-10 animate-pulse rounded-sm bg-sand-deep align-middle" />
     ) : value === undefined ? (
       "—"
     ) : typeof value === "number" ? (

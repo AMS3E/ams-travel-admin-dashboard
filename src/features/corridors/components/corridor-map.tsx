@@ -1,21 +1,28 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { LoaderCircle, TriangleAlert } from "lucide-react";
 import type { MapStop } from "@/features/corridors/api/contracts";
+import type { CorridorsT } from "@/features/corridors/format";
 import { loadGoogleMaps, mapIdOrDemo, mapsKeyRefused, onMapsKeyRefused } from "@/features/corridors/google-maps";
 import { groupByPlace, infoContent, pinElement, pointOf } from "@/features/corridors/map-pins";
 import { cn } from "@/lib/utils";
 
-const StreetCorridorMap = dynamic(() => import("./street-corridor-map"), {
-  ssr: false,
-  loading: () => (
+function MapLoading() {
+  const t = useTranslations("corridors.map");
+  return (
     <p className="absolute inset-0 flex items-center justify-center gap-2 text-sm text-muted">
       <LoaderCircle aria-hidden className="size-4 animate-spin" />
-      Loading the map…
+      {t("loading")}
     </p>
-  ),
+  );
+}
+
+const StreetCorridorMap = dynamic(() => import("./street-corridor-map"), {
+  ssr: false,
+  loading: () => <MapLoading />,
 });
 
 const CAMBODIA = { lat: 12.56, lng: 104.99 };
@@ -43,6 +50,7 @@ interface CorridorMapProps {
  * does otherwise, with its credit under the map rather than on it.
  */
 export function CorridorMap({ apiKey, ...props }: CorridorMapProps) {
+  const t = useTranslations("corridors.map");
   if (!apiKey) {
     return (
       <div className="flex min-w-0 flex-col gap-1">
@@ -50,10 +58,13 @@ export function CorridorMap({ apiKey, ...props }: CorridorMapProps) {
           <StreetCorridorMap day={props.day} onSelect={props.onSelect} selectedKey={props.selectedKey} stops={props.stops} />
         </div>
         <p className="text-right text-2xs text-muted">
-          Map data ©{" "}
-          <a className="hover:text-ink hover:underline" href="https://www.openstreetmap.org/copyright" rel="noreferrer" target="_blank">
-            OpenStreetMap contributors
-          </a>
+          {t.rich("credit", {
+            link: (chunks) => (
+              <a className="hover:text-ink hover:underline" href="https://www.openstreetmap.org/copyright" rel="noreferrer" target="_blank">
+                {chunks}
+              </a>
+            ),
+          })}
         </p>
       </div>
     );
@@ -89,7 +100,12 @@ function GoogleCorridorMap({ apiKey, mapId, stops, day, selectedKey, onSelect, c
   /* The stop the map last went to: it goes again only when another is chosen. */
   const visited = useRef<string | null>(null);
   const [state, setState] = useState<LoadState>("loading");
+  const t = useTranslations("corridors");
   const select = useEffectEvent((key: string) => onSelect?.(key));
+  /* A marker's card in the words of the moment, without redrawing the markers when they change. */
+  const showInfo = useEffectEvent((current: google.maps.Map, stop: MapStop, marker: google.maps.marker.AdvancedMarkerElement) =>
+    openInfo(info.current, current, stop, marker, t),
+  );
   /* Read when a marker is clicked: which of the stops at that place is chosen. */
   const selectedKeyRef = useRef(selectedKey);
 
@@ -157,7 +173,7 @@ function GoogleCorridorMap({ apiKey, mapId, stops, day, selectedKey, onSelect, c
       });
       marker.addListener("click", () => {
         const chosen = group.find((stop) => stop.key === selectedKeyRef.current) ?? group[0];
-        openInfo(info.current, current, chosen, marker);
+        showInfo(current, chosen, marker);
         select(chosen.key);
       });
       for (const stop of group) byKey.set(stop.key, { marker, pin });
@@ -236,21 +252,19 @@ function GoogleCorridorMap({ apiKey, mapId, stops, day, selectedKey, onSelect, c
     visited.current = selectedKey;
     current.panTo(entry.marker.position as google.maps.LatLngLiteral);
     if ((current.getZoom() ?? 0) < 11) current.setZoom(12);
-    openInfo(info.current, current, stop, entry.marker);
+    showInfo(current, stop, entry.marker);
     // Runs after the drawing effect, whose markers it reads.
   }, [selectedKey, state, stops, day]);
 
   return (
     <div className={cn("relative overflow-hidden rounded-lg border border-line bg-sand", className)}>
-      <div aria-label="Corridor map" className="size-full" ref={container} role="region" />
+      <div aria-label={t("map.label")} className="size-full" ref={container} role="region" />
       {state === "loading" ? (
-        <p className="absolute inset-0 grid place-items-center text-sm text-muted">Loading the map…</p>
+        <p className="absolute inset-0 grid place-items-center text-sm text-muted">{t("map.loading")}</p>
       ) : null}
       {state === "failed" || state === "refused" ? (
-        <MapNotice className="absolute inset-0 rounded-none border-0" title={state === "refused" ? "Google refused the map key" : "The map could not load"}>
-          {state === "refused"
-            ? "Check that the Maps JavaScript API is enabled for NEXT_PUBLIC_GOOGLE_MAPS_API_KEY and that this site's address is allowed."
-            : "Google Maps did not load. Check the connection and reload the page."}
+        <MapNotice className="absolute inset-0 rounded-none border-0" title={state === "refused" ? t("map.refusedTitle") : t("map.failedTitle")}>
+          {state === "refused" ? t("map.refused") : t("map.failed")}
         </MapNotice>
       ) : null}
     </div>
@@ -274,8 +288,9 @@ function openInfo(
   map: google.maps.Map,
   stop: MapStop,
   marker: google.maps.marker.AdvancedMarkerElement,
+  t: CorridorsT,
 ) {
   if (!window) return;
-  window.setContent(infoContent(stop));
+  window.setContent(infoContent(stop, t));
   window.open({ map, anchor: marker });
 }

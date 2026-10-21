@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { createPortal } from "react-dom";
 import { Check, ChevronLeft, ChevronRight, Copy, Loader2, Star, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -13,9 +14,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useDeleteRecordMutation, useSaveRecordMutation } from "@/features/catalog/api/catalog-api";
 import { toFormValues, type ResourceDefinition } from "@/features/catalog/resource";
 import type { Photo } from "@/features/catalog/components/media-gallery/photos";
-import { apiErrorMessage } from "@/store/api/api-error";
-
-const DATE = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" });
+import { datePartsOf, fillDate } from "@/i18n/dates";
+import { useDates } from "@/i18n/use-dates";
+import { useApiErrorMessage } from "@/store/api/api-error";
 
 interface PhotoDialogProps {
   readonly definition: ResourceDefinition;
@@ -40,6 +41,9 @@ interface PhotoDialogProps {
  * the cover, linked to or deleted, without leaving the gallery.
  */
 export function PhotoDialog({ definition, photo, index, total, canEdit, canDelete, onClose, onPrevious, onNext, onDeleted }: PhotoDialogProps) {
+  const t = useTranslations("catalog.photo");
+  const errorMessage = useApiErrorMessage();
+  const { dates } = useDates();
   const [saveRow, saving] = useSaveRecordMutation();
   const [deleteRow, deleting] = useDeleteRecordMutation();
   const [caption, setCaption] = useState(photo.caption);
@@ -97,7 +101,7 @@ export function PhotoDialog({ definition, photo, index, total, canEdit, canDelet
       }
       setSaved(true);
     } catch (error) {
-      setProblem(apiErrorMessage(error));
+      setProblem(errorMessage(error));
     }
   }
 
@@ -111,7 +115,7 @@ export function PhotoDialog({ definition, photo, index, total, canEdit, canDelet
       const result = await saveRow({ resource: definition.key, id: photo.id, values: next }).unwrap();
       if (!result.ok) setProblem(result.message);
     } catch (error) {
-      setProblem(apiErrorMessage(error));
+      setProblem(errorMessage(error));
     } finally {
       setMarking(false);
     }
@@ -124,7 +128,7 @@ export function PhotoDialog({ definition, photo, index, total, canEdit, canDelet
       onDeleted();
     } catch (error) {
       setConfirming(false);
-      setProblem(apiErrorMessage(error));
+      setProblem(errorMessage(error));
     }
   }
 
@@ -134,14 +138,15 @@ export function PhotoDialog({ definition, photo, index, total, canEdit, canDelet
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
-      setProblem("The link could not be copied. Select the file name and copy it instead.");
+      setProblem(t("copyFailed"));
     }
   }
 
-  const uploaded = photo.createdAt ? DATE.format(new Date(photo.createdAt)) : null;
+  const uploadedAt = photo.createdAt ? new Date(photo.createdAt) : null;
+  const uploaded = uploadedAt && !Number.isNaN(uploadedAt.valueOf()) ? fillDate(dates.date, datePartsOf(uploadedAt), dates) : null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] overflow-y-auto bg-ink/60 p-3 sm:p-6" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] overflow-y-auto bg-scrim p-3 sm:p-6" onClick={onClose}>
       <div
         aria-labelledby="photo-dialog-title"
         aria-modal="true"
@@ -151,11 +156,11 @@ export function PhotoDialog({ definition, photo, index, total, canEdit, canDelet
         role="dialog"
       >
         {/* The photo, as large as the window allows, with the way to the next one. */}
-        <div className="relative min-h-72 flex-1 bg-ink md:min-h-0">
+        <div className="relative min-h-72 flex-1 bg-black md:min-h-0">
           <Image alt={photo.caption || ""} className="object-contain" fill sizes="(min-width: 768px) 60vw, 100vw" src={photo.url} unoptimized />
           {onPrevious ? (
             <button
-              aria-label="Previous photo"
+              aria-label={t("previous")}
               className="absolute top-1/2 left-2 grid size-9 -translate-y-1/2 place-items-center rounded-full bg-paper/90 text-ink shadow-sm transition-colors hover:bg-paper"
               onClick={onPrevious}
               type="button"
@@ -165,7 +170,7 @@ export function PhotoDialog({ definition, photo, index, total, canEdit, canDelet
           ) : null}
           {onNext ? (
             <button
-              aria-label="Next photo"
+              aria-label={t("next")}
               className="absolute top-1/2 right-2 grid size-9 -translate-y-1/2 place-items-center rounded-full bg-paper/90 text-ink shadow-sm transition-colors hover:bg-paper"
               onClick={onNext}
               type="button"
@@ -173,8 +178,8 @@ export function PhotoDialog({ definition, photo, index, total, canEdit, canDelet
               <ChevronRight aria-hidden className="size-5" />
             </button>
           ) : null}
-          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-ink/70 px-2.5 py-0.5 text-xs text-white tabular-nums">
-            {index + 1} of {total}
+          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-2.5 py-0.5 text-xs text-white tabular-nums">
+            {t("position", { index: index + 1, total })}
           </span>
         </div>
 
@@ -182,10 +187,10 @@ export function PhotoDialog({ definition, photo, index, total, canEdit, canDelet
         <aside className="flex w-full shrink-0 flex-col border-t border-line md:w-80 md:overflow-y-auto md:border-t-0 md:border-l">
           <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
             <h3 className="text-base font-semibold text-ink" id="photo-dialog-title">
-              Photo details
+              {t("title")}
             </h3>
             <button
-              aria-label="Close"
+              aria-label={t("close")}
               className="grid size-8 place-items-center rounded-md text-muted transition-colors hover:bg-sand-deep hover:text-ink"
               onClick={onClose}
               type="button"
@@ -196,10 +201,10 @@ export function PhotoDialog({ definition, photo, index, total, canEdit, canDelet
 
           <div className="flex flex-col gap-4 px-4 py-4">
             <div>
-              <p className="text-xs font-medium text-muted">Destination</p>
+              <p className="text-xs font-medium text-muted">{t("destination")}</p>
               <p className="text-sm font-medium text-ink" data-photo-owner>{photo.owner}</p>
               <Link className="text-xs text-teal-deep hover:underline" href={`/destinations/${photo.ownerId}`}>
-                Open the destination
+                {t("openDestination")}
               </Link>
             </div>
 
@@ -207,20 +212,20 @@ export function PhotoDialog({ definition, photo, index, total, canEdit, canDelet
               {photo.cover ? (
                 <Badge className="w-fit" tone="warning">
                   <Star aria-hidden className="size-3 fill-current" />
-                  Cover photo
+                  {t("coverPhoto")}
                 </Badge>
               ) : canEdit ? (
                 <Button className="w-fit" disabled={busy} onClick={() => void makeCover()} size="sm" type="button" variant="secondary">
                   {marking ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <Star aria-hidden className="size-3.5" />}
-                  Make this the cover
+                  {t("makeCover")}
                 </Button>
               ) : (
-                <p className="text-sm text-muted">Not the cover</p>
+                <p className="text-sm text-muted">{t("notCover")}</p>
               )}
-              <p className="text-xs text-muted">The cover is the photo the app and the website show first for this destination.</p>
+              <p className="text-xs text-muted">{t("coverHint")}</p>
             </div>
 
-            <FormField hint="Describe the photograph for anyone who cannot see it." label="Caption">
+            <FormField hint={t("captionHint")} label={t("caption")}>
               {(field) => (
                 <Textarea
                   aria-describedby={field["aria-describedby"]}
@@ -236,7 +241,7 @@ export function PhotoDialog({ definition, photo, index, total, canEdit, canDelet
               )}
             </FormField>
 
-            <FormField hint="Lower numbers come first on the destination page." label="Position">
+            <FormField hint={t("orderHint")} label={t("order")}>
               {(field) => (
                 <Input
                   aria-describedby={field["aria-describedby"]}
@@ -258,27 +263,27 @@ export function PhotoDialog({ definition, photo, index, total, canEdit, canDelet
               <div className="flex items-center gap-2">
                 <Button disabled={!dirty || busy} onClick={() => void save()} size="sm" type="button">
                   {saving.isLoading ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : null}
-                  Save
+                  {t("save")}
                 </Button>
                 {saved && !dirty ? (
                   <span className="inline-flex items-center gap-1 text-xs text-success" role="status">
                     <Check aria-hidden className="size-3.5" />
-                    Saved
+                    {t("saved")}
                   </span>
                 ) : null}
               </div>
             ) : null}
 
             <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-              <dt className="font-medium text-muted">Uploaded</dt>
+              <dt className="font-medium text-muted">{t("uploaded")}</dt>
               <dd className="text-ink">{uploaded ?? "—"}</dd>
-              <dt className="font-medium text-muted">File</dt>
+              <dt className="font-medium text-muted">{t("file")}</dt>
               <dd className="font-mono break-all text-ink-soft">{photo.key}</dd>
             </dl>
 
             <Button className="w-fit" onClick={() => void copyLink()} size="sm" type="button" variant="secondary">
               {copied ? <Check aria-hidden className="size-3.5" /> : <Copy aria-hidden className="size-3.5" />}
-              {copied ? "Link copied" : "Copy link"}
+              {copied ? t("linkCopied") : t("copyLink")}
             </Button>
 
             {problem ? (
@@ -292,33 +297,32 @@ export function PhotoDialog({ definition, photo, index, total, canEdit, canDelet
             {canDelete ? (
               confirming ? (
                 <span className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-ink">Delete this photo for good?</span>
+                  <span className="text-xs text-ink">{t("confirmDelete")}</span>
                   <Button disabled={busy} onClick={() => void remove()} size="sm" type="button" variant="destructive">
                     {deleting.isLoading ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : null}
-                    Delete
+                    {t("delete")}
                   </Button>
                   <Button disabled={busy} onClick={() => setConfirming(false)} size="sm" type="button" variant="ghost">
-                    Keep
+                    {t("keep")}
                   </Button>
                 </span>
               ) : (
                 <Button
-                  className="text-heritage hover:bg-heritage-soft hover:text-heritage"
                   disabled={busy}
                   onClick={() => setConfirming(true)}
                   size="sm"
                   type="button"
-                  variant="ghost"
+                  variant="dangerGhost"
                 >
                   <Trash2 aria-hidden className="size-3.5" />
-                  Delete photo
+                  {t("deletePhoto")}
                 </Button>
               )
             ) : (
               <span />
             )}
             <Link className="text-xs text-muted hover:text-ink hover:underline" href={`/destination-media/${photo.id}`}>
-              Open the full form
+              {t("openForm")}
             </Link>
           </div>
         </aside>

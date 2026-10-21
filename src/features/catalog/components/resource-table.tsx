@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ChevronLeft, ChevronRight, Eye, EyeOff, ImageIcon, Inbox, Pencil, Search, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { ArrowRight, Eye, EyeOff, ImageIcon, Inbox, Pencil, Search, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -19,7 +20,6 @@ import {
 } from "@/components/ui/table";
 import { SearchField, Toolbar } from "@/components/ui/toolbar";
 import { canDeleteRecord, hasPermission } from "@/features/auth/permissions";
-import { formatDateTime } from "@/features/dashboard/format";
 import type { CatalogRecord } from "@/features/catalog/api/contracts";
 import {
   useGetCatalogPageQuery,
@@ -29,7 +29,7 @@ import {
 } from "@/features/catalog/api/catalog-api";
 import { REQUEST_TONES } from "@/features/publishing/api/contracts";
 import { useGetVerifiedStatusesQuery } from "@/features/verification/api/verification-api";
-import { MARK_LABELS, editHrefOf, type ApprovalMark, type ReviewMark } from "@/features/publishing/marks";
+import { editHrefOf, type ApprovalMark, type ReviewMark } from "@/features/publishing/marks";
 import {
   defaultOrder,
   isResourceOrder,
@@ -41,8 +41,11 @@ import {
   type ResourceDefinition,
   type ResourceOrder,
 } from "@/features/catalog/resource";
+import { useLocalizedDefinition } from "@/features/catalog/use-resource";
+import { useDates } from "@/i18n/use-dates";
 import { cn } from "@/lib/utils";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
+import { Pager } from "@/components/ui/pager";
 import { useAppSelector } from "@/store/hooks";
 
 interface ResourceTableProps {
@@ -79,10 +82,16 @@ interface ResourceTableProps {
   readonly approvals?: readonly ApprovalMark[];
   /** Whether the rows can be verified on evidence: an attraction can, a stay cannot. */
   readonly verifiable?: boolean;
+  /**
+   * A read-only page per row, with `{id}` standing for the row's id: the name
+   * and the picture open it and the pencil keeps the form. Without it the name
+   * opens the form, or the review when one waits on the viewer.
+   */
+  readonly detailHref?: string;
 }
 
 export function ResourceTable({
-  definition,
+  definition: given,
   referenceOptions,
   canDelete = true,
   canSetStatus = true,
@@ -94,7 +103,13 @@ export function ResourceTable({
   marks,
   approvals,
   verifiable = false,
+  detailHref,
 }: ResourceTableProps) {
+  const t = useTranslations("catalog");
+  const errorMessage = useApiErrorMessage();
+  const { dateTime } = useDates();
+  /* In the reader's language whether the page handed in a localized definition or the registry's own. */
+  const definition = useLocalizedDefinition(given);
   const status = definition.status;
   const markOf = useMemo(() => new Map((marks ?? []).map((mark) => [mark.listingId, mark])), [marks]);
   const approvedBy = useMemo(() => new Map((approvals ?? []).map((mark) => [mark.listingId, mark])), [approvals]);
@@ -182,6 +197,16 @@ export function ResourceTable({
 
   const failure = remove.error ?? setStatus.error ?? query.error;
 
+  /** The line under a value: the text field when set, else the referenced row's name. */
+  function detailOf(record: CatalogRecord, column: ResourceColumn): string | null {
+    if (!column.detail) return null;
+    const text = column.detail.text ? record[column.detail.text] : null;
+    if (typeof text === "string" && text.trim()) return text.trim();
+    const ref = column.detail.ref;
+    const name = ref ? labels.get(ref.resource)?.get(String(record[ref.field])) : undefined;
+    return name ?? null;
+  }
+
   function renderCell(record: CatalogRecord, column: ResourceColumn) {
     const value = record[column.name];
 
@@ -190,17 +215,33 @@ export function ResourceTable({
       case "approval": {
         const approval = approvedBy.get(record.id);
         return approval ? (
-          <span title={formatDateTime(approval.at)}>{approval.by}</span>
+          <span title={dateTime(approval.at)}>{approval.by}</span>
         ) : (
           <span className="text-muted">—</span>
         );
       }
 
+      /* How far the Khmer is written: a listing by what the API still misses, a name by itself. */
+      case "khmer": {
+        if (Array.isArray(value)) {
+          return value.length ? (
+            <Badge dot tone="warning">{t("table.khmerMissing", { count: value.length })}</Badge>
+          ) : (
+            <Badge dot tone="success">{t("table.khmerComplete")}</Badge>
+          );
+        }
+        return typeof value === "string" && value.trim() ? (
+          <span lang="km">{value}</span>
+        ) : (
+          <Badge dot tone="warning">{t("table.khmerNone")}</Badge>
+        );
+      }
+
       case "verified":
         return verifiedIds.has(record.id) ? (
-          <Badge dot tone="success">Verified</Badge>
+          <Badge dot tone="success">{t("table.verified")}</Badge>
         ) : (
-          <span className="text-muted">{verified.isLoading ? "…" : "Not verified"}</span>
+          <span className="text-muted">{verified.isLoading ? "…" : t("table.notVerified")}</span>
         );
 
       case "status": {
@@ -214,7 +255,7 @@ export function ResourceTable({
 
       case "boolean":
         return value === true ? (
-          <Badge tone="info">Yes</Badge>
+          <Badge tone="info">{t("table.yes")}</Badge>
         ) : (
           <span className="text-muted">—</span>
         );
@@ -248,9 +289,7 @@ export function ResourceTable({
         return names.length === list.length ? (
           <span className="line-clamp-2 text-sm">{names.join(", ")}</span>
         ) : (
-          <span className="text-xs">
-            {list.length} {list.length === 1 ? "item" : "items"}
-          </span>
+          <span className="text-xs">{t("table.items", { count: list.length })}</span>
         );
       }
 
@@ -287,18 +326,18 @@ export function ResourceTable({
       <Toolbar>
         <SearchField
           className="max-w-sm"
-          label={`Search ${definition.labelPlural.toLowerCase()}`}
+          label={t("table.search", { items: definition.labelPlural.toLowerCase() })}
           onChange={(value) => {
             setTerm(value);
             table.setPageIndex(0);
           }}
-          placeholder={`Search ${definition.labelPlural.toLowerCase()}…`}
+          placeholder={t("table.searchPlaceholder", { items: definition.labelPlural.toLowerCase() })}
           value={term}
         />
 
         {status ? (
           <Select
-            aria-label="Filter by status"
+            aria-label={t("list.filterStatus")}
             className="h-8 w-40 text-sm"
             onChange={(event) => {
               setStatusFilter(event.target.value);
@@ -306,7 +345,7 @@ export function ResourceTable({
             }}
             value={statusFilter}
           >
-            <option value="all">All statuses</option>
+            <option value="all">{t("list.allStatuses")}</option>
             {status.options.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -317,7 +356,7 @@ export function ResourceTable({
 
         {kinds.length ? (
           <Select
-            aria-label="Filter by type"
+            aria-label={t("table.filterType")}
             className="h-8 w-40 text-sm"
             onChange={(event) => {
               setKindFilter(event.target.value);
@@ -325,10 +364,10 @@ export function ResourceTable({
             }}
             value={kindFilter}
           >
-            <option value="all">All types</option>
+            <option value="all">{t("table.allTypes")}</option>
             {kinds.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.value === "CAFE" ? "Cafe" : option.label}
+                {option.value === "CAFE" ? t("kinds.CAFE") : option.label}
               </option>
             ))}
           </Select>
@@ -336,7 +375,7 @@ export function ResourceTable({
 
         {ownerFilter && userId ? (
           <Select
-            aria-label="Filter by who created it"
+            aria-label={t("list.filterCreator")}
             className="h-8 w-44 text-sm"
             onChange={(event) => {
               setOnlyMine(event.target.value === "me");
@@ -344,14 +383,14 @@ export function ResourceTable({
             }}
             value={onlyMine ? "me" : "anyone"}
           >
-            <option value="anyone">Created by anyone</option>
-            <option value="me">Created by me</option>
+            <option value="anyone">{t("list.createdByAnyone")}</option>
+            <option value="me">{t("list.createdByMe")}</option>
           </Select>
         ) : null}
 
         {/* A to Z first; a row added a moment ago is found with "Newest first". */}
         <Select
-          aria-label="Sort"
+          aria-label={t("list.sort")}
           className="h-8 w-40 text-sm"
           onChange={(event) => {
             setOrder(isResourceOrder(event.target.value) ? event.target.value : "name");
@@ -359,28 +398,26 @@ export function ResourceTable({
           }}
           value={order}
         >
-          <option value="name">Name A–Z</option>
+          <option value="name">{t("list.sortName")}</option>
           {regionOrder ? (
-            <option value="shown">In the region&apos;s order</option>
+            <option value="shown">{t("table.sortRegion")}</option>
           ) : definition.orderField ? (
-            <option value="shown">{definition.orderField.endsWith("Year") ? "By date" : "In shown order"}</option>
+            <option value="shown">{definition.orderField.endsWith("Year") ? t("table.sortDate") : t("table.sortShown")}</option>
           ) : null}
-          <option value="newest">Newest first</option>
+          <option value="newest">{t("list.sortNewest")}</option>
         </Select>
 
         <p aria-live="polite" className="ml-auto text-xs text-muted tabular-nums">
-          {query.isFetching
-            ? "Updating…"
-            : `${totalElements.toLocaleString()} ${totalElements === 1 ? "record" : "records"}`}
+          {query.isFetching ? t("table.updating") : t("table.records", { count: totalElements })}
         </p>
       </Toolbar>
 
       {failure ? (
         <div className="flex flex-wrap items-center gap-3 border-b border-heritage/20 bg-heritage-soft px-4 py-2 text-sm text-heritage" role="alert">
-          <span className="min-w-0 flex-1">{apiErrorMessage(failure)}</span>
+          <span className="min-w-0 flex-1">{errorMessage(failure)}</span>
           {query.isError ? (
             <Button onClick={() => query.refetch()} size="sm" variant="secondary">
-              Retry
+              {t("table.retry")}
             </Button>
           ) : null}
         </div>
@@ -398,7 +435,7 @@ export function ResourceTable({
               </TableHeaderCell>
             ))}
             <TableHeaderCell className="w-28 text-right">
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t("list.actions")}</span>
             </TableHeaderCell>
           </TableRow>
         </TableHead>
@@ -415,6 +452,7 @@ export function ResourceTable({
                 canDeleteRecord(grants, definition.key, record, userId));
             const mark = markOf.get(record.id);
             const editHref = editHrefOf(`/${definition.key}/${record.id}`, mark);
+            const openHref = detailHref ? detailHref.replace("{id}", record.id) : mark?.yours ? mark.reviewHref : editHref;
             const cover = typeof record.coverUrl === "string" && record.coverUrl
               ? record.coverUrl
               : typeof record.coverKey === "string" && record.coverKey ? mediaPath(record.coverKey) : null;
@@ -432,7 +470,7 @@ export function ResourceTable({
                     {index === 0 ? (
                       <span className="flex items-center gap-3">
                         {thumbs ? (
-                          <Link aria-hidden className="relative hidden h-9 w-12 shrink-0 overflow-hidden rounded border border-line bg-sand-deep sm:block" href={mark?.yours ? mark.reviewHref : editHref} tabIndex={-1}>
+                          <Link aria-hidden className="relative hidden h-9 w-12 shrink-0 overflow-hidden rounded border border-line bg-sand-deep sm:block" href={openHref} tabIndex={-1}>
                             {cover ? (
                               <Image alt="" className="object-cover" fill sizes="48px" src={cover} unoptimized />
                             ) : (
@@ -443,12 +481,15 @@ export function ResourceTable({
                         <span className="min-w-0">
                           <Link
                             className="hover:text-teal-deep hover:underline"
-                            href={mark?.yours ? mark.reviewHref : editHref}
+                            href={openHref}
                           >
                             {renderCell(record, column)}
                           </Link>
+                          {detailOf(record, column) ? (
+                            <span className="block truncate text-xs font-normal text-muted">{detailOf(record, column)}</span>
+                          ) : null}
                           {mark ? (
-                            <Badge className="ml-2 align-middle" dot tone={REQUEST_TONES[mark.status]}>{MARK_LABELS[mark.status]}</Badge>
+                            <Badge className="ml-2 align-middle" dot tone={REQUEST_TONES[mark.status]}>{t(`marks.${mark.status}`)}</Badge>
                           ) : null}
                         </span>
                       </span>
@@ -461,7 +502,7 @@ export function ResourceTable({
                 <TableCell className="py-1.5 text-right whitespace-nowrap">
                   {isConfirming ? (
                     <span className="inline-flex items-center gap-1.5">
-                      <span className="text-xs text-muted">Delete permanently?</span>
+                      <span className="text-xs text-muted">{t("table.confirmDelete")}</span>
                       <Button
                         onClick={() => {
                           setConfirming(null);
@@ -473,10 +514,10 @@ export function ResourceTable({
                         size="sm"
                         variant="destructive"
                       >
-                        Delete
+                        {t("table.delete")}
                       </Button>
                       <Button onClick={() => setConfirming(null)} size="sm" variant="ghost">
-                        Cancel
+                        {t("table.cancel")}
                       </Button>
                     </span>
                   ) : (
@@ -484,12 +525,12 @@ export function ResourceTable({
                       {/* Waiting on the viewer, it goes live by approving the request, not by this switch. */}
                       {mark?.yours ? (
                         <Link className={buttonVariants({ size: "sm", className: "mr-1" })} href={mark.reviewHref}>
-                          Review
+                          {t("list.review")}
                           <ArrowRight aria-hidden className="size-3.5" />
                         </Link>
                       ) : status && canSetStatus && (live || mayRestore) ? (
                         <Button
-                          aria-label={live ? "Take off the site" : "Put on the site"}
+                          aria-label={live ? t("table.takeOff") : t("table.putOn")}
                           className="text-muted hover:text-ink"
                           disabled={setStatus.isLoading || remove.isLoading}
                           onClick={() =>
@@ -502,8 +543,8 @@ export function ResourceTable({
                           size="icon-sm"
                           title={
                             live
-                              ? `${statusOption(definition, status.retired)?.label ?? "Retire"} — hide this from the public site`
-                              : `${statusOption(definition, status.live)?.label ?? "Restore"} — show this on the public site`
+                              ? t("table.hideTitle", { label: statusOption(definition, status.retired)?.label ?? t("table.retire") })
+                              : t("table.showTitle", { label: statusOption(definition, status.live)?.label ?? t("table.restore") })
                           }
                           variant="ghost"
                         >
@@ -512,22 +553,22 @@ export function ResourceTable({
                       ) : null}
 
                       <Link
-                        aria-label="Edit"
+                        aria-label={t("list.edit")}
                         className="inline-grid size-8 place-items-center rounded-md text-muted transition-colors hover:bg-sand-deep hover:text-ink"
                         href={editHref}
-                        title={mark?.yours ? "Edit before approving" : "Edit"}
+                        title={mark?.yours ? t("list.editBeforeApproving") : t("list.edit")}
                       >
                         <Pencil aria-hidden className="size-4" />
                       </Link>
 
                       {deletable ? (
                         <Button
-                          aria-label="Delete"
+                          aria-label={t("table.delete")}
                           className="text-muted hover:bg-heritage-soft hover:text-heritage"
                           disabled={remove.isLoading || setStatus.isLoading}
                           onClick={() => setConfirming(record.id)}
                           size="icon-sm"
-                          title="Delete permanently"
+                          title={t("table.deleteTitle")}
                           variant="ghost"
                         >
                           <Trash2 aria-hidden className="size-4" />
@@ -544,9 +585,9 @@ export function ResourceTable({
             <TableRow className="hover:bg-transparent">
               <TableCell className="p-0" colSpan={shown.length + 1}>
                 {query.isFetching ? (
-                  <p className="py-10 text-center text-sm text-muted">Loading records…</p>
+                  <p className="py-10 text-center text-sm text-muted">{t("table.loading")}</p>
                 ) : query.isError ? (
-                  <p className="py-10 text-center text-sm text-muted">Records could not be loaded.</p>
+                  <p className="py-10 text-center text-sm text-muted">{t("table.loadFailed")}</p>
                 ) : (
                   <EmptyState
                     action={
@@ -562,19 +603,19 @@ export function ResourceTable({
                           size="sm"
                           variant="secondary"
                         >
-                          Clear filters
+                          {t("list.clearFilters")}
                         </Button>
                       ) : null
                     }
                     description={
                       mineOnly && !term.trim() && statusFilter === "all"
-                        ? `${definition.labelPlural} you create appear here.`
+                        ? t("table.emptyMine", { items: definition.labelPlural })
                         : filtered
-                        ? "Try another search, or show every status."
-                        : `${definition.labelPlural} will appear here once they are created.`
+                        ? t("list.noMatchText")
+                        : t("table.emptyText", { items: definition.labelPlural })
                     }
                     icon={filtered ? Search : Inbox}
-                    title={filtered ? "Nothing matches those filters" : `No ${definition.labelPlural.toLowerCase()} yet`}
+                    title={filtered ? t("list.noMatchTitle") : t("table.emptyTitle", { items: definition.labelPlural.toLowerCase() })}
                   />
                 )}
               </TableCell>
@@ -584,31 +625,7 @@ export function ResourceTable({
       </Table>
 
       {totalElements > 0 ? (
-        <footer className="flex items-center justify-between gap-3 border-t border-line px-4 py-2 text-xs text-muted">
-          <span className="tabular-nums">
-            Page {pagination.pageIndex + 1} of {totalPages}
-          </span>
-          <div className="flex gap-1.5">
-            <Button
-              disabled={!table.getCanPreviousPage() || query.isFetching}
-              onClick={() => table.previousPage()}
-              size="sm"
-              variant="secondary"
-            >
-              <ChevronLeft aria-hidden className="size-3.5" />
-              Previous
-            </Button>
-            <Button
-              disabled={!table.getCanNextPage() || query.isFetching}
-              onClick={() => table.nextPage()}
-              size="sm"
-              variant="secondary"
-            >
-              Next
-              <ChevronRight aria-hidden className="size-3.5" />
-            </Button>
-          </div>
-        </footer>
+        <Pager busy={query.isFetching} onPage={(page) => table.setPageIndex(page)} page={pagination.pageIndex} pageCount={totalPages} />
       ) : null}
     </section>
   );

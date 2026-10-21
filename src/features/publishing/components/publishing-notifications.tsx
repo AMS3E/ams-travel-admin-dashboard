@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Bell, X } from "lucide-react";
 import { hasAnyPermission, hasPermission } from "@/features/auth/permissions";
-import { DESK_LABELS } from "../api/contracts";
 import { useGetPublishRequestsQuery } from "../api/publishing-api";
 import { readSeenAt, subscribeToSeen, writeSeenAt } from "../seen";
 import {
@@ -34,6 +34,7 @@ export function PublishingNotifications({ grants, accountId, open, onToggle, onC
   readonly onToggle: () => void;
   readonly onClose: () => void;
 }) {
+  const t = useTranslations("publishing");
   const canReview = hasAnyPermission(grants, ["PERM_PARTNER_PUBLISH_APPROVE", "PERM_CONTRIBUTOR_PUBLISH_APPROVE"]);
   const enabled = canReview || hasPermission(grants, "PERM_PUBLISH_REQUEST_SUBMIT");
   const query = useGetPublishRequestsQuery({ mine: !canReview }, {
@@ -65,6 +66,14 @@ export function PublishingNotifications({ grants, accountId, open, onToggle, onC
     links[item.id] = `${page}/${item.id}`;
     onItsPage ||= pathname === page || pathname === links[item.id];
   }
+  /* The words that carry the counts, before the callback too: the compiler counts what goes into `t` as changed. */
+  const waiting = pending?.length ?? 0;
+  const waitingText = t("notifications.pending", { count: waiting });
+  const label = [unseen.length ? t("notifications.new", { count: unseen.length }) : null, waiting ? waitingText : null].filter(Boolean);
+  const toastTitle = t("notifications.toastTitle", { count: unseen.length });
+  const toastBody = unseen.length
+    ? t("notifications.toastBody", { name: unseen[0].requestedByName ?? t("notifications.somebody"), target: unseen[0].targetName })
+    : "";
 
   const markSeen = useCallback(() => {
     const mark = seenMark(pending ?? []);
@@ -80,18 +89,13 @@ export function PublishingNotifications({ grants, accountId, open, onToggle, onC
 
   if (!enabled) return null;
 
-  const waiting = pending?.length ?? 0;
   const badge = unseen.length || waiting;
-  const label = [
-    unseen.length ? `${unseen.length} new` : null,
-    waiting ? `${waiting} pending` : null,
-  ].filter(Boolean);
 
   return (
     <div className="relative shrink-0">
       <button
         aria-expanded={open}
-        aria-label={`Publishing notifications${label.length ? ` (${label.join(", ")})` : ""}`}
+        aria-label={label.length ? t("notifications.labelWith", { details: label.join(", ") }) : t("notifications.label")}
         className={`relative grid size-8 place-items-center rounded-md text-muted transition-colors hover:bg-sand-deep hover:text-ink ${open ? "bg-sand-deep text-ink" : ""}`}
         onClick={onToggle}
         type="button"
@@ -100,7 +104,7 @@ export function PublishingNotifications({ grants, accountId, open, onToggle, onC
         {badge ? (
           <span
             className={`absolute -top-0.5 -right-0.5 grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] leading-none font-semibold ring-2 ring-paper ${
-              unseen.length ? "bg-destructive text-white" : "bg-sand-deep text-ink-soft"
+              unseen.length ? "bg-destructive text-destructive-foreground" : "bg-sand-deep text-ink-soft"
             }`}
           >
             {badge > 99 ? "99+" : badge}
@@ -111,14 +115,14 @@ export function PublishingNotifications({ grants, accountId, open, onToggle, onC
       {open ? (
         <div className="glass absolute top-10 right-0 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-line shadow-pop">
           <div className="flex items-center justify-between border-b border-line px-3 py-2.5">
-            <p className="text-sm font-semibold text-ink">{canReview ? "Awaiting your review" : "Awaiting a reviewer"}</p>
-            {waiting ? <span className="text-xs text-muted tabular-nums">{waiting} pending</span> : null}
+            <p className="text-sm font-semibold text-ink">{canReview ? t("notifications.awaitingYours") : t("notifications.awaitingReviewer")}</p>
+            {waiting ? <span className="text-xs text-muted tabular-nums">{waitingText}</span> : null}
           </div>
           {query.isError ? (
             <div className="px-3 py-3 text-sm text-muted" role="alert">
-              Publishing notifications are unavailable.{" "}
+              {t("notifications.unavailable")}{" "}
               <button className="font-medium text-teal-deep hover:underline" onClick={() => void query.refetch()} type="button">
-                Retry
+                {t("notifications.retry")}
               </button>
             </div>
           ) : waiting && pending ? (
@@ -136,7 +140,7 @@ export function PublishingNotifications({ grants, accountId, open, onToggle, onC
                     >
                       <span className="block truncate text-sm font-medium text-ink">{item.targetName}</span>
                       <span className="mt-0.5 block truncate text-xs text-muted">
-                        {item.requestedByName ?? "Unknown account"} · {DESK_LABELS[item.desk]}
+                        {item.requestedByName ?? t("notifications.unknownAccount")} · {t(`desk.${item.desk}`)}
                       </span>
                     </Link>
                   </li>
@@ -151,12 +155,12 @@ export function PublishingNotifications({ grants, accountId, open, onToggle, onC
                     onClose();
                   }}
                 >
-                  View all requests
+                  {t("notifications.viewAll")}
                 </Link>
               </div>
             </>
           ) : (
-            <p className="px-3 py-4 text-sm text-muted">{query.isLoading ? "Loading notifications…" : "You're all caught up."}</p>
+            <p className="px-3 py-4 text-sm text-muted">{query.isLoading ? t("notifications.loading") : t("notifications.caughtUp")}</p>
           )}
         </div>
       ) : null}
@@ -168,10 +172,10 @@ export function PublishingNotifications({ grants, accountId, open, onToggle, onC
               <Bell aria-hidden className="mt-0.5 size-4 shrink-0 text-teal" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-ink">
-                  {unseen.length} publishing {unseen.length === 1 ? "request" : "requests"} awaiting review
+                  {toastTitle}
                 </p>
                 <p className="mt-0.5 text-sm text-muted">
-                  {unseen[0].requestedByName ?? "Somebody"} submitted {unseen[0].targetName}.
+                  {toastBody}
                 </p>
                 <Link
                   className="mt-2 inline-block text-sm font-medium text-teal-deep hover:underline"
@@ -181,11 +185,11 @@ export function PublishingNotifications({ grants, accountId, open, onToggle, onC
                     onClose();
                   }}
                 >
-                  Review requests
+                  {t("notifications.reviewRequests")}
                 </Link>
               </div>
               <button
-                aria-label="Dismiss publishing alert"
+                aria-label={t("notifications.dismiss")}
                 className="grid size-6 place-items-center rounded-md text-muted hover:bg-sand-deep hover:text-ink"
                 onClick={markSeen}
                 type="button"

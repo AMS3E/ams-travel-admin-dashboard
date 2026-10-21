@@ -3,15 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { BadgeCheck, ExternalLink, MapPin, ShieldOff, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useGetCatalogQuery, useGetCatalogRecordQuery } from "@/features/catalog/api/catalog-api";
 import { QueryState } from "@/features/cms/components/query-state";
-import { formatDateTime } from "@/features/dashboard/format";
-import { DESK_LABELS, type PublishDesk } from "@/features/publishing/api/contracts";
+import { useDates } from "@/i18n/use-dates";
+import type { PublishDesk } from "@/features/publishing/api/contracts";
 import { useGetDestinationVerificationsQuery } from "../api/verification-api";
-import { BASIS_LABELS, type DestinationVerificationResponse } from "../api/contracts";
+import type { DestinationVerificationResponse } from "../api/contracts";
 import { VerificationForm, type VerificationDecision } from "./verification-form";
 import { VerificationHistory } from "./verification-history";
 
@@ -19,6 +20,8 @@ export interface VerifiableDestination {
   readonly id: string;
   readonly name: string;
   readonly verified: boolean;
+  /** Which kind of listing it is; an attraction when left out. */
+  readonly resource?: "destinations" | "stays" | "foods";
   /** Whose writing it is, when the screen knows — the queue does. */
   readonly desk?: PublishDesk;
 }
@@ -32,11 +35,15 @@ interface VerifyDrawerProps {
   readonly onClose: () => void;
 }
 
-const STATUS_LABELS: Readonly<Record<string, { label: string; tone: "active" | "neutral" | "inactive" }>> = {
-  PUBLISHED: { label: "Published", tone: "active" },
-  DRAFT: { label: "Draft", tone: "neutral" },
-  ARCHIVED: { label: "Archived", tone: "inactive" },
-};
+/** Each listing status's tone; its words are `verification.destinationStatus`. */
+const STATUS_TONES = {
+  PUBLISHED: "active",
+  DRAFT: "neutral",
+  ARCHIVED: "inactive",
+} as const satisfies Readonly<Record<string, "active" | "neutral" | "inactive">>;
+
+type ListingStatus = keyof typeof STATUS_TONES;
+const isListingStatus = (value: unknown): value is ListingStatus => typeof value === "string" && value in STATUS_TONES;
 
 /**
  * The verification form and the destination's history, opened over whichever
@@ -51,6 +58,7 @@ const STATUS_LABELS: Readonly<Record<string, { label: string; tone: "active" | "
  * which keeps one drawer per list rather than one per row.
  */
 export function VerifyDrawer({ destination, focus = "verify", onClose }: VerifyDrawerProps) {
+  const t = useTranslations("verification");
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const history = useGetDestinationVerificationsQuery(destination.id);
@@ -105,7 +113,7 @@ export function VerifyDrawer({ destination, focus = "verify", onClose }: VerifyD
       ref={dialog}
     >
       <button
-        aria-label="Close verification"
+        aria-label={t("drawer.close")}
         className="absolute inset-0 cursor-default"
         onClick={onClose}
         tabIndex={-1}
@@ -114,21 +122,21 @@ export function VerifyDrawer({ destination, focus = "verify", onClose }: VerifyD
       <div className="verify-drawer relative ml-auto flex h-full w-full max-w-2xl flex-col overflow-y-auto bg-shell shadow-pop">
         <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-line bg-paper px-4 py-3">
           <div className="min-w-0">
-            <p className="text-xs font-medium text-muted">Verification</p>
+            <p className="text-xs font-medium text-muted">{t("title")}</p>
             <h2 className="heading truncate text-lg font-semibold text-ink" id={titleId}>
               {destination.name}
             </h2>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Badge tone={verified ? "gold" : "neutral"}>{verified ? "Verified" : "Not verified"}</Badge>
-            <Button aria-label="Close" onClick={onClose} size="icon-sm" type="button" variant="ghost">
+            <Badge tone={verified ? "success" : "neutral"}>{verified ? t("badge.verified") : t("badge.notVerified")}</Badge>
+            <Button aria-label={t("drawer.closeButton")} onClick={onClose} size="icon-sm" type="button" variant="ghost">
               <X aria-hidden className="size-4" />
             </Button>
           </div>
         </header>
 
         <div className="flex flex-col gap-4 p-4">
-          <ListingSummary desk={destination.desk} id={destination.id} />
+          <ListingSummary resource={destination.resource} desk={destination.desk} id={destination.id} />
           {/* Opened for the record, the record comes first; opened to decide, the form does. */}
           {focus === "history" && !filed ? (
             <>
@@ -148,8 +156,14 @@ export function VerifyDrawer({ destination, focus = "verify", onClose }: VerifyD
 }
 
 /** The listing as travellers see it: what the paperwork has to match. */
-function ListingSummary({ id, desk }: { readonly id: string; readonly desk?: PublishDesk }) {
-  const listing = useGetCatalogRecordQuery({ resource: "destinations", id });
+function ListingSummary({ id, desk, resource = "destinations" }: {
+  readonly id: string;
+  readonly desk?: PublishDesk;
+  readonly resource?: "destinations" | "stays" | "foods";
+}) {
+  const t = useTranslations("verification");
+  const desks = useTranslations("publishing.desk");
+  const listing = useGetCatalogRecordQuery({ resource, id });
   const provinces = useGetCatalogQuery("provinces");
 
   if (listing.isLoading) {
@@ -165,10 +179,10 @@ function ListingSummary({ id, desk }: { readonly id: string; readonly desk?: Pub
   const address = text("address");
   const latitude = typeof record.latitude === "number" ? record.latitude : null;
   const longitude = typeof record.longitude === "number" ? record.longitude : null;
-  const status = STATUS_LABELS[String(record.status)];
+  const status = isListingStatus(record.status) ? record.status : null;
 
   return (
-    <section aria-label="The listing being verified" className="panel flex gap-3 p-3">
+    <section aria-label={t("drawer.listingLabel")} className="panel flex gap-3 p-3">
       {cover ? (
         <Image
           alt=""
@@ -184,25 +198,25 @@ function ListingSummary({ id, desk }: { readonly id: string; readonly desk?: Pub
         </span>
       )}
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-muted">Compare the paperwork with this listing</p>
+        <p className="text-xs font-medium text-muted">{t("drawer.compare")}</p>
         <p className="truncate text-sm font-semibold text-ink">{text("name")}</p>
         <p className="mt-0.5 text-sm text-ink-soft">
-          {[address, provinceName].filter(Boolean).join(", ") || "No address on the listing yet."}
+          {[address, provinceName].filter(Boolean).join(", ") || t("drawer.noAddress")}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {status ? (
-            <Badge dot tone={status.tone}>
-              {status.label}
+            <Badge dot tone={STATUS_TONES[status]}>
+              {t(`destinationStatus.${status}`)}
             </Badge>
           ) : null}
-          {desk ? <Badge>{DESK_LABELS[desk]}</Badge> : null}
+          {desk ? <Badge>{desks(desk)}</Badge> : null}
           <a
             className="inline-flex items-center gap-1 text-xs font-medium text-teal-deep hover:underline"
-            href={`/destinations/${id}`}
+            href={`/${resource}/${id}`}
             rel="noreferrer"
             target="_blank"
           >
-            Open listing
+            {t("drawer.openListing")}
             <ExternalLink aria-hidden className="size-3" />
           </a>
           {latitude != null && longitude != null ? (
@@ -212,7 +226,7 @@ function ListingSummary({ id, desk }: { readonly id: string; readonly desk?: Pub
               rel="noreferrer"
               target="_blank"
             >
-              See the pin on a map
+              {t("drawer.seePin")}
               <ExternalLink aria-hidden className="size-3" />
             </a>
           ) : null}
@@ -232,12 +246,14 @@ function Filed({
   readonly onAnother: () => void;
   readonly onClose: () => void;
 }) {
+  const t = useTranslations("verification");
+  const { dateTime } = useDates();
   const revoked = !decision.verified;
   const details = [
-    decision.basis ? BASIS_LABELS[decision.basis] : null,
-    decision.reference ? `Number ${decision.reference}` : decision.evidenceKey ? "Paperwork attached" : null,
-    decision.reference && decision.evidenceKey ? "paperwork attached" : null,
-    formatDateTime(decision.createdAt),
+    decision.basis ? t(`basis.${decision.basis}`) : null,
+    decision.reference ? t("filed.number", { reference: decision.reference }) : decision.evidenceKey ? t("filed.paperworkAttached") : null,
+    decision.reference && decision.evidenceKey ? t("filed.paperworkAttachedLower") : null,
+    dateTime(decision.createdAt),
   ].filter(Boolean);
 
   return (
@@ -261,23 +277,23 @@ function Filed({
           {revoked ? <ShieldOff aria-hidden className="size-5" /> : <BadgeCheck aria-hidden className="size-5" />}
         </span>
         <div className="min-w-0">
-          <h2 className="font-semibold text-ink">{revoked ? "Verification revoked" : "Destination verified"}</h2>
+          <h2 className="font-semibold text-ink">{revoked ? t("filed.revokedTitle") : t("filed.verifiedTitle")}</h2>
           <p className="mt-0.5 text-sm text-muted">
             {revoked
-              ? "The app no longer shows it as verified, nor as Recommended by AMS Travel."
+              ? t("filed.revokedBody")
               : decision.basis === "OFFICIAL_SITE"
-                ? "The app now shows it as verified and as Recommended by AMS Travel."
-                : "The app now shows it as verified and as Recommended by AMS Travel. Renew it when new paperwork comes in."}
+                ? t("filed.officialBody")
+                : t("filed.paperworkBody")}
           </p>
           {details.length ? <p className="mt-1 text-xs text-ink-soft">{details.join(" · ")}</p> : null}
         </div>
       </div>
       <div className="flex flex-wrap justify-end gap-2">
         <Button onClick={onAnother} type="button" variant="ghost">
-          Record another decision
+          {t("filed.another")}
         </Button>
         <Button onClick={onClose} type="button">
-          Done
+          {t("filed.done")}
         </Button>
       </div>
     </section>

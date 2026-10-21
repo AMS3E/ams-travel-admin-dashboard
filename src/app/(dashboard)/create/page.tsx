@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BedDouble, MapPin, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { requireAdmin } from "@/features/auth/session";
 import { createKinds, type CreateKindKey } from "@/features/catalog/create-kinds";
 import { KindChooser } from "@/features/shell/components/kind-chooser";
 import { PageHeader } from "@/features/shell/components/page-header";
 
-export const metadata: Metadata = { title: "Create destination" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("forms.create");
+  return { title: t("metaTitle") };
+}
 
 const ICONS: Readonly<Record<CreateKindKey, LucideIcon>> = {
   destinations: MapPin,
@@ -20,16 +24,13 @@ const ICONS: Readonly<Record<CreateKindKey, LucideIcon>> = {
  */
 export default async function CreatePage() {
   const admin = await requireAdmin();
-  const kinds = createKinds(admin.roles);
+  const t = await getTranslations("forms.create");
+  const kinds = createKinds(admin.roles, (key) => ({ title: t(`kinds.${key}.title`), description: t(`kinds.${key}.description`) }));
   if (!kinds.length) notFound();
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-5">
-      <PageHeader
-        description="Choose the main type. The form that follows is written for it and asks only what it needs."
-        eyebrow="Content Management"
-        title="What are you adding?"
-      />
+      <PageHeader description={t("description")} eyebrow={t("eyebrow")} title={t("title")} />
       <KindChooser kinds={kinds.map((kind) => ({ ...kind, icon: ICONS[kind.key] }))} />
     </div>
   );

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import {
   getRecords,
   getReferenceOptions,
@@ -16,15 +17,15 @@ interface RouteParams {
   readonly params: Promise<{ readonly resource: string }>;
 }
 
-const unknownResource = NextResponse.json(
-  { message: "Unknown catalogue resource." },
+const unknownResource = async () => NextResponse.json(
+  { message: (await getTranslations("errors.api"))("unknownResource") },
   { status: 404 },
 );
 
 /** The list a table refetches after a delete or a status change. */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const { resource } = await params;
-  if (!isResourceKey(resource)) return unknownResource;
+  if (!isResourceKey(resource)) return unknownResource();
 
   const session = await requireAdminToken();
   if ("response" in session) return session.response;
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         size > 100
       ) {
         return NextResponse.json(
-          { message: "Invalid pagination parameters." },
+          { message: (await getTranslations("errors.api"))("invalidPagination") },
           { status: 400 },
         );
       }
@@ -66,7 +67,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       const within = query.get("within");
       const linkFields = definition.groupBy ? [] : definition.fields.filter((field) => field.inverse).map((field) => field.name);
       if (createdBy !== null && !isUuid(createdBy)) {
-        return NextResponse.json({ message: "Invalid author." }, { status: 400 });
+        return NextResponse.json({ message: (await getTranslations("errors.api"))("invalidAuthor") }, { status: 400 });
       }
       /* A to Z by name; as arranged (a gallery, a timeline); or what was added last. The rows arrive as arranged. */
       const sort = query.get("sort");
@@ -123,12 +124,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const { resource } = await params;
-  if (!isResourceKey(resource)) return unknownResource;
+  if (!isResourceKey(resource)) return unknownResource();
   const session = await requireAdminToken();
   if ("response" in session) return session.response;
   if (!hasValidRequestOrigin(request))
     return NextResponse.json(
-      { message: "Invalid request origin." },
+      { message: (await getTranslations("errors.api"))("invalidOrigin") },
       { status: 403 },
     );
   const input = (await request
@@ -141,7 +142,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     typeof input.values !== "object" ||
     (input.id != null && !isUuid(input.id))
   ) {
-    return NextResponse.json({ message: "Invalid record." }, { status: 400 });
+    return NextResponse.json({ message: (await getTranslations("errors.api"))("invalidRecord") }, { status: 400 });
   }
   try {
     return NextResponse.json(await saveRecord({ ...input, resource }));

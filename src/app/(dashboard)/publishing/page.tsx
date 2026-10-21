@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { canManageResource, hasPermission } from "@/features/auth/permissions";
 import { getBackendUserId, requireAdmin } from "@/features/auth/session";
 import { getRecords } from "@/features/catalog/api/catalog.server";
@@ -18,7 +19,10 @@ import { RequestRows } from "@/features/publishing/components/request-rows";
 import { SubmitRequestForm } from "@/features/publishing/components/submit-request-form";
 import { PageHeader } from "@/features/shell/components/page-header";
 
-export const metadata: Metadata = { title: "Publishing" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("publishing.page");
+  return { title: t("title") };
+}
 
 /**
  * One screen, two jobs, decided by the token.
@@ -36,6 +40,7 @@ export default async function PublishingPage() {
     hasPermission(admin.roles, "PERM_CONTRIBUTOR_PUBLISH_APPROVE");
 
   if (!maySubmit && !mayReview) notFound();
+  const t = await getTranslations("publishing.page");
 
   /* A stay or a food listing is read only by an account that writes them: a partner, or one who manages them all. */
   const writesListings = maySubmit && canManageResource(admin.roles, "stays");
@@ -75,42 +80,42 @@ export default async function PublishingPage() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <PageHeader
-        description="An attraction, a stay or a food listing goes live when the desk responsible for it says so. Partners are answered by a BDO, contributors by an editor, and editors and BDOs by an administrator."
-        eyebrow="Workflow"
-        title="Publishing"
+        description={t("description")}
+        eyebrow={t("eyebrow")}
+        title={t("title")}
       />
 
       {mayReview ? (
         <>
           <DashboardSection
-            description="Approving publishes the listing in the same step."
-            title="Awaiting your decision"
+            description={t("awaiting.description")}
+            title={t("awaiting.title")}
           >
             <RequestRows
               actions={(request) => <DecisionForm requestId={request.id} />}
               openable={openable}
-              empty="Your queue is clear."
+              empty={t("awaiting.empty")}
               requests={waiting}
               showRequester
             />
           </DashboardSection>
 
           <DashboardSection
-            description="Sent back to their author, and off your queue until they answer."
-            title="Waiting on changes"
+            description={t("changes.description")}
+            title={t("changes.title")}
           >
             <RequestRows
               openable={openable}
-              empty="Nothing is waiting on its author."
+              empty={t("changes.empty")}
               requests={returned}
               showRequester
             />
           </DashboardSection>
 
-          <DashboardSection title="Recently decided">
+          <DashboardSection title={t("decided.title")}>
             <RequestRows
               openable={openable}
-              empty="Nothing has been decided yet."
+              empty={t("decided.empty")}
               limit={8}
               requests={decided}
               showRequester
@@ -122,19 +127,19 @@ export default async function PublishingPage() {
       {maySubmit ? (
         <>
           <DashboardSection
-            description="What you own that is not live and not already with a reviewer — including anything sent back for changes."
-            title="Submit for publishing"
+            description={t("submit.description")}
+            title={t("submit.title")}
           >
             <SubmitRequestForm options={submittable} />
           </DashboardSection>
 
           <DashboardSection
-            description="Where each of your asks stands, and what the reviewer said."
-            title="Your requests"
+            description={t("mine.description")}
+            title={t("mine.title")}
           >
             <RequestRows
               openable={openable}
-              empty="You have not submitted anything yet."
+              empty={t("mine.empty")}
               requests={mine}
             />
           </DashboardSection>

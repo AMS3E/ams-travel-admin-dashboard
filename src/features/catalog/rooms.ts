@@ -8,8 +8,15 @@
  * and the same checks as any other row.
  */
 
-import type { FormValues } from "@/features/catalog/resource";
+import type { _Translator, Messages } from "next-intl";
+import type { EnumOption, FormValues } from "@/features/catalog/resource";
 import { ROOM_BEDS, ROOM_HOUSEKEEPING, ROOM_TYPES, ROOM_VIEWS } from "@/features/catalog/resources";
+
+/** The Rooms step's words, from `useTranslations("forms.rooms")`. */
+export type RoomsWords = _Translator<Messages, "forms.rooms">;
+
+/** The bed counts a room holds, by the registry's column names. */
+export type BedName = "singleBeds" | "doubleBeds" | "queenBeds" | "kingBeds" | "bunkBeds" | "sofaBeds" | "futonBeds";
 
 /** A word in front of the name, Booking.com-style; not stored, only used to suggest one. */
 
@@ -39,29 +46,30 @@ export function bedsOf(values: FormValues): number {
 }
 
 /** "1 king bed · 2 single beds", in the order a card lists them. */
-export function bedLine(values: FormValues): string {
+export function bedLine(values: FormValues, t: RoomsWords): string {
   return ROOM_BEDS.flatMap((bed) => {
     const n = count(values, bed.name);
     if (!n) return [];
-    return [`${n} ${n === 1 ? bed.label.toLowerCase() : bed.plural}`];
+    return [t(`beds.${bed.name as BedName}`, { count: n })];
   }).join(" · ");
 }
 
-export function roomTypeLabel(roomType: unknown): string {
-  return ROOM_TYPES.find((option) => option.value === roomType)?.label ?? "Room";
+/** A room type's name; `options` are the registry's, in the reader's language where given. */
+export function roomTypeLabel(roomType: unknown, t: RoomsWords, options: readonly EnumOption[] = ROOM_TYPES): string {
+  return options.find((option) => option.value === roomType)?.label ?? t("roomFallback");
 }
 
-export function viewLabel(view: unknown): string | null {
-  return ROOM_VIEWS.find((option) => option.value === view)?.label ?? null;
+export function viewLabel(view: unknown, options: readonly EnumOption[] = ROOM_VIEWS): string | null {
+  return options.find((option) => option.value === view)?.label ?? null;
 }
 
 /** "Free cancellation until 3 days before arrival", or "Non-refundable". */
-export function cancellationLabel(days: unknown): string {
-  if (typeof days !== "string" || !days.trim()) return "Non-refundable";
+export function cancellationLabel(days: unknown, t: RoomsWords): string {
+  if (typeof days !== "string" || !days.trim()) return t("cancellation.none");
   const n = Number.parseInt(days, 10);
-  if (!Number.isFinite(n) || n < 0) return "Non-refundable";
-  if (n === 0) return "Free cancellation until the day of arrival";
-  return `Free cancellation until ${n} ${n === 1 ? "day" : "days"} before arrival`;
+  if (!Number.isFinite(n) || n < 0) return t("cancellation.none");
+  if (n === 0) return t("cancellation.sameDay");
+  return t("cancellation.days", { count: n });
 }
 
 export const LAYOUT_FOR_TYPE: Readonly<Record<string, Readonly<Record<string, number>>>> = {
@@ -76,15 +84,15 @@ export const LAYOUT_FOR_TYPE: Readonly<Record<string, Readonly<Record<string, nu
 const PLAIN_LAYOUT = { bedrooms: 1, livingRooms: 0, bathroomCount: 1 } as const;
 
 /** "2 bedrooms · 1 living room · 2 bathrooms", the way a listing describes what is inside. */
-export function layoutLine(values: FormValues): string {
+export function layoutLine(values: FormValues, t: RoomsWords): string {
   const parts: string[] = [];
-  const say = (name: string, one: string, many: string) => {
+  const say = (name: "bedrooms" | "livingRooms" | "bathroomCount") => {
     const n = count(values, name);
-    if (n > 0) parts.push(`${n} ${n === 1 ? one : many}`);
+    if (n > 0) parts.push(t(`layout.${name}`, { count: n }));
   };
-  say("bedrooms", "bedroom", "bedrooms");
-  say("livingRooms", "living room", "living rooms");
-  say("bathroomCount", "bathroom", "bathrooms");
+  say("bedrooms");
+  say("livingRooms");
+  say("bathroomCount");
   return parts.join(" · ");
 }
 
@@ -98,18 +106,17 @@ export function hasOwnLayout(values: FormValues): boolean {
 }
 
 /** "Ground floor", "3rd floor", "Basement" — empty when it was left open. */
-export function floorLabel(floor: unknown): string {
+export function floorLabel(floor: unknown, t: RoomsWords): string {
   if (typeof floor !== "string" || !floor.trim()) return "";
   const n = Number.parseInt(floor, 10);
   if (!Number.isFinite(n)) return "";
-  if (n < 0) return n === -1 ? "Basement" : `Basement level ${Math.abs(n)}`;
-  if (n === 0) return "Ground floor";
-  const suffix = n % 100 >= 11 && n % 100 <= 13 ? "th" : n % 10 === 1 ? "st" : n % 10 === 2 ? "nd" : n % 10 === 3 ? "rd" : "th";
-  return `${n}${suffix} floor`;
+  if (n < 0) return n === -1 ? t("floor.basement") : t("floor.basementLevel", { level: Math.abs(n) });
+  if (n === 0) return t("floor.ground");
+  return t("floor.up", { floor: n });
 }
 
-export function housekeepingLabel(value: unknown): string | null {
-  return ROOM_HOUSEKEEPING.find((option) => option.value === value)?.label ?? null;
+export function housekeepingLabel(value: unknown, options: readonly EnumOption[] = ROOM_HOUSEKEEPING): string | null {
+  return options.find((option) => option.value === value)?.label ?? null;
 }
 
 /**
@@ -164,29 +171,6 @@ export function withBedsFor(values: FormValues, roomType: string): FormValues {
   return next;
 }
 
-/** What the Rooms step calls what a stay lets, and the words around it. */
-export interface RoomWords {
-  readonly fresh: string;
-  readonly edit: string;
-  readonly add: string;
-  readonly save: string;
-  readonly copy: string;
-  /** The empty list: what is missing, and how to add it. */
-  readonly none: string;
-  readonly noneHint: string;
-}
-
-/** The same words for every kind of stay: the kinds that had their own — hostels, guesthouses — are no longer offered. */
-export const ROOM_WORDS: RoomWords = {
-  fresh: "New room",
-  edit: "Edit room",
-  add: "Add room",
-  save: "Save room",
-  copy: "Copy to a new room",
-  none: "No rooms yet",
-  noneHint: "Add each kind of room once. Guests choose by beds, how many it sleeps, and price.",
-};
-
 export interface RoomSummary {
   /** Kinds of room. */
   readonly types: number;
@@ -216,7 +200,7 @@ export function roomSummary(rooms: readonly FormValues[]): RoomSummary {
  * A long stay that costs less than the nights in it — a week priced at one
  * night's rate is a typing slip, not a bargain, and a guest would book it.
  */
-export function longStayWarning(values: FormValues): string | null {
+export function longStayWarning(values: FormValues, t: RoomsWords): string | null {
   const nightly = price(values);
   if (nightly === null || nightly <= 0) return null;
   const amount = (name: string): number | null => {
@@ -226,17 +210,18 @@ export function longStayWarning(values: FormValues): string | null {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   };
   const week = amount("weeklyPrice");
-  if (week !== null && week < nightly * 2) return `A week for ${week} is less than two nights at ${nightly}. Check the weekly price.`;
+  /* As strings, so a price reads as typed: 1200, not 1,200. */
+  if (week !== null && week < nightly * 2) return t("warnings.week", { week: String(week), nightly: String(nightly) });
   const month = amount("monthlyPrice");
-  if (month !== null && month < nightly * 5) return `A month for ${month} is less than five nights at ${nightly}. Check the monthly price.`;
+  if (month !== null && month < nightly * 5) return t("warnings.month", { month: String(month), nightly: String(nightly) });
   return null;
 }
 
 /** Guests the beds cannot hold: more adults than the beds sleep. */
-export function capacityWarning(values: FormValues): string | null {
+export function capacityWarning(values: FormValues, t: RoomsWords): string | null {
   const sleeps = sleepsOf(values);
   const adults = count(values, "maxAdults");
-  if (!sleeps) return "Add at least one bed.";
-  if (adults > sleeps) return `The beds sleep ${sleeps}; ${adults} adults need ${adults - sleeps} more ${adults - sleeps === 1 ? "bed" : "beds"}.`;
+  if (!sleeps) return t("warnings.noBed");
+  if (adults > sleeps) return t("warnings.capacity", { sleeps, adults, more: adults - sleeps });
   return null;
 }

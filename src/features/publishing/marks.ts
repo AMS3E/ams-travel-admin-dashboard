@@ -61,7 +61,11 @@ export interface ApprovalMark {
  * listing that went through a desk says who answered it. One published by the
  * desk itself, without a request, has none — nobody approved it but its author.
  */
-export function approvalMarks(requests: readonly PublishRequestResponse[]): ApprovalMark[] {
+export function approvalMarks(
+  requests: readonly PublishRequestResponse[],
+  /** Who a gone reviewer reads as: `publishing.decision.aReviewer` in the reader's language. */
+  unknownReviewer = "A reviewer",
+): ApprovalMark[] {
   const latest = new Map<string, PublishRequestResponse>();
   for (const request of requests) {
     if (request.status !== "PUBLISHED" || !request.reviewedAt) continue;
@@ -72,7 +76,7 @@ export function approvalMarks(requests: readonly PublishRequestResponse[]): Appr
   }
   return [...latest.values()].map((request) => ({
     listingId: request.targetId,
-    by: request.reviewerName ?? "A reviewer",
+    by: request.reviewerName ?? unknownReviewer,
     at: request.reviewedAt ?? request.requestedAt,
   }));
 }
@@ -81,9 +85,3 @@ export function approvalMarks(requests: readonly PublishRequestResponse[]): Appr
 export function editHrefOf(listingHref: string, mark: ReviewMark | undefined): string {
   return mark?.yours ? `${listingHref}?review=${mark.requestId}` : listingHref;
 }
-
-/** How a mark reads, and its colour. */
-export const MARK_LABELS: Readonly<Record<ReviewMark["status"], string>> = {
-  PENDING_REVIEW: "Pending review",
-  DRAFT: "Changes requested",
-};

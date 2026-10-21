@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useId, useMemo, useState, type KeyboardEvent } from "react";
 import { MapPin, Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -31,8 +32,9 @@ export function DestinationPicker({
   onPick,
   onClose,
   autoFocus = false,
-  placeholder = "Search a destination, province or category",
+  placeholder,
 }: DestinationPickerProps) {
+  const t = useTranslations("corridors");
   const listId = useId();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -83,7 +85,7 @@ export function DestinationPicker({
             aria-autocomplete="list"
             aria-controls={listId}
             aria-expanded={showList}
-            aria-label="Search destinations"
+            aria-label={t("picker.label")}
             autoFocus={autoFocus}
             className="pl-8"
             onBlur={() => setFocused(false)}
@@ -93,14 +95,14 @@ export function DestinationPicker({
             }}
             onFocus={() => setFocused(true)}
             onKeyDown={keys}
-            placeholder={placeholder}
+            placeholder={placeholder ?? t("picker.placeholder")}
             role="combobox"
             value={query}
           />
         </div>
         {onClose ? (
           <button
-            aria-label="Close the search"
+            aria-label={t("picker.close")}
             className="grid size-8 place-items-center rounded-md text-muted hover:bg-sand-deep hover:text-ink"
             onClick={onClose}
             type="button"
@@ -119,7 +121,7 @@ export function DestinationPicker({
           role="listbox"
         >
           {matches.length === 0 ? (
-            <li className="px-3 py-4 text-center text-sm text-muted">No destination matches “{query.trim()}”.</li>
+            <li className="px-3 py-4 text-center text-sm text-muted">{t("picker.noMatch", { query: query.trim() })}</li>
           ) : (
             matches.map((destination, index) => (
               <li
@@ -145,11 +147,11 @@ export function DestinationPicker({
                 <span className="min-w-0 flex-1">
                   <span className="flex min-w-0 items-center gap-1.5">
                     <span className="truncate text-sm font-medium text-ink">{destination.name}</span>
-                    {isUnpinned(destination) ? <Badge tone="warning">No map pin</Badge> : null}
-                    {isUnpublished(destination) ? <Badge>Draft</Badge> : null}
+                    {isUnpinned(destination) ? <Badge tone="warning">{t("words.noMapPin")}</Badge> : null}
+                    {isUnpublished(destination) ? <Badge>{t("words.draft")}</Badge> : null}
                   </span>
                   <span className="block truncate text-xs text-muted">
-                    {[destination.provinceName ?? "No province", ...destination.categories].join(" · ")}
+                    {[destination.provinceName ?? t("words.noProvince"), ...destination.categories].join(" · ")}
                   </span>
                   {destination.shortDescription ? (
                     <span className="mt-0.5 line-clamp-1 text-xs text-ink-soft">{destination.shortDescription}</span>

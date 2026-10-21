@@ -8,7 +8,7 @@ import {
   type ResourceField,
 } from "@/features/catalog/resource";
 import { byName } from "@/features/catalog/resources";
-import { isFilled, type ListingStep, type ReadinessCheck } from "@/features/catalog/components/listing-form/steps";
+import { isChecked, isFilled, type ListingStep, type ReadinessCheck } from "@/features/catalog/components/listing-form/steps";
 
 /**
  * A listing as its reviewer reads it: every answer its author gave, under the
@@ -36,8 +36,22 @@ export interface ReviewGroup {
 
 type Weekday = (typeof WEEKDAYS)[number];
 
-const DAY_NAMES: Readonly<Record<Weekday, string>> = {
-  mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun",
+/** The words an answer is written with, from `publishing.answers`; English when none are given. */
+export interface AnswerWords {
+  readonly yes: string;
+  readonly no: string;
+  /** A chosen row that is gone from its list. */
+  readonly gone: string;
+  readonly closed: string;
+  readonly days: Readonly<Record<Weekday, string>>;
+}
+
+const ENGLISH_ANSWERS: AnswerWords = {
+  yes: "Yes",
+  no: "No",
+  gone: "An entry no longer listed",
+  closed: "Closed",
+  days: { mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun" },
 };
 
 const text = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
@@ -55,15 +69,16 @@ export function reviewValue(
   field: ResourceField,
   values: FormValues,
   options: ReferenceOptions,
+  words: AnswerWords = ENGLISH_ANSWERS,
 ): string | readonly string[] | null {
   const raw = values[field.name];
   /* A tick box always says something: no is an answer too. */
-  if (field.kind === "boolean") return raw === true ? "Yes" : "No";
+  if (field.kind === "boolean") return raw === true ? words.yes : words.no;
   if (!isFilled(raw)) return null;
 
   const optionLabel = (value: string) => field.options?.find((option) => option.value === value)?.label ?? value;
   const rowLabel = (value: string) =>
-    (field.ref ? options[field.ref]?.find((option) => option.value === value)?.label : undefined) ?? "An entry no longer listed";
+    (field.ref ? options[field.ref]?.find((option) => option.value === value)?.label : undefined) ?? words.gone;
 
   switch (field.kind) {
     case "enum":
@@ -78,7 +93,7 @@ export function reviewValue(
       const days = Array.isArray(raw) ? raw : [];
       return WEEKDAYS.flatMap((day, index) => {
         const hours = text(days[index]);
-        return hours ? [`${DAY_NAMES[day]} · ${hours === "closed" ? "Closed" : hours}`] : [];
+        return hours ? [`${words.days[day]} · ${hours === "closed" ? words.closed : hours}`] : [];
       });
     }
     default:
@@ -101,6 +116,7 @@ export function reviewGroups(
   step: ListingStep,
   values: FormValues,
   options: ReferenceOptions,
+  words: AnswerWords = ENGLISH_ANSWERS,
 ): ReviewGroup[] {
   const fields = new Map(definition.fields.map((field) => [field.name, field]));
   return step.groups
@@ -109,7 +125,7 @@ export function reviewGroups(
       rows: group.fields.flatMap((name): ReviewRow[] => {
         const field = fields.get(name);
         if (!field || field.kind === "image" || field.derived || !isShown(field, values, options)) return [];
-        const value = reviewValue(field, values, options);
+        const value = reviewValue(field, values, options, words);
         return [{
           name,
           label: labelOf(field, values),
@@ -134,9 +150,7 @@ export interface CheckedLine {
 export function checkedLines(checks: readonly ReadinessCheck[], values: FormValues): CheckedLine[] {
   return checks.map((check) => ({
     label: check.label,
-    done: check.all
-      ? check.fields.every((name) => isFilled(values[name]))
-      : check.fields.some((name) => isFilled(values[name])),
+    done: isChecked(check, values),
     required: Boolean(check.required),
   }));
 }

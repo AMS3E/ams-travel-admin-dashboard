@@ -2,15 +2,17 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { Check, Monitor, Moon, Sun, type LucideIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { THEME_CHOICES, type ThemeChoice } from "@/features/theme/theme";
 import { useTheme } from "@/features/theme/use-theme";
 import { cn } from "@/lib/utils";
 
-const OPTIONS: Readonly<Record<ThemeChoice, { readonly label: string; readonly hint: string; readonly icon: LucideIcon }>> = {
-  light: { label: "Light", hint: "Always light", icon: Sun },
-  dark: { label: "Dark", hint: "Always dark", icon: Moon },
-  system: { label: "System", hint: "Follow this device", icon: Monitor },
+/* Words for each choice are in shell.json, under theme. */
+const OPTIONS: Readonly<Record<ThemeChoice, { readonly icon: LucideIcon }>> = {
+  light: { icon: Sun },
+  dark: { icon: Moon },
+  system: { icon: Monitor },
 };
 
 /**
@@ -19,6 +21,7 @@ const OPTIONS: Readonly<Record<ThemeChoice, { readonly label: string; readonly h
  * Escape closes and returns focus to the button.
  */
 export function ThemeMenu() {
+  const t = useTranslations("shell.theme");
   const { choice, theme, setChoice } = useTheme();
   const [open, setOpen] = useState(false);
   const container = useRef<HTMLDivElement>(null);
@@ -73,7 +76,7 @@ export function ThemeMenu() {
         aria-controls={open ? menuId : undefined}
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label={`Theme: ${current.label}${choice === "system" ? ` (${theme})` : ""}`}
+        aria-label={choice === "system" ? t("currentSystem", { label: t("system.label"), resolved: t(`${theme}.label`) }) : t("current", { label: t(`${choice}.label`) })}
         className={cn("text-ink-soft", open && "bg-sand-deep text-ink")}
         onClick={() => setOpen(!open)}
         onKeyDown={(event) => {
@@ -84,7 +87,7 @@ export function ThemeMenu() {
         }}
         ref={trigger}
         size="icon-sm"
-        title="Theme"
+        title={t("title")}
         variant="ghost"
       >
         <Icon aria-hidden className="size-4" strokeWidth={1.75} />
@@ -92,15 +95,17 @@ export function ThemeMenu() {
 
       {open ? (
         <div
-          aria-label="Theme"
+          aria-label={t("title")}
           className="glass absolute top-full right-0 z-50 mt-1.5 w-52 rounded-lg border border-line p-1 shadow-pop"
           id={menuId}
           onKeyDown={onMenuKeyDown}
           role="menu"
         >
-          <p className="px-2 pt-1.5 pb-1 text-2xs font-medium text-muted">Appearance</p>
+          <p className="px-2 pt-1.5 pb-1 text-2xs font-medium text-muted">{t("appearance")}</p>
           {THEME_CHOICES.map((option, index) => {
-            const { label, hint, icon: OptionIcon } = OPTIONS[option];
+            const { icon: OptionIcon } = OPTIONS[option];
+            const label = t(`${option}.label`);
+            const hint = t(`${option}.hint`);
             const selected = option === choice;
             return (
               <button
@@ -124,7 +129,7 @@ export function ThemeMenu() {
                 <OptionIcon aria-hidden className={cn("size-4 shrink-0", selected ? "text-teal" : "text-muted")} strokeWidth={1.75} />
                 <span className="min-w-0 flex-1">
                   <span className="block leading-tight font-medium">{label}</span>
-                  <span className={cn("block text-2xs leading-tight", selected ? "text-teal-deep/80" : "text-muted")}>{hint}</span>
+                  <span className={cn("block text-2xs leading-tight", selected ? "text-teal-deep" : "text-muted")}>{hint}</span>
                 </span>
                 {selected ? <Check aria-hidden className="size-4 shrink-0" /> : null}
               </button>

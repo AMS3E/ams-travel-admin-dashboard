@@ -1,0 +1,291 @@
+{
+  "words": {
+    "tourismCorridors": "Tourism Corridors",
+    "day": "Day {day}",
+    "allDays": "All days",
+    "showDays": "Show days",
+    "published": "Published",
+    "draft": "Draft",
+    "publish": "Publish",
+    "unpublish": "Unpublish",
+    "preview": "Preview",
+    "cancel": "Cancel",
+    "title": "Title",
+    "noMapPin": "No map pin",
+    "noProvince": "No province",
+    "unknownDestination": "Unknown destination",
+    "untitledDestination": "Untitled destination",
+    "daysStops": "{days, plural, one {# day} other {# days}} · {stops, plural, one {# stop} other {# stops}}",
+    "stops": "{count, plural, one {# stop} other {# stops}}",
+    "travelling": "{distance} · {time} travelling",
+    "travelBy": "{distance} · {time} by {transport}",
+    "by": "By {transport}",
+    "arrive": "Arrive {time}",
+    "leave": "Leave {time}",
+    "stay": "Stay {time}",
+    "note": "Note: {note}",
+    "samePlace": "Same place as the stop before"
+  },
+  "transport": {
+    "CAR": "Car",
+    "MINIVAN": "Minivan",
+    "BUS": "Bus",
+    "TUK_TUK": "Tuk-tuk",
+    "MOTORBIKE": "Motorbike",
+    "BICYCLE": "Bicycle",
+    "WALK": "Walk",
+    "BOAT": "Boat",
+    "FLIGHT": "Flight"
+  },
+  "transportWord": {
+    "CAR": "car",
+    "MINIVAN": "minivan",
+    "BUS": "bus",
+    "TUK_TUK": "tuk-tuk",
+    "MOTORBIKE": "motorbike",
+    "BICYCLE": "bicycle",
+    "WALK": "walk",
+    "BOAT": "boat",
+    "FLIGHT": "flight"
+  },
+  "route": {
+    "NONE": {
+      "label": "No route",
+      "hint": "Add at least two stops."
+    },
+    "MISSING": {
+      "label": "Not calculated",
+      "hint": "The road route has not been worked out for these stops."
+    },
+    "CURRENT": {
+      "label": "Route ready",
+      "hint": "The road route fits the stops as they are."
+    },
+    "STALE": {
+      "label": "Out of date",
+      "hint": "A stop or its position changed since the route was worked out."
+    }
+  },
+  "units": {
+    "distance": "{km, number} km",
+    "distanceShort": "{km, number, ::.0} km",
+    "minutes": "{minutes} min",
+    "hours": "{hours} h",
+    "hoursMinutes": "{hours} h {minutes} min"
+  },
+  "budget": {
+    "range": "${min, number}–${max, number}",
+    "from": "from ${min, number}",
+    "upTo": "up to ${max, number}"
+  },
+  "duration": {
+    "days": "{days, plural, one {# day} other {# days}}",
+    "daysNights": "{days, plural, one {# day} other {# days}} · {nights, plural, one {# night} other {# nights}}"
+  },
+  "list": {
+    "eyebrow": "Content Management",
+    "new": "New corridor"
+  },
+  "create": {
+    "title": "New tourism corridor",
+    "description": "Name it, add the destinations day by day, and create it. Everything can be changed afterwards."
+  },
+  "creator": {
+    "about": {
+      "title": "1. About the corridor",
+      "description": "What travellers see on the corridor's card and at the top of its page."
+    },
+    "name": "Name",
+    "namePlaceholder": "e.g. 3-Day Mekong Discovery",
+    "nameRequired": "Give the corridor a name.",
+    "shortDescription": "Short description",
+    "shortDescriptionHint": "One or two sentences.",
+    "shortDescriptionPlaceholder": "e.g. Up the Mekong from Phnom Penh to Kratie, island by island.",
+    "cover": "Cover photo",
+    "coverHint": "Leave it empty and the first stop's photo is used.",
+    "plan": {
+      "title": "2. Days and stops",
+      "description": "Search a destination to add it to the day, then the next one. Add another day when the trip moves on. You can change all of this later."
+    },
+    "more": {
+      "title": "3. More details",
+      "description": "All optional; the website shows whatever is filled in."
+    },
+    "fullDescription": "Full description",
+    "fullDescriptionHint": "The full story of the trip, shown under the short description.",
+    "interests": "Kinds of trip it suits",
+    "interestsHint": "Interests from the Tourism Corridors group. A traveller browsing one of them on Explore finds this corridor on its page.",
+    "noInterests": "No Tourism Corridors interests yet.",
+    "noInterestsAdd": "No Tourism Corridors interests yet. <link>Add one</link>, then reload this page to choose it.",
+    "budgetFrom": "Budget from",
+    "budgetHint": "Per person, in US dollars.",
+    "budgetFromPlaceholder": "e.g. 180",
+    "budgetUpTo": "Budget up to",
+    "budgetUpToPlaceholder": "e.g. 320",
+    "budgetBackwards": "The upper end is below the lower end.",
+    "timesBackwards": "Stop {stop} leaves before it arrives. Fix its times, then create the corridor.",
+    "publishDraftsFirst": "publish the draft destinations first, or save it as a draft",
+    "open": "Open the corridor",
+    "saveDraft": "Save as draft",
+    "createPublish": "Create and publish",
+    "publishFirst": "Publish {names} first",
+    "create": "Create corridor",
+    "mapDescription": "Each stop you add is numbered on the map, with the real road to it from the one before. Click a marker to see the place."
+  },
+  "detail": {
+    "edit": "Edit details",
+    "build": "Build itinerary",
+    "metrics": {
+      "status": "Status",
+      "duration": "Duration",
+      "stops": "Stops",
+      "distance": "Distance",
+      "travelTime": "Travel time",
+      "budget": "Budget",
+      "budgetHint": "per person",
+      "road": "Road route"
+    },
+    "workedOut": "Worked out {date}",
+    "notConfigured": "Road routes are not calculated: the API has no <code>GOOGLE_MAPS_API_KEY</code>. The map joins the stops with straight lines until one is set.",
+    "routeFailed": "The last attempt to work the route out failed: {error}"
+  },
+  "edit": {
+    "metaTitle": "Edit tourism corridor",
+    "title": "Edit corridor details",
+    "description": "The overview travellers read first.",
+    "fallbackName": "Tourism corridor"
+  },
+  "itinerary": {
+    "metaTitle": "Itinerary · {name}",
+    "title": "Itinerary builder",
+    "description": "Add days, add destinations as stops, and drag them into travelling order. Saving works the road route out for any leg that changed."
+  },
+  "preview": {
+    "metaTitle": "Preview · {name}",
+    "description": "How the corridor reads on the website.",
+    "back": "Back to the builder",
+    "badge": "Tourism corridor",
+    "draft": "Draft — not on the website yet",
+    "perPerson": "{budget} per person"
+  },
+  "builder": {
+    "saved": "Itinerary saved.",
+    "savedRouteCurrent": "Itinerary saved. The road route is up to date.",
+    "savedRouteOff": "Itinerary saved. The road route is not calculated: routing is off on the API (no GOOGLE_MAPS_API_KEY or OSM_ROUTING_URL), so the map joins the stops with straight lines.",
+    "savedRouteFailed": "Itinerary saved, but the road route could not be worked out.",
+    "savedRouteFailedWith": "Itinerary saved, but the road route could not be worked out: {error}",
+    "recalculated": "Road route recalculated.",
+    "published": "Published: the corridor is on the website.",
+    "unpublished": "Unpublished: the corridor is a draft again.",
+    "unsaved": "Unsaved changes",
+    "routingOff": "Routing is off on the API",
+    "saveFirst": "Save the itinerary first",
+    "recalculateHint": "Work the road route out again",
+    "recalculate": "Recalculate route",
+    "save": "Save itinerary",
+    "lastAttemptFailed": "Last route attempt failed: {error}",
+    "mapDescription": "Numbered in travel order, along the real roads. Click a stop or a marker."
+  },
+  "map": {
+    "routeMap": "Route map",
+    "loading": "Loading the map…",
+    "credit": "Map data © <link>OpenStreetMap contributors</link>",
+    "label": "Corridor map",
+    "refusedTitle": "Google refused the map key",
+    "failedTitle": "The map could not load",
+    "refused": "Check that the Maps JavaScript API is enabled for NEXT_PUBLIC_GOOGLE_MAPS_API_KEY and that this site's address is allowed.",
+    "failed": "Google Maps did not load. Check the connection and reload the page.",
+    "openDestination": "Open destination",
+    "arriveLeave": "Arrive {arrive}, leave {leave}",
+    "leaveOnly": "leave {leave}"
+  },
+  "gallery": {
+    "title": "Photos",
+    "description": "What travellers page through on the corridor's page in the app. The cover is its card on Explore and on the Tourism Corridors shelf.",
+    "coverFailed": "The photos changed, but the corridor's cover could not be: {problem}"
+  },
+  "days": {
+    "noPin": "No map pin on {names}: add its latitude and longitude on the destination so the route can reach it.",
+    "notPublished": "Not published yet: {names}. The corridor can be published once they are.",
+    "titlePlaceholder": "e.g. Phnom Penh and the silk island",
+    "starts": "Starts",
+    "detailsLabel": "Day {day} description and notes",
+    "details": "Description and notes",
+    "removeLabel": "Remove day {day}",
+    "removeConfirm": "Remove Day {day} and its {count} stops?",
+    "remove": "Remove this day",
+    "description": "Description",
+    "notes": "Notes for the traveller",
+    "stopsLabel": "Day {day} stops",
+    "drop": "Drop the stop here.",
+    "searchFirst": "Search a destination to start Day {day}",
+    "searchNext": "Add the next stop of Day {day}",
+    "addStop": "Add stop",
+    "addDay": "Add day {day}"
+  },
+  "leg": {
+    "fromDayBefore": "from the day before",
+    "startsWhereEnded": "Starts where the day before ended",
+    "straight": "{distance} apart in a straight line",
+    "unknown": "Distance unknown: a stop has no map pin",
+    "howTo": "How to get to {place}",
+    "thisStop": "this stop"
+  },
+  "stop": {
+    "start": "Start",
+    "viewDestination": "View destination",
+    "dragLabel": "Drag {name} to reorder",
+    "showLabel": "Show {name} on the map",
+    "hide": "Hide times and notes",
+    "add": "Add times or notes",
+    "arrival": "Arrival",
+    "departure": "Departure",
+    "stayMinutes": "Stay (min)",
+    "titlePlaceholder": "e.g. Sunset on Koh Trong",
+    "what": "What happens here",
+    "notes": "Notes",
+    "earlier": "Move {name} earlier",
+    "later": "Move {name} later",
+    "remove": "Remove {name}",
+    "notesAdded": "notes added",
+    "quotedTitle": "“{title}”"
+  },
+  "picker": {
+    "placeholder": "Search a destination, province or category",
+    "label": "Search destinations",
+    "close": "Close the search",
+    "noMatch": "No destination matches “{query}”."
+  },
+  "view": {
+    "noDays": "No days planned yet.",
+    "setsOff": "Sets off {time}",
+    "noStops": "No stops on this day.",
+    "draftDestination": "Draft destination"
+  },
+  "errors": {
+    "time": "Use a time like 08:30.",
+    "chooseDestination": "Choose a destination.",
+    "dayStops": "A day holds at most 40 stops.",
+    "corridorDays": "A corridor runs at most 30 days.",
+    "budgetNegative": "A budget cannot be negative.",
+    "nameLong": "Keep the name under 200 characters.",
+    "budgetOrder": "The budget's upper end is below its lower end.",
+    "cannotCreate": "This account cannot create corridors.",
+    "details": "Some details need attention.",
+    "stops": "Some stops need attention.",
+    "notCreated": "The corridor could not be created.",
+    "stopsNotSaved": "The corridor was created, but its stops could not be saved: {reason} Open it to add them — do not create it again.",
+    "refusedThem": "the API refused them.",
+    "notPublished": "The corridor was saved as a draft, but it could not be published: {reason} Open it to publish it — do not create it again.",
+    "refusedIt": "the API refused it.",
+    "cannotPlan": "This account cannot plan corridors.",
+    "cannotRoute": "These stops cannot be routed.",
+    "roadsFailed": "The roads could not be worked out.",
+    "unknown": "Unknown corridor.",
+    "cannotPublish": "This account cannot publish corridors.",
+    "publishFailed": "The corridor could not be published.",
+    "unpublishFailed": "The corridor could not be unpublished.",
+    "cannotChange": "This account cannot change corridors.",
+    "saveFailed": "The corridor could not be saved."
+  }
+}

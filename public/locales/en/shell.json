@@ -1,0 +1,245 @@
+{
+  "brand": {
+    "home": "AMS Travel CMS — dashboard",
+    "name": "AMS Travel",
+    "product": "CMS"
+  },
+  "skipToContent": "Skip to content",
+  "sidebar": {
+    "label": "Main sidebar",
+    "navigation": "CMS navigation",
+    "drawer": "Navigation",
+    "open": "Open navigation",
+    "close": "Close navigation",
+    "expand": "Expand sidebar",
+    "collapse": "Collapse sidebar",
+    "currentInGroup": "The current page is in this group"
+  },
+  "breadcrumb": {
+    "label": "Breadcrumb",
+    "create": "Create",
+    "detail": "Detail",
+    "edit": "Edit",
+    "pages": {
+      "profile": "My profile",
+      "publishing": "Publishing"
+    }
+  },
+  "nav": {
+    "groups": {
+      "content": "Content Management",
+      "taxonomy": "Taxonomy",
+      "administration": "Administration",
+      "workspace": "Workspace",
+      "desk": "{desk} Management"
+    },
+    "desks": {
+      "partner": {
+        "name": "Partner",
+        "reviewer": "BDO"
+      },
+      "contributor": {
+        "name": "Contributor",
+        "reviewer": "editor"
+      },
+      "editor": {
+        "name": "Editor",
+        "reviewer": "administrator"
+      },
+      "bdo": {
+        "name": "BDO",
+        "reviewer": "administrator"
+      }
+    },
+    "items": {
+      "dashboard": {
+        "label": "Dashboard",
+        "description": "Your workspace at a glance"
+      },
+      "destinations": {
+        "label": "All Destinations",
+        "description": "Every attraction, place to eat and stay, with a tab per main type"
+      },
+      "create": {
+        "label": "Create Destination",
+        "description": "Choose the main type — attraction, food or stay — then fill in its form"
+      },
+      "corridors": {
+        "label": "Tourism Corridors",
+        "description": "Day-by-day travel plans with routes on the map"
+      },
+      "regions": {
+        "label": "Tourism Regions",
+        "description": "The regions travellers discover Cambodia by, and their own lists"
+      },
+      "verification": {
+        "label": "Verification",
+        "description": "Verified places show as Recommended by AMS Travel: file what it rests on, renew it, or revoke it"
+      },
+      "mediaLibrary": {
+        "label": "Media Library",
+        "description": "Every photo in the catalogue, in one gallery"
+      },
+      "destinationStats": {
+        "label": "Destination Stats",
+        "description": "Ratings, reviews, browses and the Verified standing of every destination"
+      },
+      "taxonomyTree": {
+        "label": "Tourism Regions",
+        "description": "Each tourism region's own categories and search filters, in one tree"
+      },
+      "amenities": {
+        "label": "Amenities",
+        "description": "What a stay offers, at the property and in the room"
+      },
+      "interests": {
+        "label": "Interests",
+        "description": "Ways for travelers to explore"
+      },
+      "provinces": {
+        "label": "Provinces",
+        "description": "Manage Cambodia's provinces"
+      },
+      "users": {
+        "label": "Users",
+        "description": "Customers who registered on the public site"
+      },
+      "roles": {
+        "label": "Roles & Permissions",
+        "description": "Partner, contributor, editor, BDO, and administrator accounts"
+      },
+      "auditLogs": {
+        "label": "Audit Logs",
+        "description": "A record of changes across your CMS"
+      },
+      "settings": {
+        "label": "Settings",
+        "description": "Workspace preferences and catalog configuration"
+      },
+      "drafts": {
+        "label": "Drafts",
+        "description": "Destinations that have not been published"
+      },
+      "publishRequests": {
+        "label": "Publish Requests",
+        "description": "Review submissions and track publication"
+      },
+      "reviews": {
+        "label": "Reviews",
+        "description": "Moderate traveler feedback"
+      },
+      "partnerListings": {
+        "label": "Partner Listings",
+        "description": "Listings submitted by travel partners"
+      },
+      "deskRequests": {
+        "label": "{desk} Requests",
+        "description": "Publishing requests from the {deskLower} desk"
+      },
+      "deskApprovals": {
+        "label": "All List Approvals",
+        "description": "Approved and rejected listings, and those still waiting"
+      },
+      "deskOwnDrafts": {
+        "label": "Drafts",
+        "description": "Your drafts waiting for {reviewer} review"
+      },
+      "deskStaffDrafts": {
+        "label": "Drafts",
+        "description": "Your drafts, to publish or send for review"
+      },
+      "deskReviewDrafts": {
+        "label": "{desk} Drafts",
+        "description": "Unpublished {deskLower} destinations"
+      }
+    }
+  },
+  "search": {
+    "label": "Search destinations and CMS tools",
+    "placeholder": "Search…",
+    "clear": "Clear search",
+    "pages": "Pages",
+    "destinations": "Destinations",
+    "searching": "Searching destinations…",
+    "unavailable": "Destination search is unavailable. Try again.",
+    "none": "No results found."
+  },
+  "account": {
+    "roles": {
+      "ADMIN": "Administrator",
+      "EDITOR": "Editor",
+      "CONTRIBUTOR": "Contributor",
+      "PARTNER": "Partner",
+      "BDO": "Business development"
+    },
+    "teamMember": "Team member",
+    "optionsFor": "Account options for {name}",
+    "options": "Account options",
+    "signedInAs": "Signed in as",
+    "profile": "My profile",
+    "settings": "Workspace settings",
+    "signOut": "Sign out",
+    "signingOut": "Signing out…"
+  },
+  "theme": {
+    "title": "Theme",
+    "current": "Theme: {label}",
+    "currentSystem": "Theme: {label} ({resolved})",
+    "appearance": "Appearance",
+    "light": {
+      "label": "Light",
+      "hint": "Always light"
+    },
+    "dark": {
+      "label": "Dark",
+      "hint": "Always dark"
+    },
+    "system": {
+      "label": "System",
+      "hint": "Follow this device"
+    }
+  },
+  "language": {
+    "title": "Language",
+    "current": "Language: {name}",
+    "en": {
+      "hint": "English"
+    },
+    "km": {
+      "hint": "Khmer"
+    }
+  },
+  "lists": {
+    "notFound": "Not found",
+    "new": "New {label}",
+    "listNew": "List a new {noun}",
+    "nouns": {
+      "CAFE": "cafe",
+      "STREET_FOOD": "street-food stall",
+      "attraction": "attraction"
+    },
+    "untitled": "Untitled {label}",
+    "backToCreate": "Create destination",
+    "backToReview": "Back to the review",
+    "correcting": "{label} · correcting it before you decide",
+    "scopedCreated": "{description} You are shown the ones you created.",
+    "scopedOwned": "{description} You are shown the ones you own.",
+    "chips": {
+      "allRegions": "All regions",
+      "allGroups": "All groups",
+      "regions": "Tourism regions",
+      "groups": "Groups",
+      "noRegion": "No region",
+      "noGroup": "No group",
+      "chooseRegion": "Choose a tourism region to see its own {plural}.",
+      "chooseGroup": "Choose a group to see its own {plural}.",
+      "noRegionHint": "In no tourism region yet, so no region's page offers them. Open one and choose its regions.",
+      "noGroupHint": "In no group yet, so the Interests tab does not list them. Open one and choose its group.",
+      "regionHint": "{name}'s own {plural} — the only ones its page and its destinations are offered.",
+      "groupHint": "The {name} group's own {plural} — the Interests tab lists them under {name}."
+    }
+  },
+  "meta": {
+    "description": "Manage the AMS Travel catalogue: destinations, regions, corridors, and the taxonomies behind them."
+  }
+}

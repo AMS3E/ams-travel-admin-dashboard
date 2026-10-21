@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { ImagePlus, Loader2 } from "lucide-react";
 import { Select } from "@/components/ui/select";
 import {
@@ -15,11 +16,12 @@ import {
   type ResourceDefinition,
 } from "@/features/catalog/resource";
 import {
-  progressLabel,
   useGalleryRows,
   useImageUpload,
+  useUploadText,
   type UploadProgress,
 } from "@/features/catalog/use-image-upload";
+import { useLocalizedDefinition } from "@/features/catalog/use-resource";
 import { cn } from "@/lib/utils";
 
 interface BulkPhotoUploadProps {
@@ -42,7 +44,12 @@ interface BulkPhotoUploadProps {
  * A batch that fails stops the run: the pictures already added keep their
  * rows, and the message says where it got to.
  */
-export function BulkPhotoUpload({ definition, gallery, owner: preset = "" }: BulkPhotoUploadProps) {
+export function BulkPhotoUpload({ definition: given, gallery, owner: preset = "" }: BulkPhotoUploadProps) {
+  const t = useTranslations("catalog.upload");
+  /* In the reader's language whether the page handed in a localized definition or the registry's own. */
+  const definition = useLocalizedDefinition(given);
+  const ownerField = definition.fields.find((field) => field.name === gallery.owner.name) ?? gallery.owner;
+  const ownerLabel = ownerField.label.toLowerCase();
   const files = useRef<HTMLInputElement>(null);
   const [owner, setOwner] = useState(preset);
   const [progress, setProgress] = useState<UploadProgress | null>(null);
@@ -53,6 +60,7 @@ export function BulkPhotoUpload({ definition, gallery, owner: preset = "" }: Bul
   const options = useGetReferenceOptionsQuery({ resource: definition.key, include: "fields" });
   const existing = useGetCatalogQuery(definition.key);
   const upload = useImageUpload();
+  const uploadText = useUploadText();
   const addRows = useGalleryRows(definition, gallery);
 
   const owners = options.data?.[gallery.ownerRef] ?? [];
@@ -85,7 +93,7 @@ export function BulkPhotoUpload({ definition, gallery, owner: preset = "" }: Bul
     const problems = [...outcome.skipped, outcome.error, written.error].filter(Boolean);
     setNotice({
       ok: problems.length === 0,
-      text: `${written.added} of ${chosen.length} ${chosen.length === 1 ? "photo" : "photos"} added.${problems.length ? ` ${problems.join(" ")}` : ""}`,
+      text: `${t("added", { added: written.added, count: chosen.length })}${problems.length ? ` ${problems.join(" ")}` : ""}`,
     });
   }
 
@@ -93,14 +101,11 @@ export function BulkPhotoUpload({ definition, gallery, owner: preset = "" }: Bul
     <section className="panel overflow-hidden">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
         <div className="min-w-0">
-          <h2 className="text-md font-semibold text-ink">Add photos</h2>
-          <p className="mt-0.5 text-xs text-muted">
-            Choose whose gallery, then add as many photos as you like. One {definition.label.toLowerCase()} is written
-            per picture, in the order you chose them.
-          </p>
+          <h2 className="text-md font-semibold text-ink">{t("title")}</h2>
+          <p className="mt-0.5 text-xs text-muted">{t("bulkDescription", { item: definition.label.toLowerCase() })}</p>
         </div>
         <label className="sr-only" htmlFor="bulk-owner">
-          {gallery.owner.label}
+          {ownerField.label}
         </label>
         <Select
           className="h-8 w-64 text-sm"
@@ -109,7 +114,7 @@ export function BulkPhotoUpload({ definition, gallery, owner: preset = "" }: Bul
           onChange={(event) => setOwner(event.target.value)}
           value={owner}
         >
-          <option value="">Choose a {gallery.owner.label.toLowerCase()}…</option>
+          <option value="">{t("chooseOwner", { owner: ownerLabel })}</option>
           {owners.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -145,16 +150,14 @@ export function BulkPhotoUpload({ definition, gallery, owner: preset = "" }: Bul
           )}
           <span className="text-sm text-ink">
             {busy ? (
-              progressLabel(progress)
+              uploadText.progress(progress)
             ) : !owner ? (
-              `Choose a ${gallery.owner.label.toLowerCase()} first`
+              t("chooseOwnerFirst", { owner: ownerLabel })
             ) : (
-              <>
-                <span className="font-medium text-teal-deep">Upload photos</span> or drag them here
-              </>
+              t.rich("action", { action: (chunks) => <span className="font-medium text-teal-deep">{chunks}</span> })
             )}
           </span>
-          <span className="text-xs text-muted">Select as many as you like · large photos are resized before they upload</span>
+          <span className="text-xs text-muted">{t("bulkHint")}</span>
         </button>
 
         {progress ? (

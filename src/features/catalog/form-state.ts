@@ -30,6 +30,3 @@ export interface SaveFailure {
 }
 
 export type SaveResult = SaveSuccess | SaveFailure;
-
-export const GENERIC_SAVE_ERROR =
-  "The catalogue rejected this change. Check the fields and try again.";

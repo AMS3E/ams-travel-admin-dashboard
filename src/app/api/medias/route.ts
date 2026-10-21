@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import type { MediaResponse } from "@/features/catalog/api/contracts";
 import { IMAGE_CATEGORIES } from "@/features/catalog/image-category";
 import { requireAdminToken, toErrorResponse } from "@/lib/api-route.server";
@@ -28,23 +29,23 @@ export async function POST(request: NextRequest) {
 
   if (!(IMAGE_CATEGORIES as readonly string[]).includes(category)) {
     return NextResponse.json(
-      { message: `Unknown media folder "${category}".` },
+      { message: (await getTranslations("errors.api"))("unknownFolder", { folder: String(category) }) },
       { status: 400 },
     );
   }
   if (!(file instanceof File) || file.size === 0) {
-    return NextResponse.json({ message: "Choose an image to upload." }, { status: 400 });
+    return NextResponse.json({ message: (await getTranslations("errors.api"))("chooseImage") }, { status: 400 });
   }
   const evidence = category === "verification";
   if (!(evidence ? EVIDENCE_TYPES : CONTENT_TYPES).has(file.type)) {
     return NextResponse.json(
-      { message: evidence ? "Use a PDF, or a JPEG, PNG, WebP, or AVIF image." : "Use a JPEG, PNG, WebP, or AVIF image." },
+      { message: (await getTranslations("errors.api"))(evidence ? "evidenceTypes" : "imageTypes") },
       { status: 415 },
     );
   }
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
-      { message: evidence ? "Files must be 8 MB or smaller." : "Images must be 8 MB or smaller." },
+      { message: (await getTranslations("errors.api"))(evidence ? "fileTooLarge" : "imageTooLarge") },
       { status: 413 },
     );
   }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { createPortal } from "react-dom";
 import { Check, ImagePlus, Inbox, Loader2, Plus, Search, Star, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,13 +12,14 @@ import { SearchField, SegmentedControl, Toolbar } from "@/components/ui/toolbar"
 import { useDeleteRecordMutation, useGetCatalogQuery, useGetReferenceOptionsQuery } from "@/features/catalog/api/catalog-api";
 import { IMAGE_ACCEPT } from "@/features/catalog/media-upload";
 import { galleryOf } from "@/features/catalog/resource";
-import { byName, getResource } from "@/features/catalog/resources";
+import { byName } from "@/features/catalog/resources";
+import { useResource } from "@/features/catalog/use-resource";
 import { PhotoDialog } from "@/features/catalog/components/media-gallery/photo-dialog";
 import { shownPhotos, toPhoto, type CoverFilter, type PhotoOrder } from "@/features/catalog/components/media-gallery/photos";
 import { ResourceTable } from "@/features/catalog/components/resource-table";
-import { progressLabel, useGalleryRows, useImageUpload, type UploadProgress } from "@/features/catalog/use-image-upload";
+import { useGalleryRows, useImageUpload, useUploadText, type UploadProgress } from "@/features/catalog/use-image-upload";
 import { PageHeader } from "@/features/shell/components/page-header";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
 import { cn } from "@/lib/utils";
 
 const RESOURCE = "destination-media";
@@ -47,12 +49,15 @@ interface Notice {
  * replaces is one switch away.
  */
 export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants }: MediaGalleryProps) {
-  const definition = getResource(RESOURCE);
+  const t = useTranslations("catalog");
+  const errorMessage = useApiErrorMessage();
+  const definition = useResource(RESOURCE);
   const gallery = galleryOf(definition)!;
   const rows = useGetCatalogQuery(RESOURCE);
   const options = useGetReferenceOptionsQuery({ resource: RESOURCE, include: "fields" });
   const [deleteRow] = useDeleteRecordMutation();
   const upload = useImageUpload();
+  const uploadText = useUploadText();
   const addRows = useGalleryRows(definition, gallery);
 
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -82,7 +87,8 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
     [options.data, gallery.ownerRef],
   );
   const names = useMemo(() => new Map(destinations.map((option) => [option.value, option.label])), [destinations]);
-  const photos = useMemo(() => (rows.data ?? []).map((row) => toPhoto(row, names)), [rows.data, names]);
+  const unknown = t("gallery.unknownDestination");
+  const photos = useMemo(() => (rows.data ?? []).map((row) => toPhoto(row, names, unknown)), [rows.data, names, unknown]);
   const counts = useMemo(() => {
     const byOwner = new Map<string, number>();
     for (const photo of photos) byOwner.set(photo.ownerId, (byOwner.get(photo.ownerId) ?? 0) + 1);
@@ -105,7 +111,7 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
   async function add(chosen: readonly File[], ownerId: string) {
     if (!canAdd || !chosen.length || !ownerId) return;
     if (busy) {
-      setNotice({ ok: false, text: "Wait for the photos already uploading to finish, then add these." });
+      setNotice({ ok: false, text: t("gallery.stillUploading") });
       return;
     }
     setNotice(null);
@@ -120,7 +126,7 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
     const problems = [...outcome.skipped, outcome.error, written.error].filter(Boolean);
     setNotice({
       ok: problems.length === 0,
-      text: `${written.added} of ${chosen.length} ${chosen.length === 1 ? "photo" : "photos"} added to ${names.get(ownerId) ?? "the destination"}.${problems.length ? ` ${problems.join(" ")}` : ""}`,
+      text: `${t("gallery.addedTo", { added: written.added, count: chosen.length, name: names.get(ownerId) ?? t("gallery.theDestination") })}${problems.length ? ` ${problems.join(" ")}` : ""}`,
       owner: written.added ? ownerId : undefined,
     });
   }
@@ -135,7 +141,7 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
       void add(chosen, target);
     } else {
       setQueued(chosen);
-      setNotice({ ok: true, text: `${chosen.length} ${chosen.length === 1 ? "photo is" : "photos are"} waiting. Choose the destination to add ${chosen.length === 1 ? "it" : "them"} to.` });
+      setNotice({ ok: true, text: t("gallery.waiting", { count: chosen.length }) });
     }
   }
 
@@ -215,7 +221,7 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
       try {
         await deleteRow({ resource: RESOURCE, id }).unwrap();
       } catch (error) {
-        failed.push(apiErrorMessage(error));
+        failed.push(errorMessage(error));
       }
       setRemoving({ done: index + 1, total: ids.length });
     }
@@ -224,7 +230,7 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
     const gone = ids.length - failed.length;
     setNotice({
       ok: failed.length === 0,
-      text: `${gone} of ${ids.length} ${ids.length === 1 ? "photo" : "photos"} deleted.${failed.length ? ` ${failed[0]}` : ""}`,
+      text: `${t("gallery.deleted", { gone, count: ids.length })}${failed.length ? ` ${failed[0]}` : ""}`,
     });
   }
 
@@ -251,28 +257,28 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
               type="button"
             >
               <Plus aria-hidden className="size-4" />
-              Add photos
+              {t("gallery.addPhotos")}
             </Button>
           ) : null
         }
-        description="Every photo on a destination page, in one gallery. Open a photo to caption it or make it the cover; drop new ones onto the page to add them."
-        eyebrow="Content Management"
-        title="Media Library"
+        description={t("gallery.description")}
+        eyebrow={t("contentManagement")}
+        title={t("gallery.title")}
       />
 
       {adding && canAdd ? (
         <section className="panel overflow-hidden" data-upload-panel>
           <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
             <div className="min-w-0">
-              <h2 className="text-md font-semibold text-ink">Add photos</h2>
-              <p className="mt-0.5 text-xs text-muted">Choose the destination, then pick or drop as many photos as you like. They go after its last photo, in the order you chose them.</p>
+              <h2 className="text-md font-semibold text-ink">{t("gallery.addPhotos")}</h2>
+              <p className="mt-0.5 text-xs text-muted">{t("gallery.panelDescription")}</p>
             </div>
             <div className="flex items-center gap-2">
               <label className="sr-only" htmlFor="upload-owner">
-                Destination
+                {t("gallery.destination")}
               </label>
               <Select className="h-8 w-64 text-sm" disabled={busy} id="upload-owner" onChange={(event) => chooseUploadOwner(event.target.value)} value={uploadOwner}>
-                <option value="">Choose a destination…</option>
+                <option value="">{t("gallery.chooseDestination")}</option>
                 {destinations.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -280,7 +286,7 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
                 ))}
               </Select>
               <button
-                aria-label="Close the upload panel"
+                aria-label={t("gallery.closePanel")}
                 className="grid size-8 place-items-center rounded-md text-muted transition-colors hover:bg-sand-deep hover:text-ink disabled:opacity-50"
                 disabled={busy}
                 onClick={() => {
@@ -322,16 +328,14 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
               )}
               <span className="text-sm text-ink">
                 {busy ? (
-                  progressLabel(progress)
+                  uploadText.progress(progress)
                 ) : !uploadOwner ? (
-                  "Choose a destination first"
+                  t("gallery.chooseDestinationFirst")
                 ) : (
-                  <>
-                    <span className="font-medium text-teal-deep">Upload photos</span> or drag them here
-                  </>
+                  t.rich("upload.action", { action: (chunks) => <span className="font-medium text-teal-deep">{chunks}</span> })
                 )}
               </span>
-              <span className="text-xs text-muted">JPEG, PNG, WebP or AVIF · large photos are resized before they upload</span>
+              <span className="text-xs text-muted">{t("gallery.fileHint")}</span>
             </button>
             {progress ? (
               <div aria-hidden className="h-1 overflow-hidden rounded-full bg-sand-deep">
@@ -351,7 +355,7 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
           {notice.text}
           {notice.owner && notice.owner !== owner ? (
             <button className="font-medium text-teal-deep hover:underline" onClick={() => reset(() => setOwner(notice.owner!))} type="button">
-              Show them
+              {t("gallery.showThem")}
             </button>
           ) : null}
         </p>
@@ -360,19 +364,19 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
       <section className="panel min-w-0 overflow-hidden">
         <Toolbar>
           <SegmentedControl
-            label="View"
+            label={t("gallery.view")}
             onChange={(value) => setView(value)}
             options={[
-              { value: "grid", label: "Grid" },
-              { value: "list", label: "List" },
+              { value: "grid", label: t("gallery.grid") },
+              { value: "list", label: t("gallery.list") },
             ]}
             value={view}
           />
           {view === "grid" ? (
             <>
-              <Select aria-label="Filter by destination" className="h-8 w-60 text-sm" onChange={(event) => reset(() => setOwner(event.target.value))} value={owner}>
-                <option value="">All destinations ({photos.length})</option>
-                <optgroup label="With photos">
+              <Select aria-label={t("gallery.filterDestination")} className="h-8 w-60 text-sm" onChange={(event) => reset(() => setOwner(event.target.value))} value={owner}>
+                <option value="">{t("gallery.allDestinations", { count: photos.length })}</option>
+                <optgroup label={t("gallery.withPhotos")}>
                   {destinations
                     .filter((option) => counts.has(option.value))
                     .map((option) => (
@@ -381,7 +385,7 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
                       </option>
                     ))}
                 </optgroup>
-                <optgroup label="No photos yet">
+                <optgroup label={t("gallery.noPhotosYet")}>
                   {destinations
                     .filter((option) => !counts.has(option.value))
                     .map((option) => (
@@ -391,68 +395,69 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
                     ))}
                 </optgroup>
               </Select>
-              <Select aria-label="Filter by cover" className="h-8 w-36 text-sm" onChange={(event) => reset(() => setCover(event.target.value as CoverFilter))} value={cover}>
-                <option value="all">All photos</option>
-                <option value="cover">Covers only</option>
-                <option value="other">Not the cover</option>
+              <Select aria-label={t("gallery.filterCover")} className="h-8 w-36 text-sm" onChange={(event) => reset(() => setCover(event.target.value as CoverFilter))} value={cover}>
+                <option value="all">{t("gallery.allPhotos")}</option>
+                <option value="cover">{t("gallery.coversOnly")}</option>
+                <option value="other">{t("gallery.notCover")}</option>
               </Select>
-              <Select aria-label="Sort" className="h-8 w-36 text-sm" onChange={(event) => reset(() => setOrder(event.target.value as PhotoOrder))} value={order}>
-                <option value="arranged">As arranged</option>
-                <option value="newest">Newest first</option>
+              <Select aria-label={t("list.sort")} className="h-8 w-36 text-sm" onChange={(event) => reset(() => setOrder(event.target.value as PhotoOrder))} value={order}>
+                <option value="arranged">{t("gallery.arranged")}</option>
+                <option value="newest">{t("list.sortNewest")}</option>
               </Select>
-              <SearchField className="max-w-xs" label="Search photos" onChange={(value) => reset(() => setTerm(value))} placeholder="Search captions and destinations…" value={term} />
+              <SearchField className="max-w-xs" label={t("gallery.searchLabel")} onChange={(value) => reset(() => setTerm(value))} placeholder={t("gallery.searchPlaceholder")} value={term} />
               {canDelete && !selecting ? (
                 <Button disabled={shown.length === 0} onClick={() => setSelecting(true)} size="sm" type="button" variant="secondary">
-                  Select
+                  {t("gallery.select")}
                 </Button>
               ) : null}
               <p aria-live="polite" className="ml-auto text-xs text-muted tabular-nums">
-                {shown.length}
-                {shown.length !== photos.length ? ` of ${photos.length}` : ""} {photos.length === 1 ? "photo" : "photos"}
+                {shown.length !== photos.length
+                  ? t("gallery.countOf", { shown: shown.length, count: photos.length })
+                  : t("gallery.count", { count: photos.length })}
               </p>
             </>
           ) : (
-            <p className="ml-auto text-xs text-muted">The table, with every column.</p>
+            <p className="ml-auto text-xs text-muted">{t("gallery.tableHint")}</p>
           )}
         </Toolbar>
 
         {view === "grid" && selecting ? (
           <div className="flex flex-wrap items-center gap-2 border-b border-line bg-sand px-3 py-2 text-sm" data-select-bar>
             <span className="font-medium text-ink tabular-nums">
-              {count} selected
+              {t("gallery.selected", { count })}
             </span>
             <Button onClick={() => setSelected(new Set(shown.map((photo) => photo.id)))} size="sm" type="button" variant="ghost">
-              Select all {shown.length}
+              {t("gallery.selectAll", { count: shown.length })}
             </Button>
             {count ? (
               <Button onClick={() => setSelected(new Set())} size="sm" type="button" variant="ghost">
-                Clear
+                {t("gallery.clear")}
               </Button>
             ) : null}
             <span className="ml-auto flex flex-wrap items-center gap-2">
               {removing ? (
                 <span className="inline-flex items-center gap-1.5 text-xs text-muted tabular-nums">
                   <Loader2 aria-hidden className="size-3.5 animate-spin" />
-                  Deleting {removing.done} of {removing.total}…
+                  {t("gallery.deleting", { done: removing.done, total: removing.total })}
                 </span>
               ) : confirming ? (
                 <>
-                  <span className="text-xs text-ink">Delete {count} {count === 1 ? "photo" : "photos"} for good?</span>
+                  <span className="text-xs text-ink">{t("gallery.confirmDelete", { count })}</span>
                   <Button onClick={() => void deleteSelected()} size="sm" type="button" variant="destructive">
-                    Delete
+                    {t("gallery.delete")}
                   </Button>
                   <Button onClick={() => setConfirming(false)} size="sm" type="button" variant="ghost">
-                    Keep
+                    {t("gallery.keep")}
                   </Button>
                 </>
               ) : (
-                <Button className="text-heritage hover:bg-heritage-soft hover:text-heritage" disabled={count === 0} onClick={() => setConfirming(true)} size="sm" type="button" variant="ghost">
+                <Button disabled={count === 0} onClick={() => setConfirming(true)} size="sm" type="button" variant="dangerGhost">
                   <Trash2 aria-hidden className="size-3.5" />
-                  Delete {count || ""}
+                  {count ? t("gallery.deleteCount", { count }) : t("gallery.delete")}
                 </Button>
               )}
               <Button disabled={removing !== null} onClick={stopSelecting} size="sm" type="button" variant="secondary">
-                Done
+                {t("gallery.done")}
               </Button>
             </span>
           </div>
@@ -463,11 +468,11 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
         ) : rows.isLoading ? (
           <p className="flex items-center justify-center gap-2 px-4 py-16 text-sm text-muted">
             <Loader2 aria-hidden className="size-4 animate-spin" />
-            Loading photos…
+            {t("gallery.loading")}
           </p>
         ) : rows.error ? (
           <p className="px-4 py-3 text-sm text-heritage" role="alert">
-            The photos could not be loaded: {apiErrorMessage(rows.error)}
+            {t("gallery.loadFailed", { reason: errorMessage(rows.error) })}
           </p>
         ) : visible.length === 0 ? (
           <EmptyState
@@ -485,24 +490,25 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
                   type="button"
                   variant="secondary"
                 >
-                  Clear filters
+                  {t("list.clearFilters")}
                 </Button>
               ) : canAdd ? (
                 <Button onClick={() => setAdding(true)} size="sm" type="button" variant="secondary">
                   <Plus aria-hidden className="size-3.5" />
-                  Add photos
+                  {t("gallery.addPhotos")}
                 </Button>
               ) : null
             }
-            description={filtered ? "Try another destination or word, or show every photo." : "Photos appear here once they are added to a destination."}
+            description={filtered ? t("gallery.emptyFilteredText") : t("gallery.emptyText")}
             icon={filtered ? Search : Inbox}
-            title={filtered ? "Nothing matches those filters" : "No photos yet"}
+            title={filtered ? t("list.noMatchTitle") : t("gallery.noPhotosYet")}
           />
         ) : (
           <div className="flex flex-col gap-3 p-4">
             <ul className="grid grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] gap-3" data-photo-grid>
               {visible.map((photo) => {
                 const picked = selected.has(photo.id);
+                const named = `${photo.owner}${photo.caption ? `: ${photo.caption}` : ""}`;
                 return (
                   <li
                     className={cn("group relative overflow-hidden rounded-lg bg-paper ring-1 ring-line transition-shadow", picked && "ring-2 ring-teal")}
@@ -511,7 +517,7 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
                     key={photo.id}
                   >
                     <button
-                      aria-label={selecting ? `${picked ? "Unselect" : "Select"} ${photo.owner}${photo.caption ? `: ${photo.caption}` : ""}` : `Open ${photo.owner}${photo.caption ? `: ${photo.caption}` : ""}`}
+                      aria-label={selecting ? t(picked ? "gallery.unselectPhoto" : "gallery.selectPhoto", { name: named }) : t("gallery.openPhoto", { name: named })}
                       aria-pressed={selecting ? picked : undefined}
                       className="block w-full text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal"
                       onClick={() => (selecting ? toggle(photo.id) : setOpenId(photo.id))}
@@ -522,7 +528,7 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
                         {photo.cover ? (
                           <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 rounded-full bg-paper/95 px-1.5 py-0.5 text-2xs font-medium text-ink shadow-sm">
                             <Star aria-hidden className="size-3 fill-gold text-gold" />
-                            Cover
+                            {t("gallery.cover")}
                           </span>
                         ) : null}
                         {selecting ? (
@@ -530,7 +536,7 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
                             aria-hidden
                             className={cn(
                               "absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full border shadow-sm transition-colors",
-                              picked ? "border-teal bg-teal text-white" : "border-line-strong bg-paper/95",
+                              picked ? "border-primary bg-primary text-primary-foreground" : "border-line-strong bg-paper/95",
                             )}
                           >
                             {picked ? <Check className="size-3.5" /> : null}
@@ -548,7 +554,7 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
             {shown.length > visible.length ? (
               <div className="flex justify-center">
                 <Button onClick={() => setLimit((current) => current + PAGE)} size="sm" type="button" variant="secondary">
-                  Show more · {shown.length - visible.length} left
+                  {t("gallery.showMore", { count: shown.length - visible.length })}
                 </Button>
               </div>
             ) : null}
@@ -574,11 +580,11 @@ export function MediaGallery({ canAdd, canEdit, canDelete, canSetStatus, grants 
 
       {overPage && canAdd
         ? createPortal(
-            <div aria-hidden className="pointer-events-none fixed inset-0 z-[90] bg-ink/50 p-6" data-drop-overlay>
+            <div aria-hidden className="pointer-events-none fixed inset-0 z-[90] bg-scrim p-6" data-drop-overlay>
               <div className="flex h-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-paper/80 text-center text-paper">
                 <ImagePlus className="size-8" strokeWidth={1.5} />
                 <p className="text-lg font-semibold">
-                  {dropTarget ? `Drop the photos to add them to ${names.get(dropTarget) ?? "the destination"}` : "Drop the photos, then choose their destination"}
+                  {dropTarget ? t("gallery.dropTo", { name: names.get(dropTarget) ?? t("gallery.theDestination") }) : t("gallery.dropChoose")}
                 </p>
               </div>
             </div>,

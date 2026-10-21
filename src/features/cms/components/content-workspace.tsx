@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { ArrowRight, FilePenLine, ImageIcon, Loader2, PencilLine, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -13,11 +14,7 @@ import { useGetCurrentUserQuery } from "@/features/auth/api/auth-api";
 import { hasAnyPermission } from "@/features/auth/permissions";
 import { byName } from "@/features/catalog/resources";
 import { useGetDashboardQuery } from "@/features/dashboard/api/dashboard-api";
-import { formatDateTime, formatRelative } from "@/features/dashboard/format";
 import {
-  DESK_PLURAL_LABELS,
-  DESK_REVIEWERS,
-  REQUEST_LABELS,
   REQUEST_TONES,
   lastActivityOf,
   type PublishDesk,
@@ -25,22 +22,17 @@ import {
   type RequesterRole,
 } from "@/features/publishing/api/contracts";
 import { useSubmitPublishRequestMutation } from "@/features/publishing/api/publishing-api";
-import { isAuthor, listingLabel, listingPath, listingRows, type ListingRow } from "@/features/publishing/listings";
+import { isAuthor, listingPath, listingRows, type ListingRow } from "@/features/publishing/listings";
 import { decidesRequest, reviewPageOf, submissionDesk } from "@/features/publishing/workflow";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useDates } from "@/i18n/use-dates";
+import { useApiErrorMessage } from "@/store/api/api-error";
 import { QueryState } from "./query-state";
 
 /** Where a draft stands: waiting on the viewer, with another reviewer, sent back, or with nobody. */
 type DraftState = "review" | "waiting" | "returned" | "unsent";
 type DraftView = "all" | DraftState;
 
-const VIEWS: readonly { readonly value: DraftView; readonly label: string }[] = [
-  { value: "all", label: "All drafts" },
-  { value: "review", label: "Waiting for your review" },
-  { value: "waiting", label: "With a reviewer" },
-  { value: "returned", label: "Sent back for changes" },
-  { value: "unsent", label: "Not with a reviewer" },
-];
+const VIEWS: readonly DraftView[] = ["all", "review", "waiting", "returned", "unsent"];
 
 /**
  * Drafts and own content: attractions, stays and food listings not yet live.
@@ -64,6 +56,7 @@ export function ContentWorkspace({ userId, desk, requester, own = false }: {
   readonly requester?: RequesterRole;
   readonly own?: boolean;
 }) {
+  const t = useTranslations("cms");
   const query = useGetDashboardQuery();
   const { data: user } = useGetCurrentUserQuery();
   const grants = user?.roles ?? [];
@@ -96,28 +89,28 @@ export function ContentWorkspace({ userId, desk, requester, own = false }: {
     item.name.toLowerCase().includes(search.toLowerCase()) && (view === "all" || stateOf(item) === view));
 
   const scope = desk && own
-    ? `${DESK_PLURAL_LABELS[desk]} submitted to you, and your own drafts.`
+    ? t("drafts.scopeDeskAndOwn", { desk: t(`deskPlural.${desk}`) })
     : desk
-      ? `${requester ? `${requester === "EDITOR" ? "Editor" : "BDO"} submissions` : DESK_PLURAL_LABELS[desk]} submitted to your desk and not yet published. Review one to read it in full, edit it and decide.`
+      ? t("drafts.scopeDesk", { what: requester ? t(`drafts.submissions.${requester === "EDITOR" ? "EDITOR" : "BDO"}`) : t(`deskPlural.${desk}`) })
       : own
-        ? "Your drafts. Edit one, then send it for review when it is ready."
+        ? t("drafts.scopeOwn")
         : null;
   const needsProfile = own && userId === null;
 
-  return <section aria-label="Drafts" className="panel min-w-0 overflow-hidden">
+  return <section aria-label={t("drafts.label")} className="panel min-w-0 overflow-hidden">
     <Toolbar>
-      <SearchField className="max-w-sm" label="Search workspace content" onChange={setSearch} placeholder="Search attractions, stays, food…" value={search} />
-      <Select aria-label="Show drafts" className="h-8 w-56 text-sm" onChange={(event) => setView(event.target.value as DraftView)} value={view}>
+      <SearchField className="max-w-sm" label={t("drafts.search")} onChange={setSearch} placeholder={t("drafts.searchPlaceholder")} value={search} />
+      <Select aria-label={t("drafts.show")} className="h-8 w-56 text-sm" onChange={(event) => setView(event.target.value as DraftView)} value={view}>
         {VIEWS.map((option) => (
-          <option key={option.value} value={option.value}>{option.label} ({counts.get(option.value) ?? 0})</option>
+          <option key={option} value={option}>{t(`drafts.views.${option}`)} ({counts.get(option) ?? 0})</option>
         ))}
       </Select>
-      <span className="ml-auto text-xs text-muted tabular-nums">{rows.length} {rows.length === 1 ? "listing" : "listings"}</span>
+      <span className="ml-auto text-xs text-muted tabular-nums">{t("listings", { count: rows.length })}</span>
     </Toolbar>
     {scope && <p className="border-b border-line bg-sand px-4 py-2 text-xs text-muted">{scope}</p>}
     {query.isLoading || query.error ? <div className="p-3"><QueryState loading={query.isLoading} error={query.error} retry={query.refetch} /></div> : null}
-    {needsProfile && <p role="alert" className="border-b border-heritage/20 bg-heritage-soft px-4 py-2 text-sm text-heritage">Your content profile could not be loaded. Reload this page to try again.</p>}
-    {!!data?.failures.length && <p role="alert" className="border-b border-heritage/20 bg-heritage-soft px-4 py-2 text-sm text-heritage">Some workspace data could not be loaded: {data.failures.join(", ")}. Refresh to try again.</p>}
+    {needsProfile && <p role="alert" className="border-b border-heritage/20 bg-heritage-soft px-4 py-2 text-sm text-heritage">{t("drafts.noProfile")}</p>}
+    {!!data?.failures.length && <p role="alert" className="border-b border-heritage/20 bg-heritage-soft px-4 py-2 text-sm text-heritage">{t("drafts.failures", { list: data.failures.join(", ") })}</p>}
     <ul className="divide-y divide-line">
       {rows.map((item) => (
         <li className="px-4 py-3" key={item.id}>
@@ -133,9 +126,9 @@ export function ContentWorkspace({ userId, desk, requester, own = false }: {
     </ul>
     {!query.isFetching && !query.isError && !data?.failures.length && !rows.length && !needsProfile && (
       <EmptyState
-        description={search ? "Try another name." : view === "review" ? "Nothing is waiting for your decision." : "Unpublished attractions, stays and food listings in your workspace appear here."}
+        description={search ? t("drafts.empty.search") : view === "review" ? t("drafts.empty.review") : t("drafts.empty.none")}
         icon={FilePenLine}
-        title="No drafts match this view"
+        title={t("drafts.empty.title")}
       />
     )}
   </section>;
@@ -155,6 +148,10 @@ function DraftRow({ item, mine, request, reviews, sendsTo }: {
   /** The desk this author sends it to, when they cannot publish it themselves. */
   readonly sendsTo: PublishDesk | null;
 }) {
+  const t = useTranslations("cms");
+  const publishing = useTranslations("publishing");
+  const { relative, dateTime } = useDates();
+  const errorMessage = useApiErrorMessage();
   const [submit, submission] = useSubmitPublishRequestMutation();
   const [problem, setProblem] = useState<string | null>(null);
   const open = request?.status === "PENDING_REVIEW";
@@ -162,13 +159,14 @@ function DraftRow({ item, mine, request, reviews, sendsTo }: {
   const editHref = reviews && request ? `${listingPath(item)}?review=${request.id}` : listingPath(item);
   /* The name and the photo open what matters most: the review when it waits on the viewer, else the form. */
   const mainHref = reviews && request ? reviewPageOf(request) : editHref;
+  const feedback = open ? t("drafts.feedback.earlier") : t("drafts.feedback.label");
 
   async function send(desk: PublishDesk) {
     setProblem(null);
     try {
       await submit({ targetType: item.type, targetId: item.id }).unwrap();
     } catch (error) {
-      setProblem(`It could not be sent to ${DESK_REVIEWERS[desk]}: ${apiErrorMessage(error)}`);
+      setProblem(t("drafts.sendFailed", { reviewer: t(`reviewer.${desk}`), problem: errorMessage(error) }));
     }
   }
 
@@ -186,20 +184,24 @@ function DraftRow({ item, mine, request, reviews, sendsTo }: {
           <Link className="min-w-0 truncate text-sm font-medium text-ink hover:text-teal-deep hover:underline" href={mainHref}>
             {item.name}
           </Link>
-          <Badge tone="neutral">{listingLabel(item.type)}</Badge>
+          <Badge tone="neutral">{t(`listing.${item.type}`)}</Badge>
         </div>
         <p className="mt-0.5 truncate text-xs text-muted">
-          {[item.detail || "No address yet", !mine && request?.requestedByName ? `from ${request.requestedByName}` : null].filter(Boolean).join(" · ")}
+          {[item.detail || t("drafts.noAddress"), !mine && request?.requestedByName ? t("drafts.from", { name: request.requestedByName }) : null].filter(Boolean).join(" · ")}
           {item.updatedAt ? (
             <>
               {" · "}
-              <time dateTime={item.updatedAt} title={formatDateTime(item.updatedAt)}>changed {formatRelative(item.updatedAt)}</time>
+              <time dateTime={item.updatedAt} title={dateTime(item.updatedAt)}>{t("drafts.changed", { when: relative(item.updatedAt) })}</time>
             </>
           ) : null}
         </p>
         {request?.reviewNote && request.status !== "PUBLISHED" ? (
           <p className="mt-2 line-clamp-2 rounded-md bg-sand px-3 py-1.5 text-sm text-ink-soft">
-            <span className="font-medium text-ink">{open ? "Earlier feedback" : "Feedback"}{request.reviewerName ? ` from ${request.reviewerName}` : ""}:</span>{" "}
+            <span className="font-medium text-ink">
+              {request.reviewerName
+                ? t("drafts.feedback.from", { label: feedback, name: request.reviewerName })
+                : t("drafts.feedback.plain", { label: feedback })}
+            </span>{" "}
             {request.reviewNote}
           </p>
         ) : null}
@@ -207,29 +209,29 @@ function DraftRow({ item, mine, request, reviews, sendsTo }: {
       </div>
       <div className="flex shrink-0 flex-col items-end gap-2">
         {request && request.status !== "PUBLISHED" ? (
-          <Badge dot tone={REQUEST_TONES[request.status]}>{REQUEST_LABELS[request.status]}</Badge>
+          <Badge dot tone={REQUEST_TONES[request.status]}>{publishing(`status.${request.status}`)}</Badge>
         ) : (
-          <Badge dot tone="neutral">{item.status === "ARCHIVED" ? "Archived" : "Not sent"}</Badge>
+          <Badge dot tone="neutral">{item.status === "ARCHIVED" ? t("status.ARCHIVED") : t("drafts.notSent")}</Badge>
         )}
         <div className="flex flex-wrap justify-end gap-2">
           {reviews && request ? (
             <Link className={buttonVariants({ size: "sm" })} href={reviewPageOf(request)}>
-              Review
+              {t("drafts.review")}
               <ArrowRight aria-hidden className="size-3.5" />
             </Link>
           ) : request && open ? (
             <Link className={buttonVariants({ variant: "secondary", size: "sm" })} href={reviewPageOf(request)}>
-              View request
+              {t("drafts.viewRequest")}
             </Link>
           ) : null}
           <Link className={buttonVariants({ variant: "secondary", size: "sm" })} href={editHref}>
             <PencilLine aria-hidden className="size-3.5" />
-            Edit
+            {t("drafts.edit")}
           </Link>
           {sendsTo && !open ? (
             <Button disabled={submission.isLoading} onClick={() => void send(sendsTo)} size="sm" type="button">
               {submission.isLoading ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <Send aria-hidden className="size-3.5" />}
-              {request?.status === "DRAFT" ? "Send again" : "Send for review"}
+              {request?.status === "DRAFT" ? t("drafts.sendAgain") : t("drafts.send")}
             </Button>
           ) : null}
         </div>

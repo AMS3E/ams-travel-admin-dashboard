@@ -16,6 +16,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
 import type { Capability, CapabilityKey } from "@/features/profile/access";
@@ -44,27 +45,28 @@ export function ProfileCapabilities({
   readonly capabilities: readonly Capability[];
   readonly permissions: readonly string[];
 }) {
+  const t = useTranslations("profile.capabilities");
   const granted = capabilities.filter((capability) => capability.granted);
   const withheld = capabilities.filter((capability) => !capability.granted);
 
   return (
     <Surface aria-labelledby="capabilities-heading">
       <SurfaceHeader
-        actions={<Badge>{granted.length} of {capabilities.length}</Badge>}
-        description="Decided by your role. The screens offer exactly these."
+        actions={<Badge>{t("count", { granted: granted.length, total: capabilities.length })}</Badge>}
+        description={t("description")}
         id="capabilities-heading"
-        title="What you can do"
+        title={t("title")}
       />
 
       <ul className="grid sm:grid-cols-2 [&>li]:border-b [&>li]:border-line sm:[&>li:nth-child(odd)]:border-r">
-        {granted.map(({ key, label, detail }) => {
+        {granted.map(({ key, text }) => {
           const Icon = ICONS[key];
           return (
             <li className="flex gap-2.5 px-4 py-2.5" key={key}>
               <Icon aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" strokeWidth={1.75} />
               <div className="min-w-0">
-                <p className="text-sm font-medium text-ink">{label}</p>
-                <p className="text-xs text-muted">{detail}</p>
+                <p className="text-sm font-medium text-ink">{t(`items.${text}.label`)}</p>
+                <p className="text-xs text-muted">{t(`items.${text}.detail`)}</p>
               </div>
             </li>
           );
@@ -75,25 +77,25 @@ export function ProfileCapabilities({
         {withheld.length ? (
           <details className="group">
             <summary className="cursor-pointer text-sm text-ink-soft select-none hover:text-ink">
-              Not part of your role ({withheld.length})
+              {t("withheld", { count: withheld.length })}
             </summary>
             <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
-              {withheld.map(({ key, label }) => (
+              {withheld.map(({ key, text }) => (
                 <li className="flex items-center gap-2 text-xs text-muted" key={key}>
                   <Lock aria-hidden className="size-3.5 shrink-0" />
-                  {label}
+                  {t(`items.${text}.label`)}
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-xs text-muted">Need one of these? An administrator can change your role.</p>
+            <p className="mt-2 text-xs text-muted">{t("needOne")}</p>
           </details>
         ) : null}
 
         <details>
           <summary className="cursor-pointer text-sm text-ink-soft select-none hover:text-ink">
-            Technical permissions ({permissions.length})
+            {t("technical", { count: permissions.length })}
           </summary>
-          <p className="mt-2 text-xs text-muted">The grants on your sign-in, as support and the API name them.</p>
+          <p className="mt-2 text-xs text-muted">{t("technicalHint")}</p>
           <ul className="mt-2 flex flex-wrap gap-1">
             {permissions.map((permission) => (
               <li key={permission}>

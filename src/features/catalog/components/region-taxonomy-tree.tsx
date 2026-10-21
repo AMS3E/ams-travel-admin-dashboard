@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useFormatter, useTranslations } from "next-intl";
 import { ArrowUpRight, Check, ChevronDown, ChevronRight, Loader2, Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,19 +16,12 @@ import { useGetCatalogQuery, useSaveRecordMutation, useSetRecordStatusMutation }
 import type { CatalogRecord } from "@/features/catalog/api/contracts";
 import { QueryState } from "@/features/cms/components/query-state";
 import { cn } from "@/lib/utils";
-import { apiErrorMessage } from "@/store/api/api-error";
+import { useApiErrorMessage } from "@/store/api/api-error";
 
 type TermKind = "categories" | "tags";
 
-/** What each list is called, where a region keeps it, and what a new one is called while typed. */
-const LISTS: Readonly<Record<TermKind, { readonly title: string; readonly field: "categoryIds" | "tagIds"; readonly one: string; readonly example: string }>> = {
-  categories: { title: "Categories", field: "categoryIds", one: "Category", example: "e.g. Waterfall" },
-  tags: { title: "Tags", field: "tagIds", one: "Tag", example: "e.g. Sunrise" },
-};
-
 const ids = (value: unknown): string[] => (Array.isArray(value) ? value.map(String) : []);
 const text = (value: unknown): string => (typeof value === "string" ? value : "");
-const count = (value: number) => value.toLocaleString();
 
 /**
  * Taxonomy → Categories & Tags: one tree, each tourism region opening onto
@@ -41,6 +35,7 @@ const count = (value: number) => value.toLocaleString();
  * does. A term two regions share shows under both, and says so.
  */
 export function RegionTaxonomyTree({ grants }: { readonly grants: readonly string[] }) {
+  const t = useTranslations("catalog.tree");
   const regions = useGetCatalogQuery("regions");
   const categories = useGetCatalogQuery("categories");
   const tags = useGetCatalogQuery("tags");
@@ -82,11 +77,11 @@ export function RegionTaxonomyTree({ grants }: { readonly grants: readonly strin
   const error = regions.error ?? categories.error ?? tags.error;
 
   return (
-    <Surface aria-label="Categories and tags by region">
+    <Surface aria-label={t("label")}>
       <Toolbar>
-        <SearchField label="Filter terms" onChange={setSearch} placeholder="Filter regions, categories and tags…" value={search} />
+        <SearchField label={t("filter")} onChange={setSearch} placeholder={t("filterPlaceholder")} value={search} />
         <Button onClick={() => setOpen(allOpen ? new Set() : new Set(tourism.map((region) => region.id)))} size="sm" type="button" variant="ghost">
-          {allOpen ? "Collapse all" : "Expand all"}
+          {allOpen ? t("collapseAll") : t("expandAll")}
         </Button>
       </Toolbar>
       {loading || error ? (
@@ -98,10 +93,10 @@ export function RegionTaxonomyTree({ grants }: { readonly grants: readonly strin
         <Table>
           <TableHead>
             <TableRow className="hover:bg-transparent">
-              <TableHeaderCell>Name</TableHeaderCell>
-              <TableHeaderCell className="text-right">Used by</TableHeaderCell>
+              <TableHeaderCell>{t("name")}</TableHeaderCell>
+              <TableHeaderCell className="text-right">{t("usedBy")}</TableHeaderCell>
               <TableHeaderCell className="text-right">
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">{t("actions")}</span>
               </TableHeaderCell>
             </TableRow>
           </TableHead>
@@ -122,7 +117,7 @@ export function RegionTaxonomyTree({ grants }: { readonly grants: readonly strin
             {!shown.length ? (
               <TableRow className="hover:bg-transparent">
                 <TableCell className="py-6 text-center text-muted" colSpan={3}>
-                  {needle ? "No region, category or tag matches." : "No tourism region yet."}
+                  {needle ? t("noMatch") : t("noRegion")}
                 </TableCell>
               </TableRow>
             ) : null}
@@ -143,6 +138,7 @@ interface Shared {
 
 /** One region: its row, and when open, its two lists. */
 function RegionRows({ region, open, onToggle, ...shared }: Shared & { readonly region: CatalogRecord; readonly open: boolean; readonly onToggle: () => void }) {
+  const t = useTranslations("catalog.tree");
   const categoryIds = ids(region.categoryIds);
   const tagIds = ids(region.tagIds);
   const used = shared.usage.inRegion.get(region.id) ?? 0;
@@ -153,15 +149,15 @@ function RegionRows({ region, open, onToggle, ...shared }: Shared & { readonly r
           <button aria-expanded={open} className="flex items-center gap-2 text-left" onClick={onToggle} type="button">
             {open ? <ChevronDown aria-hidden className="size-4 text-muted" /> : <ChevronRight aria-hidden className="size-4 text-muted" />}
             <span className="font-semibold text-ink">{text(region.name)}</span>
-            <span className="text-xs text-muted">{count(categoryIds.length)} {categoryIds.length === 1 ? "category" : "categories"} · {count(tagIds.length)} {tagIds.length === 1 ? "tag" : "tags"}</span>
-            {region.isActive === false ? <Badge tone="inactive">Retired</Badge> : null}
+            <span className="text-xs text-muted">{t("regionCounts", { categories: categoryIds.length, tags: tagIds.length })}</span>
+            {region.isActive === false ? <Badge tone="neutral">{t("retired")}</Badge> : null}
           </button>
         </TableCell>
-        <TableCell className="py-3 text-right text-muted tabular-nums">{count(used)} dest.</TableCell>
+        <TableCell className="py-3 text-right text-muted tabular-nums">{t("used", { count: used })}</TableCell>
         <TableCell className="py-3 text-right">
           <span className="flex justify-end">
             <Link className="inline-flex items-center gap-1 text-xs font-medium text-teal-deep hover:underline" href={`/regions/${region.id}`}>
-              Open region
+              {t("openRegion")}
               <ArrowUpRight aria-hidden className="size-3" />
             </Link>
           </span>
@@ -179,7 +175,9 @@ function RegionRows({ region, open, onToggle, ...shared }: Shared & { readonly r
 
 /** A region's categories, or its tags: the group row with its Add, then one row per term. */
 function TermList({ kind, region, termIds, byId, regionName, usage, editable, needle }: Shared & { readonly kind: TermKind; readonly region: CatalogRecord; readonly termIds: readonly string[] }) {
-  const list = LISTS[kind];
+  const t = useTranslations("catalog.tree");
+  const format = useFormatter();
+  const errorMessage = useApiErrorMessage();
   const rows = termIds.map((id) => byId[kind].get(id)).filter((row): row is CatalogRecord => Boolean(row));
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
@@ -194,7 +192,7 @@ function TermList({ kind, region, termIds, byId, regionName, usage, editable, ne
     if (!wanted) return;
     setProblem(null);
     try {
-      const result = await save({ resource: kind, values: { name: wanted, description: "", status: "ACTIVE", tourismRegionIds: [region.id] } }).unwrap();
+      const result = await save({ resource: kind, values: { name: wanted, nameKm: "", description: "", status: "ACTIVE", tourismRegionIds: [region.id] } }).unwrap();
       if (!result.ok) {
         setProblem(result.message);
         return;
@@ -202,7 +200,7 @@ function TermList({ kind, region, termIds, byId, regionName, usage, editable, ne
       setName("");
       setAdding(false);
     } catch (failure) {
-      setProblem(apiErrorMessage(failure));
+      setProblem(errorMessage(failure));
     }
   }
 
@@ -211,18 +209,18 @@ function TermList({ kind, region, termIds, byId, regionName, usage, editable, ne
       <TableRow className="hover:bg-transparent" data-group={`${region.id}:${kind}`}>
         <TableCell className="py-3 pl-10">
           <span className="flex items-center gap-2">
-            <span className="font-medium text-ink">{list.title}</span>
-            <span className="text-xs text-muted">{count(rows.length)}</span>
+            <span className="font-medium text-ink">{t(`lists.${kind}.title`)}</span>
+            <span className="text-xs text-muted">{format.number(rows.length)}</span>
           </span>
         </TableCell>
-        <TableCell className="py-3 text-right text-muted tabular-nums">{count(usedByGroup)} dest.</TableCell>
+        <TableCell className="py-3 text-right text-muted tabular-nums">{t("used", { count: usedByGroup })}</TableCell>
         <TableCell className="py-3 text-right">
           {/* A flex box, not a line box: an inline button that starts with an icon would push the row taller. */}
           <span className="flex justify-end">
             {editable && !adding ? (
               <Button className="h-5 px-1.5" onClick={() => { setAdding(true); setProblem(null); }} size="sm" type="button" variant="ghost">
                 <Plus aria-hidden className="size-3.5" />
-                {list.one}
+                {t(`lists.${kind}.add`)}
               </Button>
             ) : null}
           </span>
@@ -232,13 +230,13 @@ function TermList({ kind, region, termIds, byId, regionName, usage, editable, ne
         <TableRow className="hover:bg-transparent">
           <TableCell className="pl-16" colSpan={3}>
             <form className="flex flex-wrap items-center gap-2" onSubmit={add}>
-              <Input aria-label={`New ${list.one.toLowerCase()} for ${text(region.name)}`} autoFocus className="h-8 w-64 text-sm" maxLength={100} onChange={(event) => setName(event.target.value)} placeholder={list.example} value={name} />
+              <Input aria-label={t(`lists.${kind}.newFor`, { region: text(region.name) })} autoFocus className="h-8 w-64 text-sm" maxLength={100} onChange={(event) => setName(event.target.value)} placeholder={t(`lists.${kind}.example`)} value={name} />
               <Button disabled={saving.isLoading || !name.trim()} size="sm" type="submit">
                 {saving.isLoading ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <Check aria-hidden className="size-3.5" />}
-                Add
+                {t("add")}
               </Button>
               <Button onClick={() => { setAdding(false); setName(""); setProblem(null); }} size="sm" type="button" variant="ghost">
-                Cancel
+                {t("cancel")}
               </Button>
               {problem ? <span className="text-xs font-medium text-heritage" role="alert">{problem}</span> : null}
             </form>
@@ -250,7 +248,7 @@ function TermList({ kind, region, termIds, byId, regionName, usage, editable, ne
       ))}
       {!rows.length && !adding ? (
         <TableRow className="hover:bg-transparent">
-          <TableCell className="pl-16 text-xs text-muted" colSpan={3}>None yet.</TableCell>
+          <TableCell className="pl-16 text-xs text-muted" colSpan={3}>{t("noneYet")}</TableCell>
         </TableRow>
       ) : null}
     </>
@@ -259,6 +257,8 @@ function TermList({ kind, region, termIds, byId, regionName, usage, editable, ne
 
 /** One term under its region: rename in place, retire or restore, or open its form. */
 function TermRow({ kind, region, row, used, regionName, editable }: { readonly kind: TermKind; readonly region: CatalogRecord; readonly row: CatalogRecord; readonly used: number; readonly regionName: Map<string, string>; readonly editable: boolean }) {
+  const t = useTranslations("catalog.tree");
+  const errorMessage = useApiErrorMessage();
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(text(row.name));
   const [problem, setProblem] = useState<string | null>(null);
@@ -277,14 +277,14 @@ function TermRow({ kind, region, row, used, regionName, editable }: { readonly k
     setProblem(null);
     try {
       /* The form's own fields, so nothing the row has is lost: its regions above all, which the save writes back. */
-      const result = await save({ resource: kind, id: row.id, values: { name: wanted, description: text(row.description), status: retired ? "INACTIVE" : "ACTIVE", tourismRegionIds: ids(row.tourismRegionIds) } }).unwrap();
+      const result = await save({ resource: kind, id: row.id, values: { name: wanted, nameKm: text(row.nameKm), description: text(row.description), status: retired ? "INACTIVE" : "ACTIVE", tourismRegionIds: ids(row.tourismRegionIds) } }).unwrap();
       if (!result.ok) {
         setProblem(result.message);
         return;
       }
       setRenaming(false);
     } catch (failure) {
-      setProblem(apiErrorMessage(failure));
+      setProblem(errorMessage(failure));
     }
   }
 
@@ -293,7 +293,7 @@ function TermRow({ kind, region, row, used, regionName, editable }: { readonly k
     try {
       await setStatus({ resource: kind, id: row.id, status: retired ? "ACTIVE" : "INACTIVE" }).unwrap();
     } catch (failure) {
-      setProblem(apiErrorMessage(failure));
+      setProblem(errorMessage(failure));
     }
   }
 
@@ -302,24 +302,24 @@ function TermRow({ kind, region, row, used, regionName, editable }: { readonly k
       <TableCell className="py-3 pl-16 align-middle">
         {renaming ? (
           <form className="flex flex-wrap items-center gap-2" onSubmit={rename}>
-            <Input aria-label={`Rename ${text(row.name)}`} autoFocus className="h-7 w-64 text-sm" maxLength={100} onChange={(event) => setName(event.target.value)} value={name} />
-            <Button className="size-7" disabled={saving.isLoading} size="icon-sm" title="Save" type="submit">
+            <Input aria-label={t("renameName", { name: text(row.name) })} autoFocus className="h-7 w-64 text-sm" maxLength={100} onChange={(event) => setName(event.target.value)} value={name} />
+            <Button className="size-7" disabled={saving.isLoading} size="icon-sm" title={t("save")} type="submit">
               {saving.isLoading ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : <Check aria-hidden className="size-3.5" />}
             </Button>
-            <Button className="size-7" onClick={() => { setRenaming(false); setName(text(row.name)); setProblem(null); }} size="icon-sm" title="Cancel" type="button" variant="ghost">
+            <Button className="size-7" onClick={() => { setRenaming(false); setName(text(row.name)); setProblem(null); }} size="icon-sm" title={t("cancel")} type="button" variant="ghost">
               <X aria-hidden className="size-3.5" />
             </Button>
           </form>
         ) : (
           <span className="flex flex-wrap items-center gap-2">
             <span className={cn("text-ink", retired && "text-muted line-through")}>{text(row.name)}</span>
-            {retired ? <Badge tone="inactive">Retired</Badge> : null}
-            {elsewhere.length ? <span className="text-xs text-muted">also in {elsewhere.join(", ")}</span> : null}
+            {retired ? <Badge tone="neutral">{t("retired")}</Badge> : null}
+            {elsewhere.length ? <span className="text-xs text-muted">{t("alsoIn", { list: elsewhere.join(", ") })}</span> : null}
           </span>
         )}
         {problem ? <p className="mt-1 text-xs font-medium text-heritage" role="alert">{problem}</p> : null}
       </TableCell>
-      <TableCell className="py-3 text-right text-muted tabular-nums">{count(used)} dest.</TableCell>
+      <TableCell className="py-3 text-right text-muted tabular-nums">{t("used", { count: used })}</TableCell>
       <TableCell className="py-2 text-right whitespace-nowrap">
         {/* One three-dot button holds the row's actions; the row stays as tall as its neighbours. */}
         <span className="flex items-center justify-end">
@@ -328,11 +328,11 @@ function TermRow({ kind, region, row, used, regionName, editable }: { readonly k
               items={[
                 ...(editable
                   ? [
-                      { label: "Rename", onSelect: () => setRenaming(true) },
-                      { label: retired ? "Restore" : "Retire", onSelect: () => void flip(), disabled: changing.isLoading, danger: !retired },
+                      { label: t("rename"), onSelect: () => setRenaming(true) },
+                      { label: retired ? t("restore") : t("retire"), onSelect: () => void flip(), disabled: changing.isLoading, danger: !retired },
                     ]
                   : []),
-                { label: "Open its form", href: `/${kind}/${row.id}` },
+                { label: t("openForm"), href: `/${kind}/${row.id}` },
               ]}
               label={text(row.name)}
             />

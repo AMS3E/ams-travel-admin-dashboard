@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { requireAdminToken } from "@/lib/api-route.server";
 import { isPoint, placeDetails, type OsmAddress, type PlaceDetails } from "@/features/catalog/geo";
 
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
   const latitude = Number(request.nextUrl.searchParams.get("lat"));
   const longitude = Number(request.nextUrl.searchParams.get("lon"));
   if (!isPoint(latitude, longitude)) {
-    return NextResponse.json({ message: "That is not a point on the map." }, { status: 400 });
+    return NextResponse.json({ message: (await getTranslations("errors.api"))("notAPoint") }, { status: 400 });
   }
 
   const url = new URL("https://nominatim.openstreetmap.org/reverse");
@@ -40,6 +41,6 @@ export async function GET(request: NextRequest) {
     const details: PlaceDetails = place.address?.country_code && place.address.country_code !== "kh" ? {} : placeDetails(place.address);
     return NextResponse.json(details);
   } catch {
-    return NextResponse.json({ message: "The map could not say where that is." }, { status: 502 });
+    return NextResponse.json({ message: (await getTranslations("errors.api"))("reverseDown") }, { status: 502 });
   }
 }

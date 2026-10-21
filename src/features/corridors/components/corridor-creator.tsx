@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useReducer, useRef, useState, useTransition } from "react";
 import { ArrowRight, LoaderCircle, Rocket, Save } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -57,6 +58,7 @@ function amount(value: string): number | null {
  */
 export function CorridorCreator({ destinations, interests, maps, canPublish }: CorridorCreatorProps) {
   const router = useRouter();
+  const t = useTranslations("corridors");
   const nameInput = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
   const [createCorridor] = useCreateCorridorMutation();
@@ -80,7 +82,8 @@ export function CorridorCreator({ destinations, interests, maps, canPublish }: C
 
   const places = useMemo(() => new Map(destinations.map((destination) => [destination.id, destination])), [destinations]);
   const legs = useRoadPreview(days, NO_LEGS);
-  const mapStops = useMemo(() => mapStopsFrom(days, places, legs), [days, places, legs]);
+  const unknownName = t("words.unknownDestination");
+  const mapStops = useMemo(() => mapStopsFrom(days, places, legs, unknownName), [days, places, legs, unknownName]);
   const selection = useItinerarySelection(mapStops);
   const stops = stopCount(days);
   const drafts = placesWhere(days, places, isUnpublished);
@@ -88,10 +91,10 @@ export function CorridorCreator({ destinations, interests, maps, canPublish }: C
 
   const min = amount(budgetMin);
   const max = amount(budgetMax);
-  const nameError = name.trim() ? undefined : "Give the corridor a name.";
-  const budgetError = min != null && max != null && max < min ? "The upper end is below the lower end." : undefined;
+  const nameError = name.trim() ? undefined : t("creator.nameRequired");
+  const budgetError = min != null && max != null && max < min ? t("creator.budgetBackwards") : undefined;
   const backwards = firstBackwardsStop(days);
-  const timesError = backwards ? `Stop ${backwards} leaves before it arrives. Fix its times, then create the corridor.` : undefined;
+  const timesError = backwards ? t("creator.timesBackwards", { stop: backwards }) : undefined;
   const shownProblem = problem ?? (tried ? timesError : undefined);
 
   /* Leaving with a half-made corridor asks first. */
@@ -145,34 +148,34 @@ export function CorridorCreator({ destinations, interests, maps, canPublish }: C
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
       <div className="flex min-w-0 flex-col gap-5">
         <Surface>
-          <SurfaceHeader description="What travellers see on the corridor's card and at the top of its page." title="1. About the corridor" />
+          <SurfaceHeader description={t("creator.about.description")} title={t("creator.about.title")} />
           <div className="grid gap-4 px-4 py-4">
-            <FormField error={tried ? nameError : undefined} label="Name" required>
+            <FormField error={tried ? nameError : undefined} label={t("creator.name")} required>
               {(control) => (
                 <Input
                   {...control}
                   autoFocus
                   maxLength={200}
                   onChange={(event) => setName(event.target.value)}
-                  placeholder="e.g. 3-Day Mekong Discovery"
+                  placeholder={t("creator.namePlaceholder")}
                   ref={nameInput}
                   value={name}
                 />
               )}
             </FormField>
-            <FormField hint="One or two sentences." label="Short description">
+            <FormField hint={t("creator.shortDescriptionHint")} label={t("creator.shortDescription")}>
               {(control) => (
                 <Textarea
                   {...control}
                   maxLength={500}
                   onChange={(event) => setShortDescription(event.target.value)}
-                  placeholder="e.g. Up the Mekong from Phnom Penh to Kratie, island by island."
+                  placeholder={t("creator.shortDescriptionPlaceholder")}
                   rows={2}
                   value={shortDescription}
                 />
               )}
             </FormField>
-            <FormField hint="Leave it empty and the first stop's photo is used." label="Cover photo">
+            <FormField hint={t("creator.coverHint")} label={t("creator.cover")}>
               {(control) => (
                 <PhotoDropzone
                   category="corridor"
@@ -190,12 +193,9 @@ export function CorridorCreator({ destinations, interests, maps, canPublish }: C
         <section aria-labelledby="corridor-plan" className="flex flex-col gap-3">
           <div>
             <h2 className="text-md font-semibold text-ink" id="corridor-plan">
-              2. Days and stops
+              {t("creator.plan.title")}
             </h2>
-            <p className="mt-0.5 text-xs text-muted">
-              Search a destination to add it to the day, then the next one. Add another day when the trip moves on. You can
-              change all of this later.
-            </p>
+            <p className="mt-0.5 text-xs text-muted">{t("creator.plan.description")}</p>
           </div>
           <ItineraryDaysEditor
             days={days}
@@ -209,40 +209,39 @@ export function CorridorCreator({ destinations, interests, maps, canPublish }: C
         </section>
 
         <Surface>
-          <SurfaceHeader description="All optional; the website shows whatever is filled in." title="3. More details" />
+          <SurfaceHeader description={t("creator.more.description")} title={t("creator.more.title")} />
           <div className="grid gap-4 px-4 py-4">
-            <FormField hint="The full story of the trip, shown under the short description." label="Full description">
+            <FormField hint={t("creator.fullDescriptionHint")} label={t("creator.fullDescription")}>
               {(control) => (
                 <Textarea {...control} onChange={(event) => setDescription(event.target.value)} rows={5} value={description} />
               )}
             </FormField>
-            <FormField
-              hint="Interests from the Tourism Corridors group. A traveller browsing one of them on Explore finds this corridor on its page."
-              label="Kinds of trip it suits"
-            >
+            <FormField hint={t("creator.interestsHint")} label={t("creator.interests")}>
               {(control) =>
                 interests.length ? (
-                  <MultiSelectField describedBy={control["aria-describedby"]} emptyLabel="No Tourism Corridors interests yet." labelledBy={control["aria-labelledby"]} onChange={setInterestIds} options={interests} value={interestIds} />
+                  <MultiSelectField describedBy={control["aria-describedby"]} emptyLabel={t("creator.noInterests")} labelledBy={control["aria-labelledby"]} onChange={setInterestIds} options={interests} value={interestIds} />
                 ) : (
                   <p className="text-sm text-muted" id={control.id}>
-                    No Tourism Corridors interests yet.{" "}
-                    <Link className="font-medium text-teal-deep hover:underline" href="/interests/new?groupName=Tourism%20Corridors" target="_blank">
-                      Add one
-                    </Link>
-                    , then reload this page to choose it.
+                    {t.rich("creator.noInterestsAdd", {
+                      link: (chunks) => (
+                        <Link className="font-medium text-teal-deep hover:underline" href="/interests/new?groupName=Tourism%20Corridors" target="_blank">
+                          {chunks}
+                        </Link>
+                      ),
+                    })}
                   </p>
                 )
               }
             </FormField>
             <div className="grid gap-4 sm:grid-cols-2">
-              <FormField error={tried ? budgetError : undefined} hint="Per person, in US dollars." label="Budget from">
+              <FormField error={tried ? budgetError : undefined} hint={t("creator.budgetHint")} label={t("creator.budgetFrom")}>
                 {(control) => (
-                  <Input {...control} inputMode="decimal" min={0} onChange={(event) => setBudgetMin(event.target.value)} placeholder="e.g. 180" step={1} type="number" value={budgetMin} />
+                  <Input {...control} inputMode="decimal" min={0} onChange={(event) => setBudgetMin(event.target.value)} placeholder={t("creator.budgetFromPlaceholder")} step={1} type="number" value={budgetMin} />
                 )}
               </FormField>
-              <FormField label="Budget up to">
+              <FormField label={t("creator.budgetUpTo")}>
                 {(control) => (
-                  <Input {...control} inputMode="decimal" min={0} onChange={(event) => setBudgetMax(event.target.value)} placeholder="e.g. 320" step={1} type="number" value={budgetMax} />
+                  <Input {...control} inputMode="decimal" min={0} onChange={(event) => setBudgetMax(event.target.value)} placeholder={t("creator.budgetUpToPlaceholder")} step={1} type="number" value={budgetMax} />
                 )}
               </FormField>
             </div>
@@ -258,39 +257,39 @@ export function CorridorCreator({ destinations, interests, maps, canPublish }: C
             ) : null}
             <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
               <p className="text-xs text-muted tabular-nums">
-                {days.length} {days.length === 1 ? "day" : "days"} · {stops} {stops === 1 ? "stop" : "stops"}
-                {canPublish && drafts.length > 0 ? " · publish the draft destinations first, or save it as a draft" : ""}
+                {t("words.daysStops", { days: days.length, stops })}
+                {canPublish && drafts.length > 0 ? ` · ${t("creator.publishDraftsFirst")}` : ""}
               </p>
               {created ? (
                 <Link className={buttonVariants()} href={`/corridors/${created}`}>
-                  Open the corridor
+                  {t("creator.open")}
                   <ArrowRight aria-hidden className="size-4" />
                 </Link>
               ) : (
                 <div className="flex flex-wrap items-center gap-2">
                   <Link className={buttonVariants({ variant: "ghost" })} href="/corridors">
-                    Cancel
+                    {t("words.cancel")}
                   </Link>
                   {canPublish ? (
                     <>
                       <Button disabled={pending} onClick={() => create(false)} type="button" variant="secondary">
                         {busy === "draft" ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Save aria-hidden className="size-4" />}
-                        Save as draft
+                        {t("creator.saveDraft")}
                       </Button>
                       <Button
                         disabled={pending || drafts.length > 0}
                         onClick={() => create(true)}
-                        title={drafts.length > 0 ? `Publish ${drafts.map((place) => place.name).join(", ")} first` : undefined}
+                        title={drafts.length > 0 ? t("creator.publishFirst", { names: drafts.map((place) => place.name).join(", ") }) : undefined}
                         type="button"
                       >
                         {busy === "publish" ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Rocket aria-hidden className="size-4" />}
-                        Create and publish
+                        {t("creator.createPublish")}
                       </Button>
                     </>
                   ) : (
                     <Button disabled={pending} onClick={() => create(false)} type="button">
                       {busy === "draft" ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Save aria-hidden className="size-4" />}
-                      Create corridor
+                      {t("creator.create")}
                     </Button>
                   )}
                 </div>
@@ -302,7 +301,7 @@ export function CorridorCreator({ destinations, interests, maps, canPublish }: C
 
       <ItineraryMapPanel
         days={days.length}
-        description="Each stop you add is numbered on the map, with the real road to it from the one before. Click a marker to see the place."
+        description={t("creator.mapDescription")}
         maps={maps}
         selection={selection}
         stops={mapStops}
