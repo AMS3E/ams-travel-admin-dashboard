@@ -44,8 +44,9 @@ const writes: Record<string, readonly RegExp[]> = {
     path("publish-requests"),
     path("publish-requests/{id}/(approve|reject|publish|unpublish)"),
     path("destination-verifications"),
-    /* Issuing a destination's check-in code, replacing the current one. */
+    /* Issuing a destination's check-in code beside the posted ones, and retiring one print deliberately. */
     path("stamps/codes"),
+    path("stamps/codes/{id}/retire"),
   ],
   /*
    * Editing a customer (PERM_USER_MANAGE) and moderating one review.
