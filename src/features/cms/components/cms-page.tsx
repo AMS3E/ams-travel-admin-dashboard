@@ -8,7 +8,6 @@ import { DESKS, type Desk } from "@/features/shell/nav";
 import { STAFF_PAGES } from "@/features/publishing/workflow";
 import { VerificationQueue } from "@/features/verification/components/verification-queue";
 import { DestinationStatsPage } from "@/features/dashboard/components/destination-stats-page";
-import { RegionTaxonomyTree } from "@/features/catalog/components/region-taxonomy-tree";
 import {
   CustomersPage,
   RolesPage,
@@ -77,8 +76,6 @@ export function CmsPage({
       return canVerifyDestinations(grants) ? <VerificationQueue grants={grants} /> : null;
     case "destination-stats":
       return <DestinationStatsPage />;
-    case "categories-and-tags":
-      return <RegionTaxonomyTree grants={grants} />;
     case "users":
       return <CustomersPage grants={grants} />;
     case "roles":

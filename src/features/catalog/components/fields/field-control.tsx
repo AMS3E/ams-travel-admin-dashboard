@@ -14,6 +14,7 @@ import { WEEKDAYS } from "@/features/catalog/api/contracts";
 import { ChipToggles, ChoiceTiles, IconPicker } from "@/features/catalog/components/fields/choice-tiles";
 import { SpotList, type SpotContext } from "@/features/catalog/components/fields/spot-list";
 import { ImageField } from "@/features/catalog/components/fields/image-field";
+import { LinesField } from "@/features/catalog/components/fields/lines-field";
 import { MultiSelectField } from "@/features/catalog/components/fields/multi-select-field";
 import { inOptionGroup, optionGroupsOf } from "@/features/catalog/resource";
 import { useDates } from "@/i18n/use-dates";
@@ -422,6 +423,26 @@ export function FieldControl({ field, options, locked = false, siblings, places,
                 field={field}
                 id={aria.id}
                 invalid={aria["aria-invalid"]}
+              />
+            );
+
+          case "lines":
+            return (
+              <Controller
+                control={control}
+                name={field.name}
+                render={({ field: bound }) => (
+                  <LinesField
+                    describedBy={aria["aria-describedby"]}
+                    id={aria.id}
+                    invalid={aria["aria-invalid"]}
+                    labelledBy={aria["aria-labelledby"]}
+                    maxItems={field.maxItems}
+                    maxLength={field.maxLength}
+                    onChange={bound.onChange}
+                    value={Array.isArray(bound.value) ? bound.value : []}
+                  />
+                )}
               />
             );
 

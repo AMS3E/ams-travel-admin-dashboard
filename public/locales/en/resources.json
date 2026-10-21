@@ -1297,12 +1297,11 @@
   "regions": {
     "label": "Tourism Region",
     "labelPlural": "Tourism Regions",
-    "description": "The regions travellers discover Cambodia by. Each has its own categories and search filters.",
+    "description": "The regions travellers discover Cambodia by. Each has its own categories and tags.",
     "columns": {
       "name": "Name",
       "code": "Code",
       "categoryIds": "Categories",
-      "tagIds": "Search filters",
       "status": "Status",
       "nameKm": "Khmer"
     },
@@ -1386,6 +1385,7 @@
       "durationDays": "Days",
       "stopCount": "Stops",
       "routeStatus": "Route",
+      "nameKm": "Khmer",
       "status": "Status"
     },
     "status": {
@@ -1402,6 +1402,10 @@
       "name": {
         "label": "Name"
       },
+      "nameKm": {
+        "label": "Name in Khmer",
+        "hint": "Typed by hand, never machine-translated. Leave it empty until it is written."
+      },
       "slug": {
         "label": "Link name",
         "hint": "The end of this listing's web address, e.g. ams.travel/foods/mekong-grill. Leave it empty and we make one from the name.",
@@ -1411,12 +1415,24 @@
         "label": "Short description",
         "hint": "One or two sentences for the corridor's card and the top of its page."
       },
+      "shortDescriptionKm": {
+        "label": "Short description in Khmer",
+        "hint": "The same one or two sentences, written for Khmer readers."
+      },
       "description": {
         "label": "Description"
+      },
+      "descriptionKm": {
+        "label": "Description in Khmer"
       },
       "coverKey": {
         "label": "Cover image",
         "section": "Media"
+      },
+      "expectations": {
+        "label": "Expectations",
+        "section": "What you expect",
+        "hint": "The What you expect row on its page in the app: short labels — Sunrise, Photography, Historic Site — one per box, shown in this order."
       },
       "estimatedBudgetMin": {
         "label": "Budget from",
@@ -1592,6 +1608,7 @@
     "columns": {
       "name": "Name",
       "tourismRegionIds": "Tourism regions",
+      "usedBy": "Used by",
       "createdBy": "Created by",
       "status": "Status",
       "nameKm": "Khmer"
@@ -1628,10 +1645,11 @@
   "tags": {
     "label": "Tag",
     "labelPlural": "Tags",
-    "description": "The search filters each tourism region offers, such as UNESCO or Kayak. An attraction is offered only its region's own.",
+    "description": "The tags each tourism region's page offers as search filters, such as UNESCO or Kayak. An attraction is offered only its region's own.",
     "columns": {
       "name": "Name",
       "tourismRegionIds": "Tourism regions",
+      "usedBy": "Used by",
       "createdBy": "Created by",
       "status": "Status",
       "nameKm": "Khmer"

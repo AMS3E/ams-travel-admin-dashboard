@@ -81,7 +81,9 @@ export type FieldKind =
   /** Many values from that list. */
   | "enums"
   /** One text box per weekday, sent as `{ mon: "07:00-22:00", … }`. */
-  | "hours";
+  | "hours"
+  /** Short free texts the editor types, one box per line, sent as a JSON array in the editor's order. */
+  | "lines";
 
 export interface EnumOption {
   readonly value: string;
@@ -118,6 +120,8 @@ export interface ResourceField {
   readonly step?: number;
   /** For text — the most characters the API's column takes. */
   readonly maxLength?: number;
+  /** For `lines` — how many boxes the control offers at most. */
+  readonly maxItems?: number;
   /**
    * Filled only together with this other field, or not at all: a centre's
    * latitude and longitude, which the API refuses one without the other.
@@ -302,9 +306,12 @@ export interface ResourceColumn {
    * who approved the listing's request, and whether the place is verified on
    * evidence — rather than anything the row itself carries. `khmer` is how far
    * the Khmer is written: the API's `missingKhmer` list, or a Khmer name.
+   * `usage` counts the destinations whose `usageField` lists the row.
    */
-  readonly kind?: "text" | "number" | "boolean" | "status" | "image" | "ref" | "refs" | "enum" | "approval" | "verified" | "khmer";
+  readonly kind?: "text" | "number" | "boolean" | "status" | "image" | "ref" | "refs" | "enum" | "approval" | "verified" | "khmer" | "usage";
   readonly ref?: ReferenceKey;
+  /** For `usage` — the destination field whose ids point at this row, e.g. a category's `categoryIds`. */
+  readonly usageField?: string;
   /** For `enum` — the labels its values read as; an unset value shows as a dash. */
   readonly options?: readonly EnumOption[];
   /** Hidden below `md`, so a phone shows only what identifies the row. */
@@ -602,7 +609,7 @@ export type ReferenceOptions = Readonly<
 export type FieldValue = string | boolean | string[];
 export type FormValues = Record<string, FieldValue>;
 
-const MULTI_KINDS: ReadonlySet<FieldKind> = new Set(["refs", "enums"]);
+const MULTI_KINDS: ReadonlySet<FieldKind> = new Set(["refs", "enums", "lines"]);
 
 export function isMultiField(field: ResourceField): boolean {
   return MULTI_KINDS.has(field.kind);
@@ -720,6 +727,7 @@ export function toFormValues(
         break;
       case "refs":
       case "enums":
+      case "lines":
         values[field.name] = Array.isArray(raw) ? raw.map(String) : [];
         break;
       case "hours":
@@ -839,6 +847,18 @@ function fieldSchema(field: ResourceField, words: ValidationWords): z.ZodType {
           (days) => days.every((day) => !day.trim() || OPENING_HOURS.test(day.trim())),
           words.hours,
         );
+
+    case "lines": {
+      const list = field.required
+        ? z.array(z.string()).refine((items) => items.some((item) => item.trim()), say(words.chooseMany, { label: field.label.toLowerCase() }))
+        : z.array(z.string());
+      return field.maxLength
+        ? list.refine(
+            (items) => items.every((item) => item.trim().length <= field.maxLength!),
+            say(words.maxLength, { label: field.label, max: field.maxLength! }),
+          )
+        : list;
+    }
 
     case "number":
       return numberSchema(field, true, words);
@@ -1003,6 +1023,12 @@ export function toRequestBody(
       case "decimal":
         body[field.name] = typeof value === "string" ? numberOrNull(value) : null;
         break;
+
+      case "lines": {
+        const items = Array.isArray(value) ? value.map((item) => item.trim()).filter(Boolean) : [];
+        body[field.name] = items.length || updating ? items : null;
+        break;
+      }
 
       case "hours": {
         const days = Array.isArray(value) ? value : [];

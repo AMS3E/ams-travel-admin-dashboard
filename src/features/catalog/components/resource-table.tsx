@@ -23,6 +23,7 @@ import { canDeleteRecord, hasPermission } from "@/features/auth/permissions";
 import type { CatalogRecord } from "@/features/catalog/api/contracts";
 import {
   useGetCatalogPageQuery,
+  useGetCatalogQuery,
   useGetReferenceOptionsQuery,
   useDeleteRecordMutation,
   useSetRecordStatusMutation,
@@ -143,6 +144,20 @@ export function ResourceTable({
     resource: definition.key,
     include: "columns",
   });
+  /* "Used by": how many destinations carry each row — the sign a term is safe to retire. */
+  const usageColumn = definition.columns.find((column) => column.kind === "usage");
+  const usage = useGetCatalogQuery("destinations", { skip: !usageColumn });
+  const usedBy = useMemo(() => {
+    const counts = new Map<string, number>();
+    const field = usageColumn?.usageField;
+    if (!field) return counts;
+    for (const place of usage.data ?? []) {
+      const list = place[field];
+      if (!Array.isArray(list)) continue;
+      for (const id of list) counts.set(String(id), (counts.get(String(id)) ?? 0) + 1);
+    }
+    return counts;
+  }, [usage.data, usageColumn]);
   const [removeRecord, remove] = useDeleteRecordMutation();
   const [changeStatus, setStatus] = useSetRecordStatusMutation();
   const compact = useAppSelector((state) => state.ui.compactTables);
@@ -299,6 +314,12 @@ export function ResourceTable({
         ) : (
           <span className="tabular-nums">{String(value)}</span>
         );
+
+      case "usage": {
+        if (usage.isLoading) return <span className="text-muted">…</span>;
+        const count = usedBy.get(record.id) ?? 0;
+        return <span className={cn("tabular-nums", !count && "text-muted")}>{t("table.usedBy", { count })}</span>;
+      }
 
       case "enum": {
         if (value == null || value === "") return <span className="text-muted">—</span>;

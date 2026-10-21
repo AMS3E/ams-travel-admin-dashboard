@@ -19,6 +19,7 @@ import { VerifyButton } from "@/features/verification/components/verify-button";
 import { useDates } from "@/i18n/use-dates";
 import type { DestinationStatsPeriod, StampTarget } from "../api/contracts";
 import { CheckInCode } from "./check-in-code";
+import { AboutPanel, FactsPanel, PhotosPanel, RoomsPanel } from "./place-content";
 import { useGetPlaceStatsQuery } from "../api/dashboard-api";
 import { cambodianDay } from "../format";
 import { isListingStatus, STATUS_TONES, useStandingText } from "./destination-stats-page";
@@ -117,8 +118,13 @@ export function DestinationInsight({ id, grants, resource = "destinations" }: {
         </div>
       </Surface>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        {/* Every review, in the period. */}
+      {/* Each column keeps its own height: a long list on one side never stretches the other. */}
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="flex min-w-0 flex-col gap-4">
+        {/* The listing's own content, read-only; then every review, in the period. */}
+        {place ? <AboutPanel record={place} resource={resource} /> : null}
+        {place && resource === "stays" ? <RoomsPanel currency={text("currency") ?? "USD"} stayId={id} /> : null}
+        {place ? <PhotosPanel id={id} resource={resource} /> : null}
         <Surface aria-label={t("detail.reviews")}>
           <SurfaceHeader
             actions={reviews.data ? <span className="text-xs text-muted tabular-nums">{count(shown.length)}</span> : null}
@@ -186,9 +192,11 @@ export function DestinationInsight({ id, grants, resource = "destinations" }: {
             )
           ) : null}
         </Surface>
+        </div>
 
-        {/* The code posted on site for check-ins; then the Verified badge, where it stands and every decision behind it. */}
-        <div className="flex flex-col gap-4">
+        {/* The small facts, the codes posted on site, then the Verified badge, where it stands and every decision behind it. */}
+        <div className="flex min-w-0 flex-col gap-4">
+          {place ? <FactsPanel record={place} resource={resource} /> : null}
           <CheckInCode manages={manages} name={text("name") ?? ""} targetId={id} targetType={TARGET[resource]} />
           <Surface aria-label={t("detail.verification")} className="flex flex-wrap items-center gap-3 p-4">
             <div className="min-w-0 flex-1">

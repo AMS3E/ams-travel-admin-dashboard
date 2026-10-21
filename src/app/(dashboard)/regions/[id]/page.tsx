@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { Pencil, Shapes } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { canManageResource } from "@/features/auth/permissions";
 import { requireAdmin } from "@/features/auth/session";
@@ -47,16 +47,10 @@ export default async function RegionPage({ params }: Params) {
     <div className="mx-auto flex max-w-7xl flex-col gap-5">
       <PageHeader
         actions={
-          <>
-            <Link className={buttonVariants({ variant: "ghost" })} href="/categories-and-tags">
-              <Shapes aria-hidden className="size-4" />
-              {t("manageTerms")}
-            </Link>
-            <Link className={buttonVariants({ variant: "secondary" })} href={`/regions/${id}/edit`}>
-              <Pencil aria-hidden className="size-4" />
-              {t("edit")}
-            </Link>
-          </>
+          <Link className={buttonVariants({ variant: "secondary" })} href={`/regions/${id}/edit`}>
+            <Pencil aria-hidden className="size-4" />
+            {t("edit")}
+          </Link>
         }
         backHref="/regions"
         backLabel={t("back")}

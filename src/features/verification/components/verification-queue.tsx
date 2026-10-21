@@ -21,10 +21,10 @@ import { decidedVerified, type VerificationQueueItem, RESOURCE_OF_TARGET } from 
 import { VerifyDrawer, type DrawerFocus } from "./verify-drawer";
 import { SegmentedControl } from "@/components/ui/toolbar";
 
-type Filter = "awaiting" | "verified" | "all";
+type Filter = "all" | "verified" | "notVerified";
 
-/** The filters, in order; their words are `verification.queue.filters`. */
-const FILTERS: readonly Filter[] = ["awaiting", "verified", "all"];
+/** The filters, in order; their words are `verification.queue.filters`. "Not verified" is a fact, not a request: nobody applies for verification. */
+const FILTERS: readonly Filter[] = ["all", "verified", "notVerified"];
 
 const STATUS_TONES: Readonly<Record<VerificationQueueItem["destinationStatus"], "active" | "neutral" | "inactive">> = {
   PUBLISHED: "active",
@@ -46,7 +46,7 @@ type Words = ReturnType<typeof useTranslations<"verification">>;
 export function VerificationQueue({ grants }: { readonly grants: readonly string[] }) {
   const t = useTranslations("verification");
   const query = useGetVerificationQueueQuery();
-  const [filter, setFilter] = useState<Filter>("awaiting");
+  const [filter, setFilter] = useState<Filter>("all");
   const [desk, setDesk] = useState<PublishDesk | "all">("all");
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState<{ readonly id: string; readonly focus: DrawerFocus } | null>(null);
@@ -55,9 +55,9 @@ export function VerificationQueue({ grants }: { readonly grants: readonly string
   const desks = PUBLISH_DESKS.filter((each) => all.some((item) => item.desk === each));
   const items = all.filter((item) => desk === "all" || item.desk === desk);
   const counts: Readonly<Record<Filter, number>> = {
-    awaiting: items.filter((item) => !item.verified).length,
-    verified: items.filter((item) => item.verified).length,
     all: items.length,
+    verified: items.filter((item) => item.verified).length,
+    notVerified: items.filter((item) => !item.verified).length,
   };
   const needle = search.trim().toLowerCase();
   /* The work first: what waits on a decision, then the rest, each A to Z. */

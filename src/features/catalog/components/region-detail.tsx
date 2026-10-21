@@ -98,8 +98,9 @@ export function RegionDetail({ id }: { readonly id: string }) {
         <Surface aria-label={t("lists")}>
           <SurfaceHeader
             actions={
-              <Link className="inline-flex items-center gap-1 text-xs font-medium text-teal-deep hover:underline" href="/categories-and-tags">
-                {t("manageInTaxonomy")}
+              /* The taxonomy page, opened on this region's chip. */
+              <Link className="inline-flex items-center gap-1 text-xs font-medium text-teal-deep hover:underline" href={`/categories-and-tags?region=${id}`}>
+                {t("manageTerms")}
                 <ArrowUpRight aria-hidden className="size-3" />
               </Link>
             }
