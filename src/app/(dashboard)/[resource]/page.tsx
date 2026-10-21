@@ -80,6 +80,12 @@ export default async function ResourceListPage(
   /* Stays and food listings, and every kind of history, are listed on a tab; an old link lands there. */
   if (listPageOf(resource) !== `/${resource}`) redirect(listPageOf(resource));
 
+  /* Categories and tags live together on Taxonomy → Tourism Regions; the old list addresses land there. */
+  if (resource === "categories" || resource === "tags") {
+    const { region } = await props.searchParams;
+    redirect(typeof region === "string" && region ? `/categories-and-tags?region=${encodeURIComponent(region)}` : "/categories-and-tags");
+  }
+
   /* Every attraction, place to eat and stay, with a tab per main type. */
   if (resource === "destinations") {
     return <AllDestinationsPage roles={admin.roles} tab={(await props.searchParams).type} />;

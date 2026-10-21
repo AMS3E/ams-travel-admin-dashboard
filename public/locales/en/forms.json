@@ -620,7 +620,14 @@
       "groupHas": "<b>{label}</b> already has {count, plural, one {# {one}} other {# {noun}}}:",
       "clash": "“{clash}” is already one of them. Open it instead of making another."
     },
-    "status": "Status"
+    "status": "Status",
+    "lines": {
+      "add": "Add another",
+      "remove": "Remove",
+      "up": "Move up",
+      "down": "Move down",
+      "line": "Line {number}"
+    }
   },
   "multiSelect": {
     "unavailable": "Unavailable row",

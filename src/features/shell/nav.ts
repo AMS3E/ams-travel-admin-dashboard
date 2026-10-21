@@ -127,8 +127,8 @@ const taxonomy: NavGroup = {
   title: "Taxonomy",
   key: "taxonomy",
   items: [
-    /* One tree, by region: each tourism region's own categories and search filters. The two old lists answer bookmarks. */
-    { ...catalog("/categories-and-tags", "Tourism Regions", "categories", "Each tourism region's own categories and search filters, in one tree", { key: "taxonomyTree" }), aliases: ["/categories", "/tags"] },
+    /* One page, by region: the chips on top, then the Categories and the Tags tables. The two old list addresses redirect. */
+    { ...catalog("/categories-and-tags", "Tourism Regions", "categories", "Each tourism region's own categories and tags, on one page", { key: "categoriesAndTags" }), aliases: ["/categories", "/tags"] },
     catalog("/amenities", "Amenities", "amenities", "What a stay offers, at the property and in the room", { key: "amenities" }),
     catalog("/interests", "Interests", "interests", "Ways for travelers to explore", { key: "interests" }),
     catalog("/provinces", "Provinces", "provinces", "Manage Cambodia's provinces", { key: "provinces" }),

@@ -98,9 +98,13 @@
     "name": "Name",
     "namePlaceholder": "e.g. 3-Day Mekong Discovery",
     "nameRequired": "Give the corridor a name.",
+    "nameKm": "Name in Khmer",
+    "nameKmPlaceholder": "e.g. ដំណើរស្វែងយល់ទន្លេមេគង្គ 3 ថ្ងៃ",
+    "khmerHint": "Typed by hand, never machine-translated. Leave it empty until it is written.",
     "shortDescription": "Short description",
     "shortDescriptionHint": "One or two sentences.",
     "shortDescriptionPlaceholder": "e.g. Up the Mekong from Phnom Penh to Kratie, island by island.",
+    "shortDescriptionKm": "Short description in Khmer",
     "cover": "Cover photo",
     "coverHint": "Leave it empty and the first stop's photo is used.",
     "plan": {
@@ -113,6 +117,7 @@
     },
     "fullDescription": "Full description",
     "fullDescriptionHint": "The full story of the trip, shown under the short description.",
+    "fullDescriptionKm": "Full description in Khmer",
     "interests": "Kinds of trip it suits",
     "interestsHint": "Interests from the Tourism Corridors group. A traveller browsing one of them on Explore finds this corridor on its page.",
     "noInterests": "No Tourism Corridors interests yet.",
@@ -130,7 +135,9 @@
     "createPublish": "Create and publish",
     "publishFirst": "Publish {names} first",
     "create": "Create corridor",
-    "mapDescription": "Each stop you add is numbered on the map, with the real road to it from the one before. Click a marker to see the place."
+    "mapDescription": "Each stop you add is numbered on the map, with the real road to it from the one before. Click a marker to see the place.",
+    "expect": "What you expect",
+    "expectHint": "Short labels for the What you expect row on its page in the app — Sunrise, Photography, Historic Site. Blank boxes are dropped."
   },
   "detail": {
     "edit": "Edit details",
@@ -147,7 +154,8 @@
     },
     "workedOut": "Worked out {date}",
     "notConfigured": "Road routes are not calculated: the API has no <code>GOOGLE_MAPS_API_KEY</code>. The map joins the stops with straight lines until one is set.",
-    "routeFailed": "The last attempt to work the route out failed: {error}"
+    "routeFailed": "The last attempt to work the route out failed: {error}",
+    "expect": "What you expect:"
   },
   "edit": {
     "metaTitle": "Edit tourism corridor",

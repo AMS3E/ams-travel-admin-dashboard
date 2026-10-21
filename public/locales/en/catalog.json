@@ -42,6 +42,7 @@
     "notVerified": "Not verified",
     "yes": "Yes",
     "items": "{count, plural, one {# item} other {# items}}",
+    "usedBy": "{count} dest.",
     "confirmDelete": "Delete permanently?",
     "delete": "Delete",
     "cancel": "Cancel",
@@ -209,7 +210,6 @@
   },
   "region": {
     "notFound": "Not found",
-    "manageTerms": "Manage categories & tags",
     "edit": "Edit region",
     "back": "Back to Tourism Regions",
     "status": {
@@ -226,7 +226,7 @@
     "noMapPicture": "No map picture yet: upload one on its form.",
     "lists": "Its own lists",
     "listsDescription": "What its places are sorted and filtered by, in its page's order.",
-    "manageInTaxonomy": "Manage in Taxonomy",
+    "manageTerms": "Manage categories & tags",
     "categories": "Categories",
     "searchFilters": "Search filters",
     "termCount": "{label} · {count}",
@@ -239,46 +239,6 @@
     "statusColumn": "Status",
     "editColumn": "Edit",
     "editName": "Edit {name}"
-  },
-  "tree": {
-    "label": "Categories and tags by region",
-    "filter": "Filter terms",
-    "filterPlaceholder": "Filter regions, categories and tags…",
-    "collapseAll": "Collapse all",
-    "expandAll": "Expand all",
-    "name": "Name",
-    "usedBy": "Used by",
-    "actions": "Actions",
-    "noMatch": "No region, category or tag matches.",
-    "noRegion": "No tourism region yet.",
-    "regionCounts": "{categories, plural, one {# category} other {# categories}} · {tags, plural, one {# tag} other {# tags}}",
-    "retired": "Retired",
-    "used": "{count} dest.",
-    "openRegion": "Open region",
-    "lists": {
-      "categories": {
-        "title": "Categories",
-        "add": "Category",
-        "example": "e.g. Waterfall",
-        "newFor": "New category for {region}"
-      },
-      "tags": {
-        "title": "Tags",
-        "add": "Tag",
-        "example": "e.g. Sunrise",
-        "newFor": "New tag for {region}"
-      }
-    },
-    "add": "Add",
-    "cancel": "Cancel",
-    "noneYet": "None yet.",
-    "rename": "Rename",
-    "renameName": "Rename {name}",
-    "save": "Save",
-    "alsoIn": "also in {list}",
-    "retire": "Retire",
-    "restore": "Restore",
-    "openForm": "Open its form"
   },
   "save": {
     "unknownResource": "Unknown catalogue resource.",

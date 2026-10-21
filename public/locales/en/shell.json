@@ -84,9 +84,9 @@
         "label": "Destination Stats",
         "description": "Ratings, reviews, browses and the Verified standing of every destination"
       },
-      "taxonomyTree": {
+      "categoriesAndTags": {
         "label": "Tourism Regions",
-        "description": "Each tourism region's own categories and search filters, in one tree"
+        "description": "Each tourism region's own categories and tags, on one page"
       },
       "amenities": {
         "label": "Amenities",
@@ -229,6 +229,7 @@
       "allGroups": "All groups",
       "regions": "Tourism regions",
       "groups": "Groups",
+      "terms": "categories and tags",
       "noRegion": "No region",
       "noGroup": "No group",
       "chooseRegion": "Choose a tourism region to see its own {plural}.",

@@ -85,6 +85,15 @@ export default async function CorridorDetailPage({ params }: CorridorPageProps) 
         />
       </MetricStrip>
 
+      {corridor.expectations.length ? (
+        <p aria-label={t("detail.expect")} className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-sm font-medium text-ink-soft">{t("detail.expect")}</span>
+          {corridor.expectations.map((label) => (
+            <Badge key={label} tone="neutral">{label}</Badge>
+          ))}
+        </p>
+      ) : null}
+
       {!route.configured ? (
         <p className="rounded-lg border border-line bg-sand px-4 py-3 text-sm text-ink-soft">
           {t.rich("detail.notConfigured", { code: (chunks) => <code className="font-mono text-xs">{chunks}</code> })}

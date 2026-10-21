@@ -66,7 +66,11 @@ function overviewSchema(t: CorridorsT) {
       coverKey: text(512),
       estimatedBudgetMin: money,
       estimatedBudgetMax: money,
+      expectations: z.array(z.string().trim().min(1).max(40)).max(12),
       interestIds: z.array(z.string().uuid()).max(50),
+      nameKm: text(200),
+      shortDescriptionKm: text(500),
+      descriptionKm: text(20_000),
     })
     .refine(
       (overview) =>

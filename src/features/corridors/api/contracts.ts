@@ -39,6 +39,8 @@ export interface CorridorSummary {
   readonly totalDurationMinutes: number | null;
   readonly estimatedBudgetMin: number | null;
   readonly estimatedBudgetMax: number | null;
+  /** "What you expect" on its page: short labels typed by the editor, in the editor's order. */
+  readonly expectations: readonly string[];
   readonly startDestinationId: string | null;
   readonly endDestinationId: string | null;
   readonly routeStatus: CorridorRouteStatus;
@@ -157,8 +159,14 @@ export interface CorridorOverviewInput {
   readonly coverKey: string | null;
   readonly estimatedBudgetMin: number | null;
   readonly estimatedBudgetMax: number | null;
+  /** "What you expect" labels, typed by hand, blanks already dropped. */
+  readonly expectations: readonly string[];
   /** Tourism Corridors interests, whose pages on the website list it. */
   readonly interestIds: readonly string[];
+  /** Khmer twins, typed by hand; null until written. */
+  readonly nameKm: string | null;
+  readonly shortDescriptionKm: string | null;
+  readonly descriptionKm: string | null;
 }
 
 /** `POST /corridors/route-preview`: the roads between stops not saved yet; a leg's figures are null when not worked out. */

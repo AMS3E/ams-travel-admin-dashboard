@@ -59,9 +59,9 @@
     "intro": "{scope} A verified place shows as Recommended by AMS Travel in the app. Verify on what it rests on: an official site needs no paperwork, a partner's listing its agreement, a paid one its invoice or receipt; renew when new paperwork comes in, and say why when you revoke. Recommended by Traveler is earned from reviews and is nobody's to file or revoke.",
     "filterLabel": "Filter by verification",
     "filters": {
-      "awaiting": "Awaiting verification",
+      "all": "All",
       "verified": "Verified",
-      "all": "All"
+      "notVerified": "Not verified"
     },
     "deskFilterLabel": "Filter by who wrote it",
     "writtenByAnyone": "Written by anyone",
@@ -84,7 +84,7 @@
     "searchLabel": "Search destinations",
     "searchPlaceholder": "Search destinations…",
     "empty": {
-      "awaiting": "Nothing is waiting: every destination here has been verified.",
+      "notVerified": "Every destination here has been verified.",
       "verified": "No destination is verified yet. Verify one on what it rests on: an official site, a partnership, or an invoice.",
       "all": "There is no destination to verify yet.",
       "noMatch": "No destination matches that search."
