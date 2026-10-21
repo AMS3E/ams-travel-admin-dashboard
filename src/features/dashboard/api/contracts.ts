@@ -174,10 +174,12 @@ export interface PlaceStatsResponse {
 export type StampTarget = "DESTINATION" | "STAY" | "FOOD" | "ACTIVITY";
 
 /**
- * `GET /stamps/codes?targetType=&targetId=` — a destination's check-in codes,
- * current first; `POST /stamps/codes` issues one and replaces the current;
- * `DELETE /stamps/codes/{id}` withdraws one for good. A check-in needs the
- * code scanned on site and the phone within the radius.
+ * `GET /stamps/codes?targetType=&targetId=` — a destination's check-in codes
+ * with their check-in counts, active first. A place posts as many prints as it
+ * needs: `POST /stamps/codes` issues one beside the others, which keep working;
+ * `POST /stamps/codes/{id}/retire` kills one print deliberately;
+ * `DELETE /stamps/codes/{id}` erases one never scanned (409 otherwise).
+ * A check-in needs the code scanned on site and the phone within the radius.
  */
 export interface StampCodeResponse {
   readonly id: string;
@@ -185,10 +187,17 @@ export interface StampCodeResponse {
   readonly targetId: string;
   /** Printed under the QR, for a visitor to read. */
   readonly code: string;
+  /** Where this print is posted, to tell prints apart; null when not said. */
+  readonly label: string | null;
   /** What the QR encodes: the scan page's link, whose last part is the code. */
   readonly payload: string;
   readonly issuedAt: string;
   readonly issuedBy: string | null;
-  /** Null while current. */
-  readonly replacedAt: string | null;
+  readonly issuedByName: string | null;
+  /** How many check-ins were collected with this code. */
+  readonly checkIns: number;
+  /** Null while the code works; a retired code scans as invalid. */
+  readonly retiredAt: string | null;
+  readonly retiredBy: string | null;
+  readonly retiredByName: string | null;
 }

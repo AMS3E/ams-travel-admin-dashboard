@@ -41,17 +41,22 @@ export const dashboardApi = baseApi.injectEndpoints({
       }),
       providesTags: ["Dashboard", "Verification"],
     }),
-    /** A destination's check-in codes, current first. */
+    /** A destination's check-in codes with their check-in counts, active first. */
     getStampCodes: builder.query<StampCodeResponse[], { readonly targetType: StampTarget; readonly targetId: string }>({
       query: ({ targetType, targetId }) => ({ url: "cms/stamps/codes", params: { targetType, targetId } }),
       providesTags: ["StampCode"],
     }),
-    /** Issues a destination's code; the current one, if any, stops working. */
-    issueStampCode: builder.mutation<StampCodeResponse, { readonly targetType: StampTarget; readonly targetId: string }>({
+    /** Issues a destination's code beside the ones already posted, which keep working. */
+    issueStampCode: builder.mutation<StampCodeResponse, { readonly targetType: StampTarget; readonly targetId: string; readonly label: string | null }>({
       query: (body) => ({ url: "cms/stamps/codes", method: "POST", body }),
       invalidatesTags: ["StampCode"],
     }),
-    /** Withdraws a code for good: printed by mistake, or never posted. */
+    /** Retires one print deliberately: it stops scanning while the place's other codes keep going. */
+    retireStampCode: builder.mutation<StampCodeResponse, string>({
+      query: (id) => ({ url: `cms/stamps/codes/${encodeURIComponent(id)}/retire`, method: "POST" }),
+      invalidatesTags: ["StampCode"],
+    }),
+    /** Erases a code issued by mistake and never scanned; the API refuses once it has check-ins. */
     withdrawStampCode: builder.mutation<void, string>({
       query: (id) => ({ url: `cms/stamps/codes/${encodeURIComponent(id)}`, method: "DELETE" }),
       invalidatesTags: ["StampCode"],
@@ -72,6 +77,7 @@ export const {
   useGetPlaceStatsQuery,
   useGetStampCodesQuery,
   useIssueStampCodeMutation,
+  useRetireStampCodeMutation,
   useWithdrawStampCodeMutation,
   useClearAuditLogMutation,
 } = dashboardApi;
