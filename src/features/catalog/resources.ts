@@ -1410,8 +1410,9 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     ],
     /*
      * An attraction's questions, in the attraction's order, with its type (the
-     * Activities & Experiences shelf) and the contact of whoever runs it: the
-     * fourth kind of destination (2026-10-21).
+     * Activities & Experiences shelf, its whole classification: no tourism
+     * region, category or tag, as for a stay or a food place) and the contact
+     * of whoever runs it: the fourth kind of destination (2026-10-21).
      */
     fields: [
       listingName,
@@ -1435,22 +1436,8 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       ref("provinceId", "Province", "provinces", {
         required: true,
         section: "Placement",
-        hint: "The region follows from the province.",
+        hint: "The province it is in; the app lists it on that province's page.",
       }),
-      {
-        name: "tourismRegionIds",
-        label: "Tourism region",
-        kind: "refs",
-        ref: "tourism-regions",
-        required: true,
-        single: true,
-        tiles: true,
-        span: 2,
-        section: "Classification",
-        hint: "The region the activity is best known for. Its categories and tags follow from it, and it is listed on that region's page.",
-      },
-      /* The region's own categories and tags; the interests are the Type above. */
-      ...regionClassification.filter((field) => field.name !== "interestIds"),
       /* Its address sits beside its province, under the map. */
       ...location.map((field): ResourceField => (field.name === "address" ? { ...field, span: 1 } : field)),
       /* Chosen among its gallery's photos, never asked on its own: the gallery writes it. */

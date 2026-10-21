@@ -95,6 +95,13 @@
       "tipBody": "Choose the region the place is best known for. Only that region's categories and tags are offered, and the place is listed on its Discover page. Interests are separate: tick what a traveller comes for, whatever the region.",
       "interestsDescription": "The Interests tab and province pages it is listed under."
     },
+    "activityType": {
+      "title": "Type of activity",
+      "question": "What kind of activity is it?",
+      "description": "The kind travellers browse by on the Interests tab. Tick every one that fits.",
+      "tipTitle": "Pick what it really is",
+      "tipBody": "A boat trip to watch dolphins is a Cruise and Wildlife both: tick both. The first one ticked names the kind the app files it under."
+    },
     "facilities": {
       "title": "Rooms & facilities",
       "question": "What is the property, and what does it offer?",
@@ -689,7 +696,7 @@
     "description": "Choose the main type. The form that follows is written for it and asks only what it needs.",
     "kinds": {
       "destinations": {
-        "title": "Attraction",
+        "title": "Attraction Site",
         "description": "A temple, a beach, a waterfall, a museum, a village — a place worth the trip."
       },
       "activities": {

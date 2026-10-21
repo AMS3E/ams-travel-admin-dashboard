@@ -776,21 +776,8 @@
       },
       "provinceId": {
         "label": "Province",
-        "hint": "The region follows from the province.",
+        "hint": "The province it is in; the app lists it on that province's page.",
         "section": "Placement"
-      },
-      "tourismRegionIds": {
-        "label": "Tourism region",
-        "hint": "The region the activity is best known for. Its categories and tags follow from it, and it is listed on that region's page.",
-        "section": "Classification"
-      },
-      "categoryIds": {
-        "label": "Categories",
-        "section": "Classification"
-      },
-      "tagIds": {
-        "label": "Tags",
-        "section": "Classification"
       },
       "address": {
         "label": "Address",

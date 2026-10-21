@@ -6,7 +6,7 @@ import { byName } from "@/features/catalog/resources";
  * an attraction, a place to eat, a place to stay, an activity. Only the main
  * type is chosen here; the form that opens asks the rest in its own words (a
  * stay's first step is its kind of stay, a food listing's its kind of place).
- * Only what this account may create is offered, A to Z.
+ * Only what this account may create is offered: the attraction site first, the rest A to Z.
  */
 
 export type CreateKindKey = "destinations" | "stays" | "foods" | "activities";
@@ -34,5 +34,5 @@ const KINDS: readonly { readonly key: CreateKindKey; readonly href: string }[] =
 export function createKinds(roles: readonly string[], words: CreateKindWords): readonly CreateKind[] {
   return KINDS.filter((kind) => canCreateResource(roles, kind.key))
     .map((kind) => ({ ...kind, ...words(kind.key) }))
-    .toSorted((a, b) => byName(a.title, b.title));
+    .toSorted((a, b) => Number(b.key === "destinations") - Number(a.key === "destinations") || byName(a.title, b.title));
 }

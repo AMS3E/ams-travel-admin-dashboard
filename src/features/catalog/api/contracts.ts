@@ -314,10 +314,7 @@ export interface ActivityResponse {
   readonly publishedAt: string | null;
   readonly createdAt: string | null;
   readonly updatedAt: string | null;
-  readonly categoryIds: readonly string[] | null;
-  readonly tagIds: readonly string[] | null;
   readonly interestIds: readonly string[] | null;
-  readonly tourismRegionIds: readonly string[] | null;
   readonly nameKm: string | null;
   readonly descriptionKm: string | null;
   readonly sloganKm: string | null;

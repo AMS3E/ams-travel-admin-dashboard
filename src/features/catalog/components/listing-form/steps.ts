@@ -334,34 +334,22 @@ function stepsIn(t: StepWords): Readonly<Record<ListingKey, readonly StepDraft[]
       review,
     ],
 
-    /* An attraction's sections, then who runs it, then its type with the region's own lists. */
+    /* An attraction's sections, its type right after the words (the Activities & Experiences shelf, its whole classification), then who runs it. */
     activities: [
       about("place", { slug: true }),
+      {
+        id: "type",
+        title: t("activityType.title"),
+        question: t("activityType.question"),
+        description: t("activityType.description"),
+        icon: Tags,
+        tip: { title: t("activityType.tipTitle"), body: t("activityType.tipBody") },
+        groups: [{ fields: ["interestIds"] }],
+        places: [{ label: "type", field: "interestIds" }],
+      },
       photos("place"),
       locationStep("place", "activities"),
       contact("place"),
-      {
-        id: "classification",
-        title: t("classification.title"),
-        question: t("classification.question"),
-        description: t("classification.description"),
-        icon: Tags,
-        tip: { title: t("classification.tipTitle"), body: t("classification.tipBody") },
-        groups: [
-          /* The type first — the Activities & Experiences shelf of the taxonomy. */
-          { fields: ["interestIds"] },
-          { label: "tourismRegion", fields: ["tourismRegionIds"] },
-          { label: "categories", fields: ["categoryIds"] },
-          /* The region's own tags, with no heading of their own. */
-          { fields: ["tagIds"] },
-        ],
-        places: [
-          { label: "type", field: "interestIds" },
-          { label: "tourismRegion", field: "tourismRegionIds" },
-          { label: "categories", field: "categoryIds" },
-          { label: "tags", field: "tagIds" },
-        ],
-      },
       review,
     ],
   };
@@ -409,11 +397,9 @@ const CHECKS: Readonly<Record<ListingKey, readonly CheckDraft[]>> = {
   activities: [
     { label: "type", fields: ["interestIds"], required: true },
     { label: "name", fields: ["name"], required: true },
-    { label: "tourismRegion", fields: ["tourismRegionIds"], required: true },
     { label: "address", fields: ["provinceId"], required: true },
     { label: "cover", fields: ["coverKey"], step: "photos" },
     { label: "pin", fields: ["latitude", "longitude"], all: true },
-    { label: "categories", fields: ["categoryIds"] },
     { label: "contactDetails", fields: ["phone", "contactEmail", "website"] },
     { label: "messaging", fields: ["telegram", "whatsapp", "facebookUrl"] },
     { label: "khmer", fields: [], khmer: true, required: true, step: "about" },
