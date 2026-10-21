@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useReducer, useRef, useState, useTransition } from "react";
 import { ArrowRight, LoaderCircle, Rocket, Save } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
 import { Textarea } from "@/components/ui/textarea";
+import { SegmentedControl } from "@/components/ui/toolbar";
+import { LOCALE_NAMES } from "@/i18n/config";
 import type { ReferenceOption } from "@/features/catalog/resource";
 import { MultiSelectField } from "@/features/catalog/components/fields/multi-select-field";
 import { PhotoDropzone } from "@/features/catalog/components/listing-form/cover-dropzone";
@@ -51,6 +54,11 @@ function amount(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+/** The Khmer boxes still empty while their English says something. */
+function khmerMissing(pairs: readonly (readonly [string, string])[]): number {
+  return pairs.filter(([english, khmer]) => english.trim() && !khmer.trim()).length;
+}
+
 /**
  * A new tourism corridor on one page: what it is, then its days and stops
  * with the map beside them, then the extras. One button creates it — with
@@ -59,6 +67,7 @@ function amount(value: string): number | null {
 export function CorridorCreator({ destinations, interests, maps, canPublish }: CorridorCreatorProps) {
   const router = useRouter();
   const t = useTranslations("corridors");
+  const languageWords = useTranslations("forms.listing.language");
   const nameInput = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
   const [createCorridor] = useCreateCorridorMutation();
@@ -72,6 +81,16 @@ export function CorridorCreator({ destinations, interests, maps, canPublish }: C
   const [budgetMax, setBudgetMax] = useState("");
   const [interestIds, setInterestIds] = useState<string[]>([]);
   const [days, dispatch] = useReducer(draftReducer, [blankDay(FIRST_DAY_KEY)]);
+  /* The language the text boxes are written in, as on a listing's form: each Khmer box takes its English one's place. */
+  const [language, setLanguage] = useState<"en" | "km">("en");
+  const [nameKm, setNameKm] = useState("");
+  const [shortDescriptionKm, setShortDescriptionKm] = useState("");
+  const [descriptionKm, setDescriptionKm] = useState("");
+  const missing = khmerMissing([
+    [name, nameKm],
+    [shortDescription, shortDescriptionKm],
+    [description, descriptionKm],
+  ]);
 
   /** Once creating has been tried, what still needs fixing is said as it is typed, and cleared as it is fixed. */
   const [tried, setTried] = useState(false);
@@ -87,7 +106,7 @@ export function CorridorCreator({ destinations, interests, maps, canPublish }: C
   const selection = useItinerarySelection(mapStops);
   const stops = stopCount(days);
   const drafts = placesWhere(days, places, isUnpublished);
-  const started = Boolean(name.trim() || shortDescription.trim() || cover.key || stops > 0);
+  const started = Boolean(name.trim() || nameKm.trim() || shortDescription.trim() || cover.key || stops > 0);
 
   const min = amount(budgetMin);
   const max = amount(budgetMax);
@@ -111,7 +130,9 @@ export function CorridorCreator({ destinations, interests, maps, canPublish }: C
     setTried(true);
     setProblem(null);
     if (nameError) {
-      nameInput.current?.focus();
+      /* The English name is the one required: show it, then put the cursor in it. */
+      setLanguage("en");
+      requestAnimationFrame(() => nameInput.current?.focus());
       return;
     }
     if (budgetError || timesError) return;
@@ -127,6 +148,9 @@ export function CorridorCreator({ destinations, interests, maps, canPublish }: C
           estimatedBudgetMin: min,
           estimatedBudgetMax: max,
           interestIds,
+          nameKm: nameKm.trim() || null,
+          shortDescriptionKm: shortDescriptionKm.trim() || null,
+          descriptionKm: descriptionKm.trim() || null,
         },
         // An untouched Day 1 is no plan yet: the corridor starts with no days.
         days: stops > 0 ? inputFrom(days) : [],
@@ -148,33 +172,82 @@ export function CorridorCreator({ destinations, interests, maps, canPublish }: C
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
       <div className="flex min-w-0 flex-col gap-5">
         <Surface>
-          <SurfaceHeader description={t("creator.about.description")} title={t("creator.about.title")} />
+          <SurfaceHeader
+            actions={
+              <div className="flex flex-wrap items-center gap-2">
+                <SegmentedControl
+                  label={languageWords("label")}
+                  onChange={setLanguage}
+                  options={[
+                    { value: "en", label: LOCALE_NAMES.en },
+                    { value: "km", label: LOCALE_NAMES.km },
+                  ]}
+                  value={language}
+                />
+                <Badge dot tone={missing ? "warning" : "success"}>
+                  {missing ? languageWords("missing", { count: missing }) : languageWords("complete")}
+                </Badge>
+              </div>
+            }
+            description={t("creator.about.description")}
+            title={t("creator.about.title")}
+          />
           <div className="grid gap-4 px-4 py-4">
-            <FormField error={tried ? nameError : undefined} label={t("creator.name")} required>
-              {(control) => (
-                <Input
-                  {...control}
-                  autoFocus
-                  maxLength={200}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder={t("creator.namePlaceholder")}
-                  ref={nameInput}
-                  value={name}
-                />
-              )}
-            </FormField>
-            <FormField hint={t("creator.shortDescriptionHint")} label={t("creator.shortDescription")}>
-              {(control) => (
-                <Textarea
-                  {...control}
-                  maxLength={500}
-                  onChange={(event) => setShortDescription(event.target.value)}
-                  placeholder={t("creator.shortDescriptionPlaceholder")}
-                  rows={2}
-                  value={shortDescription}
-                />
-              )}
-            </FormField>
+            {language === "en" ? (
+              <FormField error={tried ? nameError : undefined} key="name" label={t("creator.name")} required>
+                {(control) => (
+                  <Input
+                    {...control}
+                    autoFocus
+                    maxLength={200}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder={t("creator.namePlaceholder")}
+                    ref={nameInput}
+                    value={name}
+                  />
+                )}
+              </FormField>
+            ) : (
+              <FormField hint={t("creator.khmerHint")} key="nameKm" label={t("creator.nameKm")}>
+                {(control) => (
+                  <Input
+                    {...control}
+                    lang="km"
+                    maxLength={200}
+                    onChange={(event) => setNameKm(event.target.value)}
+                    placeholder={t("creator.nameKmPlaceholder")}
+                    value={nameKm}
+                  />
+                )}
+              </FormField>
+            )}
+            {language === "en" ? (
+              <FormField hint={t("creator.shortDescriptionHint")} key="shortDescription" label={t("creator.shortDescription")}>
+                {(control) => (
+                  <Textarea
+                    {...control}
+                    maxLength={500}
+                    onChange={(event) => setShortDescription(event.target.value)}
+                    placeholder={t("creator.shortDescriptionPlaceholder")}
+                    rows={2}
+                    value={shortDescription}
+                  />
+                )}
+              </FormField>
+            ) : (
+              <FormField hint={t("creator.shortDescriptionHint")} key="shortDescriptionKm" label={t("creator.shortDescriptionKm")}>
+                {(control) => (
+                  <Textarea
+                    {...control}
+                    lang="km"
+                    maxLength={500}
+                    onChange={(event) => setShortDescriptionKm(event.target.value)}
+                    rows={2}
+                    value={shortDescriptionKm}
+                  />
+                )}
+              </FormField>
+            )}
             <FormField hint={t("creator.coverHint")} label={t("creator.cover")}>
               {(control) => (
                 <PhotoDropzone
@@ -211,11 +284,19 @@ export function CorridorCreator({ destinations, interests, maps, canPublish }: C
         <Surface>
           <SurfaceHeader description={t("creator.more.description")} title={t("creator.more.title")} />
           <div className="grid gap-4 px-4 py-4">
-            <FormField hint={t("creator.fullDescriptionHint")} label={t("creator.fullDescription")}>
-              {(control) => (
-                <Textarea {...control} onChange={(event) => setDescription(event.target.value)} rows={5} value={description} />
-              )}
-            </FormField>
+            {language === "en" ? (
+              <FormField hint={t("creator.fullDescriptionHint")} key="description" label={t("creator.fullDescription")}>
+                {(control) => (
+                  <Textarea {...control} onChange={(event) => setDescription(event.target.value)} rows={5} value={description} />
+                )}
+              </FormField>
+            ) : (
+              <FormField hint={t("creator.fullDescriptionHint")} key="descriptionKm" label={t("creator.fullDescriptionKm")}>
+                {(control) => (
+                  <Textarea {...control} lang="km" onChange={(event) => setDescriptionKm(event.target.value)} rows={5} value={descriptionKm} />
+                )}
+              </FormField>
+            )}
             <FormField hint={t("creator.interestsHint")} label={t("creator.interests")}>
               {(control) =>
                 interests.length ? (

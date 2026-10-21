@@ -159,6 +159,10 @@ export interface CorridorOverviewInput {
   readonly estimatedBudgetMax: number | null;
   /** Tourism Corridors interests, whose pages on the website list it. */
   readonly interestIds: readonly string[];
+  /** Khmer twins, typed by hand; null until written. */
+  readonly nameKm: string | null;
+  readonly shortDescriptionKm: string | null;
+  readonly descriptionKm: string | null;
 }
 
 /** `POST /corridors/route-preview`: the roads between stops not saved yet; a leg's figures are null when not worked out. */

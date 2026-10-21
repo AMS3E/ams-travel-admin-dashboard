@@ -1386,6 +1386,7 @@
       "durationDays": "Days",
       "stopCount": "Stops",
       "routeStatus": "Route",
+      "nameKm": "Khmer",
       "status": "Status"
     },
     "status": {
@@ -1402,6 +1403,10 @@
       "name": {
         "label": "Name"
       },
+      "nameKm": {
+        "label": "Name in Khmer",
+        "hint": "Typed by hand, never machine-translated. Leave it empty until it is written."
+      },
       "slug": {
         "label": "Link name",
         "hint": "The end of this listing's web address, e.g. ams.travel/foods/mekong-grill. Leave it empty and we make one from the name.",
@@ -1411,8 +1416,15 @@
         "label": "Short description",
         "hint": "One or two sentences for the corridor's card and the top of its page."
       },
+      "shortDescriptionKm": {
+        "label": "Short description in Khmer",
+        "hint": "The same one or two sentences, written for Khmer readers."
+      },
       "description": {
         "label": "Description"
+      },
+      "descriptionKm": {
+        "label": "Description in Khmer"
       },
       "coverKey": {
         "label": "Cover image",
