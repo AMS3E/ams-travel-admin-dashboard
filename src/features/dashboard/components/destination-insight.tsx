@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useVisitLine } from "@/features/dashboard/reviews";
 import Image from "next/image";
-import { Eye, ImageIcon, MapPin, MessageSquare, Star } from "lucide-react";
+import { Eye, ImageIcon, MapPin, MessageSquare, QrCode, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
@@ -109,11 +109,12 @@ export function DestinationInsight({ id, grants, resource = "destinations" }: {
         </Toolbar>
         <div className="p-4">
           {stats.error ? <QueryState error={stats.error} loading={false} retry={stats.refetch} /> : null}
-          <StatGrid>
+          <StatGrid columns={5}>
             <StatTile icon={Star} label={row ? t("detail.ratingWithCount", { count: row.ratingCount }) : t("detail.rating")} value={row ? (row.averageRating == null ? "—" : row.averageRating.toFixed(1)) : null} />
             <StatTile icon={MessageSquare} label={t("detail.reviews")} value={row ? count(row.reviewCount) : null} />
             <StatTile icon={Eye} label={t("tiles.browses")} value={row ? count(row.browses) : null} />
             <StatTile icon={Eye} label={t("detail.views")} value={row ? count(row.viewCount) : null} />
+            <StatTile icon={QrCode} label={t("detail.checkIns")} value={row ? count(row.checkIns) : null} />
           </StatGrid>
         </div>
       </Surface>
