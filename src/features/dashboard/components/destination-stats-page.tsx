@@ -19,9 +19,9 @@ import { PeriodControl, windowOf, type Period } from "./period-control";
 import { StatGrid, StatTile } from "./stat-tile";
 
 type Scope = "published" | "all";
-type SortKey = "rating" | "reviews" | "browses" | "views" | "name";
+type SortKey = "rating" | "reviews" | "browses" | "views" | "checkIns" | "name";
 
-const SORTS: readonly SortKey[] = ["rating", "reviews", "browses", "views", "name"];
+const SORTS: readonly SortKey[] = ["rating", "reviews", "browses", "views", "checkIns", "name"];
 
 export const STATUS_TONES = {
   PUBLISHED: "active",
@@ -57,6 +57,8 @@ function compare(a: DestinationStatsRow, b: DestinationStatsRow, sort: SortKey):
       return b.browses - a.browses || b.viewCount - a.viewCount || byName(a.name, b.name);
     case "views":
       return b.viewCount - a.viewCount || byName(a.name, b.name);
+    case "checkIns":
+      return b.checkIns - a.checkIns || byName(a.name, b.name);
     default:
       return byName(a.name, b.name);
   }
@@ -152,6 +154,7 @@ export function DestinationStatsPage() {
                   <TableHeaderCell className="text-right">{t("table.rating")}</TableHeaderCell>
                   <TableHeaderCell className="text-right">{t("table.reviews")}</TableHeaderCell>
                   <TableHeaderCell className="text-right">{t("table.browses")}</TableHeaderCell>
+                  <TableHeaderCell className="text-right">{t("table.checkIns")}</TableHeaderCell>
                   {allTime ? <TableHeaderCell className="text-right">{t("table.views")}</TableHeaderCell> : null}
                   <TableHeaderCell>
                     <span className="inline-flex items-center gap-1">
@@ -182,6 +185,7 @@ export function DestinationStatsPage() {
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{count(row.reviewCount)}</TableCell>
                     <TableCell className="text-right tabular-nums">{count(row.browses)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{count(row.checkIns)}</TableCell>
                     {allTime ? <TableCell className="text-right tabular-nums">{count(row.viewCount)}</TableCell> : null}
                     <TableCell>
                       <span className="flex flex-wrap items-center gap-1.5">

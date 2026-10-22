@@ -147,6 +147,8 @@ export interface DestinationStatsRow {
   readonly status: PublicationStatus;
   readonly browses: number;
   readonly viewCount: number;
+  /** Travellers who scanned a check-in code on site in the period; one per traveller, place and season. */
+  readonly checkIns: number;
   /** Star ratings so far; every review carries one. */
   readonly ratingCount: number;
   /** Their average, one decimal; null while unrated. */

@@ -14,8 +14,8 @@ interface StatTileProps {
   readonly href?: string;
 }
 
-export function StatGrid({ children }: { readonly children: ReactNode }) {
-  return <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{children}</div>;
+export function StatGrid({ children, columns = 4 }: { readonly children: ReactNode; readonly columns?: 4 | 5 }) {
+  return <div className={`grid gap-3 sm:grid-cols-2 ${columns === 5 ? "lg:grid-cols-5" : "lg:grid-cols-4"}`}>{children}</div>;
 }
 
 export function StatTile({ label, value, hint, icon: Icon, href }: StatTileProps) {

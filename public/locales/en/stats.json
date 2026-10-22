@@ -35,6 +35,7 @@
       "reviews": "Most reviewed",
       "browses": "Most browsed",
       "views": "Most viewed, all time",
+      "checkIns": "Most checked in",
       "name": "Name A–Z"
     },
     "shown": "{shown} of {total}",
@@ -46,6 +47,7 @@
     "rating": "Rating",
     "reviews": "Reviews",
     "browses": "Browses",
+    "checkIns": "Check-ins",
     "views": "Views",
     "verified": "Verified",
     "verifiedHelp": "As of today, whatever the period. A badge is never filtered by date.",
@@ -72,6 +74,7 @@
     "ratingWithCount": "Rating · {count, plural, one {# rating} other {# ratings}}",
     "reviews": "Reviews",
     "views": "Views, all time",
+    "checkIns": "Check-ins",
     "written": "Written {dates}.",
     "writtenAll": "Every review written so far, newest first.",
     "hide": "Hide",
