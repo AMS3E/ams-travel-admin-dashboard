@@ -13,6 +13,7 @@ import { useGetCatalogQuery, useGetCatalogRecordQuery } from "@/features/catalog
 import type { CatalogRecord } from "@/features/catalog/api/contracts";
 import { byName } from "@/features/catalog/resources";
 import { QueryState } from "@/features/cms/components/query-state";
+import { cn } from "@/lib/utils";
 
 /* Each status's colour; its words are catalog.region.status. */
 const STATUS_TONES = { PUBLISHED: "active", DRAFT: "neutral", ARCHIVED: "neutral" } as const;
@@ -188,7 +189,13 @@ function TermChips({ field, label, rows }: { readonly field: string; readonly la
       </p>
       <div className="mt-1.5 flex flex-wrap gap-1.5" data-field={field}>
         {rows.length ? rows.map((row) => (
-          <Badge className={row.isActive === false ? "line-through opacity-70" : undefined} key={row.id} tone="neutral">
+          <Badge className={cn(row.isActive === false && "line-through opacity-70", text(row.coverKey) && "pl-0.5")} key={row.id} tone="neutral">
+            {/* A category's drawn icon, on white so its lines read in either theme. */}
+            {text(row.coverKey) ? (
+              <span aria-hidden className="relative size-4 shrink-0 overflow-hidden rounded-full bg-white">
+                <Image alt="" className="object-contain p-px" fill sizes="16px" src={mediaPath(text(row.coverKey))} unoptimized />
+              </span>
+            ) : null}
             {text(row.name)}
           </Badge>
         )) : <span className="text-sm text-muted">{t("noneYet")}</span>}

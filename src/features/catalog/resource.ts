@@ -120,6 +120,8 @@ export interface ResourceField {
   readonly single?: boolean;
   /** For `image` — which folder in the bucket it uploads into. */
   readonly imageCategory?: ImageCategory;
+  /** For `image` — a drawn icon, not a photograph: shown whole on white, never cropped. */
+  readonly drawn?: boolean;
   /**
    * For `image` — the row field that holds the picture's current URL. The key
    * is what is saved; the URL is only what the preview shows.

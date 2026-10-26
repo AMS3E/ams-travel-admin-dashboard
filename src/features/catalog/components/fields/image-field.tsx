@@ -25,6 +25,8 @@ interface ImageFieldProps {
   readonly describedBy?: string;
   readonly invalid?: boolean;
   readonly onUploadingChange?: (uploading: boolean) => void;
+  /** A drawn icon: previewed whole on white rather than cropped like a photograph. */
+  readonly drawn?: boolean;
 }
 
 /**
@@ -44,6 +46,7 @@ export function ImageField({
   describedBy,
   invalid,
   onUploadingChange,
+  drawn = false,
 }: ImageFieldProps) {
   const t = useTranslations("forms.image");
   const text = useUploadText();
@@ -168,7 +171,7 @@ export function ImageField({
           ) : (
             <Image
               alt=""
-              className="size-16 rounded-md object-cover"
+              className={drawn ? "size-16 rounded-md bg-white object-contain p-1.5" : "size-16 rounded-md object-cover"}
               height={64}
               onError={() => setBroken(true)}
               src={preview}
