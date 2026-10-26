@@ -32,6 +32,8 @@ const reads = [
   path("destination-verifications(/(queue|status))?"),
   /* A destination's check-in codes (`?targetType=&targetId=`); the editorial desks'. */
   path("stamps/codes"),
+  /* The six interest groups and their pictures. */
+  path("interest-groups"),
 ];
 const writes: Record<string, readonly RegExp[]> = {
   /*
@@ -49,9 +51,10 @@ const writes: Record<string, readonly RegExp[]> = {
     path("stamps/codes/{id}/retire"),
   ],
   /*
-   * Editing a customer (PERM_USER_MANAGE) and moderating one review.
+   * Editing a customer (PERM_USER_MANAGE), moderating one review, and changing
+   * an interest group's picture (PERM_TAXONOMY_MANAGE).
    */
-  PUT: [path("users/{id}"), path("reviews/{id}")],
+  PUT: [path("users/{id}"), path("reviews/{id}"), path("interest-groups/{id}")],
   /*
    * Deleting a customer for good (PERM_USER_MANAGE) and clearing the audit
    * log — all-or-nothing; the API demands full control.

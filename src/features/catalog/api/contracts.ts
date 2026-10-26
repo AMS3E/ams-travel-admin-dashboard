@@ -117,6 +117,17 @@ export interface InterestResponse {
   readonly isActive: boolean;
 }
 
+/** `GET /interest-groups`: the six groups of the Interests tab, in their order, each with its picture. */
+export interface InterestGroupResponse {
+  readonly id: string;
+  /** The name interests carry in their `groupName`. */
+  readonly name: string;
+  /** Its picture's key; null when it has none. */
+  readonly coverKey: string | null;
+  readonly coverUrl: string | null;
+  readonly sortOrder: number;
+}
+
 /**
  * A tourism corridor's overview. Its days, stops and road route are
  * `GET /corridors/{id}/itinerary` — see `features/corridors/api/contracts.ts`.

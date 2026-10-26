@@ -1876,8 +1876,12 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         label: "Group",
         kind: "enum",
         options: INTEREST_GROUPS,
+        /* Kept in the Interests tab's order, Attraction Sites to Tourism Corridors, not A to Z. */
+        scale: true,
         required: true,
         span: 2,
+        /* Six cards with the picture the app shows for each group. */
+        tiles: true,
         hint: "Its shelf under Explore › Interests.",
       },
       {

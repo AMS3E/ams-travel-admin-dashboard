@@ -260,5 +260,13 @@
   },
   "options": {
     "unnamedAccount": "Unnamed account"
+  },
+  "interestGroups": {
+    "note": "Change gives that group a new picture at once, on the Interests page, in this form and in the app.",
+    "change": "Change",
+    "changeFor": "Change the {group} picture",
+    "uploading": "Uploading…",
+    "changed": "The {group} picture is changed.",
+    "tooLarge": "{name} is larger than 8 MB."
   }
 }

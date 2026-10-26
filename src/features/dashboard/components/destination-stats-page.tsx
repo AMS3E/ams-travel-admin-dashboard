@@ -106,7 +106,7 @@ export function DestinationStatsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <StatGrid>
+      <StatGrid columns={3}>
         <StatTile icon={BadgeCheck} label={t("tiles.verified")} value={query.data ? count(verified) : null} />
         <StatTile icon={Star} label={t("tiles.average")} value={query.data ? (average == null ? "—" : average.toFixed(1)) : null} />
         <StatTile icon={Eye} label={t("tiles.browses")} value={query.data ? count(browses) : null} />
