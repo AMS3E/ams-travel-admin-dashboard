@@ -90,6 +90,16 @@ export interface EnumOption {
   readonly label: string;
 }
 
+/** A chip over a grouped list: its own name, and any other values it also holds. */
+export interface GroupChip extends EnumOption {
+  readonly includes?: readonly string[];
+}
+
+/** The values a group chip stands for: its own and the ones it also holds. */
+export function chipValues(chips: readonly GroupChip[] | undefined, value: string): readonly string[] {
+  return [value, ...(chips?.find((chip) => chip.value === value)?.includes ?? [])];
+}
+
 
 export interface ResourceField {
   readonly name: string;
@@ -380,7 +390,12 @@ export interface ResourceDefinition {
    * under Attraction Sites, Stays, Food, Water, Activities & Experiences,
    * Tourism Corridors.
    */
-  readonly groupBy?: { readonly field: string; readonly order: readonly string[] };
+  readonly groupBy?: {
+    readonly field: string;
+    readonly order: readonly string[];
+    /** The list page's chips, when they are not simply the field's options: the badge ladders. */
+    readonly chips?: readonly GroupChip[];
+  };
   /**
    * The rows its screens show, when the table holds more than the page is
    * about: Tourism Regions lists the tourism regions, not the zones.
