@@ -1713,15 +1713,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         ordered: true,
         hint: "The tags its page offers as filters, in the order it shows them, and the only ones its attractions are offered. A tag is a plain label with nothing under it.",
       },
-      {
-        name: "amsRecommended",
-        label: "Recommended by AMS Travel",
-        kind: "boolean",
-        boxed: true,
-        span: 2,
-        section: "Recommendation",
-        hint: "Shows the AMS Travel badge on its card on Explore and at the top of its page in the app.",
-      },
     ],
   },
 
@@ -1885,8 +1876,12 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         label: "Group",
         kind: "enum",
         options: INTEREST_GROUPS,
+        /* Kept in the Interests tab's order, Attraction Sites to Tourism Corridors, not A to Z. */
+        scale: true,
         required: true,
         span: 2,
+        /* Six cards with the picture the app shows for each group. */
+        tiles: true,
         hint: "Its shelf under Explore › Interests.",
       },
       {

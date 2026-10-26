@@ -56,7 +56,7 @@ export function VerificationPanel({ destinationId, name, resource = "destination
   const detail = [
     basis === "TRAVELER_SCORE" ? t("panel.byTravellers") : null,
     decision,
-    verified ? t("panel.recommended") : null,
+    verified ? t("panel.badgeShown") : null,
     ratings,
   ]
     .filter(Boolean)
@@ -73,7 +73,6 @@ export function VerificationPanel({ destinationId, name, resource = "destination
           <Badge tone={verified ? "success" : "neutral"}>
             {verified && basis ? t("badge.verifiedBasis", { basis: t(`basis.${basis}`) }) : verified ? t("badge.verified") : t("badge.notVerified")}
           </Badge>
-          {status?.travelerRecommended ? <Badge tone="success">{t("badge.travelerRecommended")}</Badge> : null}
         </div>
         <p className="mt-1 text-xs text-muted">{detail}</p>
       </div>

@@ -157,7 +157,6 @@ export interface DestinationStatsRow {
   /** By a desk's decision or by the reviews. */
   readonly verified: boolean;
   readonly basis: VerificationBasis | null;
-  readonly travelerRecommended: boolean;
 }
 
 /**

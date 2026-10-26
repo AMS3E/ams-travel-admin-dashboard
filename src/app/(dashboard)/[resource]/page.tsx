@@ -15,7 +15,7 @@ import {
 import { getBackendUserId, requireAdmin } from "@/features/auth/session";
 import { BulkPhotoUpload } from "@/features/catalog/components/bulk-photo-upload";
 import { ResourceTable } from "@/features/catalog/components/resource-table";
-import { galleryOf } from "@/features/catalog/resource";
+import { galleryOf, mediaPath } from "@/features/catalog/resource";
 import { isResourceKey } from "@/features/catalog/resources";
 import { localizedResource } from "@/features/catalog/localize.server";
 import { navWords } from "@/features/shell/nav-words";
@@ -28,6 +28,8 @@ import { MediaGallery } from "@/features/catalog/components/media-gallery/media-
 import { listPageOf } from "@/features/catalog/all-destinations";
 import { getRecords, getReferenceOptions } from "@/features/catalog/api/catalog.server";
 import { ListChips, type ListChip } from "@/features/catalog/components/list-chips";
+import type { InterestGroupResponse } from "@/features/catalog/api/contracts";
+import { backendRequest } from "@/lib/backend-api.server";
 
 export async function generateMetadata(
   props: PageProps<"/[resource]">,
@@ -133,8 +135,21 @@ export default async function ResourceListPage(
   };
   const owners = linkField ? (references?.[linkField.ref!] ?? []) : (groupField?.options ?? []);
   const orphans = rows.filter((row) => belongsTo(row).length === 0).length;
+  /* An interest group's chip shows the picture an editor set for it. */
+  const groupPictures: Readonly<Record<string, string>> = resource === "interests"
+    ? Object.fromEntries(
+        (await backendRequest<InterestGroupResponse[]>("/interest-groups").catch(() => []))
+          .filter((group) => group.coverKey)
+          .map((group) => [group.name, mediaPath(group.coverKey!)]),
+      )
+    : {};
   const chips: ListChip[] = [
-    ...owners.map((owner) => ({ value: owner.value, label: owner.label, count: rows.filter((row) => belongsTo(row).includes(owner.value)).length })),
+    ...owners.map((owner) => ({
+      value: owner.value,
+      label: owner.label,
+      count: rows.filter((row) => belongsTo(row).includes(owner.value)).length,
+      image: groupPictures[owner.value],
+    })),
     ...(orphans ? [{ value: "none", label: linkField ? t("chips.noRegion") : t("chips.noGroup"), count: orphans }] : []),
   ];
   const chipParam = linkField ? "region" : "group";

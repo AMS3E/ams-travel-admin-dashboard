@@ -2,22 +2,20 @@ import type { PublicationStatus } from "@/features/catalog/api/contracts";
 import type { PublishDesk } from "@/features/publishing/api/contracts";
 
 /**
- * The `verify` service's JSON. A destination's Verified badge rests on one of
- * four things: it is an official site, a partner's own listing with the
- * agreement behind it, a paid verification with its invoice, or the
- * travellers' reviews, which earn it on their own. The first three are a
- * desk's decision; the fourth is never filed. A verified place shows as
- * Recommended by AMS Travel in the app, and the fourth adds Recommended by
- * Traveler. None of it is the visitors' badges.
+ * The `verify` service's JSON. A destination's Verified badge is earned one
+ * of two ways: a paid verification, a desk's decision with the invoice
+ * behind it, or the travellers' reviews, which earn it on their own and are
+ * never filed. Either way the app shows the one Verified badge. None of it
+ * is the visitors' badges.
  *
  * Who decides is the desk the destination was written from: a BDO verifies
  * partner listings, an editor contributor drafts, and full control anything,
  * staff content included. The API scopes every read below to those desks.
  */
 
-export type VerificationBasis = "OFFICIAL_SITE" | "PARTNER" | "PAID" | "TRAVELER_SCORE";
+export type VerificationBasis = "PAID" | "TRAVELER_SCORE";
 
-/** Whether a desk's decision verifies the place now, rather than the travellers' seal alone. */
+/** Whether a desk's decision verifies the place now, rather than the travellers' reviews alone. */
 export function decidedVerified(row: Pick<VerificationResponse, "verified" | "basis">): boolean {
   return row.verified && row.basis !== "TRAVELER_SCORE";
 }
@@ -58,8 +56,6 @@ export interface VerificationResponse {
    * only the reviews verify it. Null while not verified.
    */
   readonly basis: VerificationBasis | null;
-  /** Whether the reviews have earned the Recommended by Traveler seal; null in a history row. */
-  readonly travelerRecommended: boolean | null;
   /** Star ratings so far and their average; null in a history row, the average null while unrated. */
   readonly ratingCount: number | null;
   readonly averageRating: number | null;
@@ -127,5 +123,5 @@ export interface VerificationQueueItem extends VerificationResponse {
  */
 export type VerifiedStatusResponse = Pick<
   VerificationResponse,
-  "destinationId" | "verified" | "basis" | "travelerRecommended" | "ratingCount" | "averageRating" | "createdAt"
+  "destinationId" | "verified" | "basis" | "ratingCount" | "averageRating" | "createdAt"
 >;

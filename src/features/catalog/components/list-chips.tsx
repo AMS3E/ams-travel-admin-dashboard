@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -5,6 +6,8 @@ export interface ListChip {
   readonly value: string;
   readonly label: string;
   readonly count: number;
+  /** A picture before the name: an interest group's. */
+  readonly image?: string;
 }
 
 /**
@@ -40,12 +43,14 @@ export function ListChips({
                 aria-current={on ? "page" : undefined}
                 className={cn(
                   "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors",
-                  on ? "border-ink bg-ink text-paper" : "border-line-strong bg-paper text-ink-soft hover:bg-sand hover:text-ink",
+                  chip?.image && "pl-1",
+                  on ? "border-teal/40 bg-teal-soft font-medium text-teal-deep" : "border-line-strong bg-paper text-ink-soft hover:bg-sand hover:text-ink",
                 )}
                 href={href(chip?.value ?? null)}
               >
+                {chip?.image ? <Image alt="" className="size-6 shrink-0 object-contain" height={24} src={chip.image} unoptimized width={24} /> : null}
                 {chip?.label ?? allLabel}
-                <span className={cn("text-xs tabular-nums", on ? "text-paper/70" : "text-muted")}>{chip?.count ?? total}</span>
+                <span className={cn("text-xs tabular-nums", on ? "text-teal-deep/70" : "text-muted")}>{chip?.count ?? total}</span>
               </Link>
             </li>
           );

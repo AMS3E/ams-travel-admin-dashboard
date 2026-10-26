@@ -115,7 +115,7 @@ const catalogueContent: NavGroup = {
     destinations,
     catalog("/corridors", "Tourism Corridors", "corridors", "Day-by-day travel plans with routes on the map", { key: "corridors" }),
     catalog("/regions", "Tourism Regions", "regions", "The regions travellers discover Cambodia by, and their own lists", { key: "regions" }),
-    tool("/verification", "Verification", BadgeCheck, VERIFY_PERMISSIONS, "Verified places show as Recommended by AMS Travel: file what it rests on, renew it, or revoke it", { key: "verification" }),
+    tool("/verification", "Verification", BadgeCheck, VERIFY_PERMISSIONS, "The Verified badge in the app: file the paid verification, renew it, or revoke it", { key: "verification" }),
     catalog("/destination-media", "Media Library", "destination-media", "Every photo in the catalogue, in one gallery", { key: "mediaLibrary" }),
     /* Read-only: what travellers make of each place, and what its Verified badge rests on. */
     tool("/destination-stats", "Destination Stats", ChartColumn, ["PERM_DESTINATION_EDIT_ANY"], "Ratings, reviews, browses and the Verified standing of every destination", { key: "destinationStats" }),
