@@ -83,7 +83,6 @@ export function VerifyDrawer({ destination, focus = "verify", onClose }: VerifyD
     <Filed decision={filed} onAnother={() => setFiled(null)} onClose={onClose} />
   ) : (
     <VerificationForm
-      desk={destination.desk}
       destinationId={destination.id}
       initialDecision={focus === "revoke" ? "revoke" : "verify"}
       onCancel={onClose}
@@ -279,11 +278,7 @@ function Filed({
         <div className="min-w-0">
           <h2 className="font-semibold text-ink">{revoked ? t("filed.revokedTitle") : t("filed.verifiedTitle")}</h2>
           <p className="mt-0.5 text-sm text-muted">
-            {revoked
-              ? t("filed.revokedBody")
-              : decision.basis === "OFFICIAL_SITE"
-                ? t("filed.officialBody")
-                : t("filed.paperworkBody")}
+            {revoked ? t("filed.revokedBody") : t("filed.paperworkBody")}
           </p>
           {details.length ? <p className="mt-1 text-xs text-ink-soft">{details.join(" · ")}</p> : null}
         </div>

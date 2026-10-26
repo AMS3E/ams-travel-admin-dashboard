@@ -95,7 +95,6 @@ export function DestinationInsight({ id, grants, resource = "destinations" }: {
               <div className="mt-2 flex flex-wrap items-center gap-2" data-field="standing">
                 {status ? <Badge dot tone={STATUS_TONES[status]}>{t(`status.${status}`)}</Badge> : null}
                 {row ? <Badge tone={row.verified ? "info" : "neutral"}>{standing(row)}</Badge> : null}
-                {row?.travelerRecommended ? <Badge tone="success">{t("badge.traveler")}</Badge> : null}
               </div>
             </>
           ) : null}
@@ -206,8 +205,7 @@ export function DestinationInsight({ id, grants, resource = "destinations" }: {
                 {row ? <Badge tone={row.verified ? "success" : "neutral"}>{standing(row)}</Badge> : null}
               </div>
               <p className="mt-1 text-xs text-muted">
-                {row?.verified ? t("detail.recommended") : t("detail.notRecommended")}
-                {row?.travelerRecommended ? ` ${t("detail.earned")}` : ""}
+                {row?.verified ? t("detail.verified") : t("detail.notVerified")}
               </p>
             </div>
             {verifies && place ? (

@@ -7,23 +7,17 @@ import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { PublishDesk } from "@/features/publishing/api/contracts";
 import { cn } from "@/lib/utils";
 import { useApiErrorMessage } from "@/store/api/api-error";
 import { useRecordVerificationMutation } from "../api/verification-api";
-import type { DestinationVerificationResponse, VerificationBasis } from "../api/contracts";
+import type { DestinationVerificationResponse } from "../api/contracts";
 import { EvidenceField } from "./evidence-field";
 
 export type VerificationDecision = "verify" | "revoke";
 
-/** The bases a desk files; the travellers' is earned, never chosen here. */
-type FiledBasis = Exclude<VerificationBasis, "TRAVELER_SCORE">;
-
 interface VerificationFormProps {
   readonly destinationId: string;
   readonly verified: boolean;
-  /** Whose writing the place is, when the screen knows: only a partner's own listing is verified as a partner's. */
-  readonly desk?: PublishDesk;
   /** Which decision the form opens on; revoking is only offered while verified. */
   readonly initialDecision?: VerificationDecision;
   /** The decision was filed; the caller shows what happened. */
@@ -31,35 +25,22 @@ interface VerificationFormProps {
   readonly onCancel?: () => void;
 }
 
-/** The `verification.form.paperwork` entry each basis needs, if any. */
-type Paperwork = "partner" | "paid";
-
-type Check = "agreementBusiness" | "agreementAccount" | "agreementCurrent" | "invoiceName" | "invoiceAddress" | "invoiceRecent";
-
-/** What each basis rests on, and what a desk checks before filing it; the words are in `verification.form`. */
-const BASES: Readonly<Record<FiledBasis, { readonly paperwork: Paperwork | null; readonly checks: readonly Check[] }>> = {
-  OFFICIAL_SITE: { paperwork: null, checks: [] },
-  PARTNER: { paperwork: "partner", checks: ["agreementBusiness", "agreementAccount", "agreementCurrent"] },
-  PAID: { paperwork: "paid", checks: ["invoiceName", "invoiceAddress", "invoiceRecent"] },
-};
-
-const FILED: readonly FiledBasis[] = ["OFFICIAL_SITE", "PARTNER", "PAID"];
+/** What a desk checks before filing the paid verification; the words are in `verification.form.checks`. */
+const CHECKS = ["invoiceName", "invoiceAddress", "invoiceRecent"] as const;
 
 /**
- * The verification form: what the verification rests on, the paperwork that
- * basis needs, and a note.
+ * The verification form: a desk files the paid verification, with the invoice
+ * behind it and a note.
  *
- * An official site needs no paperwork. A partner's or a paid verification
- * needs the file, its number, or both, and the API refuses it without.
- * Verifying a destination that is already verified renews it, on the same
- * basis or another. Revoking needs a note, so the history says why, and is
- * only possible while a desk's decision stands; the travellers' seal is not
- * a desk's to take away.
+ * A paid verification needs the file, its number, or both, and the API
+ * refuses it without. Verifying a destination that is already verified renews
+ * it. Revoking needs a note, so the history says why, and is only possible
+ * while a desk's decision stands; the travellers' score is not a desk's to
+ * take away.
  */
 export function VerificationForm({
   destinationId,
   verified,
-  desk,
   initialDecision = "verify",
   onDone,
   onCancel,
@@ -68,8 +49,6 @@ export function VerificationForm({
   const errorMessage = useApiErrorMessage();
   const [recordVerification, mutation] = useRecordVerificationMutation();
   const [chosen, setDecision] = useState<VerificationDecision>(initialDecision);
-  /* A partner's listing is most likely verified as a partner's; anything else is most likely paid for. */
-  const [basis, setBasis] = useState<FiledBasis>(desk === "PARTNER" ? "PARTNER" : "PAID");
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
   const [evidenceKey, setEvidenceKey] = useState("");
@@ -78,15 +57,14 @@ export function VerificationForm({
   const [missing, setMissing] = useState<"proof" | "note" | null>(null);
   /* Once the destination is not verified — revoked here or elsewhere — there is nothing to revoke. */
   const revoking = verified && chosen === "revoke";
-  const paperworkKey = revoking ? null : BASES[basis].paperwork;
-  const paperwork = paperworkKey
-    ? {
-        label: t(`form.paperwork.${paperworkKey}.label`),
-        noun: t(`form.paperwork.${paperworkKey}.noun`),
-        number: t(`form.paperwork.${paperworkKey}.number`),
-        placeholder: t(`form.paperwork.${paperworkKey}.placeholder`),
-      }
-    : null;
+  const paperwork = revoking
+    ? null
+    : {
+        label: t("form.paperwork.paid.label"),
+        noun: t("form.paperwork.paid.noun"),
+        number: t("form.paperwork.paid.number"),
+        placeholder: t("form.paperwork.paid.placeholder"),
+      };
   const hasProof = Boolean(reference.trim() || evidenceKey);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -106,7 +84,7 @@ export function VerificationForm({
       const decision = await recordVerification({
         destinationId,
         verified: !revoking,
-        ...(revoking ? {} : { basis }),
+        ...(revoking ? {} : { basis: "PAID" as const }),
         reference,
         note,
         evidenceKey,
@@ -119,7 +97,7 @@ export function VerificationForm({
 
   const proofError =
     missing === "proof" && paperwork && !hasProof
-      ? t(basis === "PAID" ? "form.proofErrorNumber" : "form.proofErrorReference", { noun: paperwork.noun })
+      ? t("form.proofErrorNumber", { noun: paperwork.noun })
       : undefined;
   const noteError = missing === "note" && !note.trim() ? t("form.noteError") : undefined;
 
@@ -165,13 +143,7 @@ export function VerificationForm({
   const reason = (
     <FormField
       error={noteError}
-      hint={
-        revoking
-          ? t("form.reasonHintRevoke")
-          : basis === "OFFICIAL_SITE"
-            ? t("form.reasonHintOfficial")
-            : t("form.reasonHint")
-      }
+      hint={revoking ? t("form.reasonHintRevoke") : t("form.reasonHint")}
       label={revoking ? t("form.reasonLabelRevoke") : t("form.note")}
       required={revoking}
     >
@@ -240,50 +212,19 @@ export function VerificationForm({
         </>
       ) : (
         <>
-          <fieldset className="grid gap-3 sm:grid-cols-3" data-field="basis">
-            <legend className="mb-2 text-sm font-medium text-ink">{t("form.basisLegend")}</legend>
-            {FILED.map((each) => {
-              /* The queue knows whose listing it is; a partner's verification is only for a partner's own. */
-              const notTheirs = each === "PARTNER" && desk !== undefined && desk !== "PARTNER";
-              return (
-                <ChoiceOption
-                  checked={basis === each}
-                  description={notTheirs ? t("form.notTheirs") : t(`form.bases.${each}`)}
-                  disabled={notTheirs}
-                  key={each}
-                  label={t(`basis.${each}`)}
-                  name="basis"
-                  onSelect={() => {
-                    setBasis(each);
-                    setMissing(null);
-                  }}
-                />
-              );
-            })}
-          </fieldset>
-          {BASES[basis].checks.length ? (
-            <div className="rounded-lg border border-line bg-surface-muted p-3">
-              <p className="text-sm font-medium text-ink">{t("form.checksTitle")}</p>
-              <ul className="mt-2 flex flex-col gap-1.5">
-                {BASES[basis].checks.map((check) => (
-                  <li className="flex items-start gap-2 text-sm text-ink-soft" key={check}>
-                    <CircleCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-teal" strokeWidth={1.75} />
-                    {t(`form.checks.${check}`)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="rounded-lg border border-line bg-surface-muted p-3 text-sm text-ink-soft">
-              {t("form.officialNote")}
-            </p>
-          )}
-          {paperwork ? (
-            <>
-              {evidence}
-              {number}
-            </>
-          ) : null}
+          <div className="rounded-lg border border-line bg-surface-muted p-3">
+            <p className="text-sm font-medium text-ink">{t("form.checksTitle")}</p>
+            <ul className="mt-2 flex flex-col gap-1.5">
+              {CHECKS.map((check) => (
+                <li className="flex items-start gap-2 text-sm text-ink-soft" key={check}>
+                  <CircleCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-teal" strokeWidth={1.75} />
+                  {t(`form.checks.${check}`)}
+                </li>
+              ))}
+            </ul>
+          </div>
+          {evidence}
+          {number}
           {reason}
         </>
       )}
@@ -325,11 +266,10 @@ export function VerificationForm({
   );
 }
 
-/** One radio in a row of choices: a decision, or what the verification rests on. */
+/** One radio in a row of choices: renew the verification, or revoke it. */
 function ChoiceOption({
   checked,
   danger = false,
-  disabled = false,
   label,
   description,
   name,
@@ -337,7 +277,6 @@ function ChoiceOption({
 }: {
   readonly checked: boolean;
   readonly danger?: boolean;
-  readonly disabled?: boolean;
   readonly label: string;
   readonly description: string;
   readonly name: string;
@@ -346,8 +285,7 @@ function ChoiceOption({
   return (
     <label
       className={cn(
-        "flex items-start gap-3 rounded-lg border p-3 transition-colors",
-        disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
+        "flex items-start gap-3 rounded-lg border p-3 transition-colors cursor-pointer",
         checked
           ? danger
             ? "border-heritage bg-heritage-soft/60"
@@ -358,7 +296,6 @@ function ChoiceOption({
       <input
         checked={checked}
         className={cn("mt-0.5 size-4", danger ? "accent-heritage" : "accent-teal")}
-        disabled={disabled}
         name={name}
         onChange={onSelect}
         type="radio"

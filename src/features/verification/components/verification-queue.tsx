@@ -233,7 +233,6 @@ function QueueRow({
         <Badge tone="neutral">{t(`queue.kind.${item.targetType}`)}</Badge>
         <Badge>{t(`queue.writtenBy.${item.desk}`)}</Badge>
         <Badge dot tone={tone ?? "neutral"}>{tone ? t(`destinationStatus.${item.destinationStatus}`) : item.destinationStatus}</Badge>
-        {item.travelerRecommended ? <Badge tone="success">{t("badge.travelerRecommended")}</Badge> : null}
         <span className="flex flex-col items-start gap-0.5">
           <Badge tone={item.verified ? "info" : "neutral"}>
             {item.verified && item.basis ? t("badge.verifiedBasis", { basis: t(`basis.${item.basis}`) }) : item.verified ? t("badge.verified") : t("badge.notVerified")}

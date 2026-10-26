@@ -44,8 +44,6 @@ export interface RegionResponse {
   /** The interests an attraction of its theme is offered. */
   readonly interestIds: readonly string[];
   readonly isActive: boolean;
-  /** Recommended by AMS Travel: the badge on its card and its page in the app. */
-  readonly amsRecommended: boolean;
   /** Its place among the regions of its kind, 0 first. */
   readonly sortOrder: number | null;
   /** Its centre, the marker on the app's Map screen: the one an editor set, else the middle of its places. */

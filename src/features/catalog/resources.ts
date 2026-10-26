@@ -1713,15 +1713,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         ordered: true,
         hint: "The tags its page offers as filters, in the order it shows them, and the only ones its attractions are offered. A tag is a plain label with nothing under it.",
       },
-      {
-        name: "amsRecommended",
-        label: "Recommended by AMS Travel",
-        kind: "boolean",
-        boxed: true,
-        span: 2,
-        section: "Recommendation",
-        hint: "Shows the AMS Travel badge on its card on Explore and at the top of its page in the app.",
-      },
     ],
   },
 

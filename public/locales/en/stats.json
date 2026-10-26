@@ -5,16 +5,13 @@
     "ARCHIVED": "Archived"
   },
   "basis": {
-    "OFFICIAL_SITE": "Official site",
-    "PARTNER": "Partner",
     "PAID": "Paid",
     "TRAVELER_SCORE": "Travellers' reviews"
   },
   "badge": {
     "verifiedOn": "Verified · {basis}",
     "verified": "Verified",
-    "notVerified": "Not verified",
-    "traveler": "Recommended by Traveler"
+    "notVerified": "Not verified"
   },
   "ratings": "{count, plural, one {# rating} other {# ratings}}",
   "tiles": {
@@ -82,9 +79,8 @@
     "noneInPeriod": "No review in this period.",
     "none": "No reviews yet.",
     "verification": "Verification",
-    "recommended": "Shows as Recommended by AMS Travel in the app.",
-    "notRecommended": "Not shown as Recommended by AMS Travel.",
-    "earned": "The reviews have earned it Recommended by Traveler.",
+    "verified": "Shows the Verified badge in the app.",
+    "notVerified": "Not verified; the app shows no badge.",
     "notFound": "Not found",
     "edit": "Edit destination",
     "back": "Back to Destination Stats",

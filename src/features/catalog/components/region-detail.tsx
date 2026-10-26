@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useFormatter, useTranslations } from "next-intl";
 import { mediaPath } from "@/features/catalog/resource";
 import Link from "next/link";
-import { ArrowUpRight, BadgeCheck, ImageIcon, Pencil } from "lucide-react";
+import { ArrowUpRight, ImageIcon, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from "@/components/ui/table";
@@ -68,12 +68,6 @@ export function RegionDetail({ id }: { readonly id: string }) {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <Surface aria-label={t("overview")}>
           <SurfaceHeader
-            actions={row?.amsRecommended === true ? (
-              <Badge tone="success">
-                <BadgeCheck aria-hidden className="size-3" />
-                {t("recommended")}
-              </Badge>
-            ) : null}
             description={t("overviewDescription")}
             title={t("overview")}
           />

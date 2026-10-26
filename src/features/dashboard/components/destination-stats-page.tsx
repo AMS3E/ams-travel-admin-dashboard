@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
-import { BadgeCheck, Eye, Star, ThumbsUp } from "lucide-react";
+import { BadgeCheck, Eye, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { Surface } from "@/components/ui/surface";
@@ -97,7 +97,6 @@ export function DestinationStatsPage() {
 
   /* The figures, over the places in scope. */
   const verified = inScope.filter((row) => row.verified).length;
-  const traveler = inScope.filter((row) => row.travelerRecommended).length;
   const ratings = inScope.reduce((sum, row) => sum + row.ratingCount, 0);
   const average = ratings
     ? inScope.reduce((sum, row) => sum + (row.averageRating ?? 0) * row.ratingCount, 0) / ratings
@@ -109,7 +108,6 @@ export function DestinationStatsPage() {
     <div className="flex flex-col gap-4">
       <StatGrid>
         <StatTile icon={BadgeCheck} label={t("tiles.verified")} value={query.data ? count(verified) : null} />
-        <StatTile icon={ThumbsUp} label={t("badge.traveler")} value={query.data ? count(traveler) : null} />
         <StatTile icon={Star} label={t("tiles.average")} value={query.data ? (average == null ? "—" : average.toFixed(1)) : null} />
         <StatTile icon={Eye} label={t("tiles.browses")} value={query.data ? count(browses) : null} />
       </StatGrid>
@@ -190,7 +188,6 @@ export function DestinationStatsPage() {
                     <TableCell>
                       <span className="flex flex-wrap items-center gap-1.5">
                         <Badge tone={row.verified ? "info" : "neutral"}>{standing(row)}</Badge>
-                        {row.travelerRecommended ? <Badge tone="success">{t("badge.traveler")}</Badge> : null}
                       </span>
                     </TableCell>
                     <TableCell>
