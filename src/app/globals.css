@@ -63,6 +63,8 @@
   --primary-line: #0b6bf2; /* blue icons, borders and progress */
   --primary-text: #0957c8; /* links and blue text */
   --ring: #0b6bf2; /* focus */
+  --pill: #5539c9; /* every button under the pointer: a purple pill */
+  --pill-foreground: #ffffff;
 
   /* --- status: text, a fill under white text, and a tint ---------------- */
   --success: #067647;
@@ -128,6 +130,8 @@
   --primary-line: #5b93f7;
   --primary-text: #8db4ff;
   --ring: #5b93f7;
+  --pill: #5539c9;
+  --pill-foreground: #ffffff;
 
   --success: #5fcf96;
   --success-fill: #15803d;
@@ -171,6 +175,8 @@
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
+  --color-pill: var(--pill);
+  --color-pill-foreground: var(--pill-foreground);
   --color-destructive: var(--destructive-fill);
   --color-destructive-hover: var(--destructive-hover);
   --color-destructive-foreground: var(--destructive-foreground);

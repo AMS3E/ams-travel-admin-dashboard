@@ -37,9 +37,9 @@ export function CopyButton({ value, label, className }: CopyButtonProps) {
     <button
       aria-label={t("copy", { label })}
       className={cn(
-        "inline-grid size-6 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-sand-deep hover:text-ink",
-        state === "copied" && "text-success hover:text-success",
-        state === "failed" && "text-heritage hover:text-heritage",
+        "inline-grid size-6 shrink-0 place-items-center rounded-md text-muted transition-colors hover:rounded-full hover:bg-pill hover:text-pill-foreground",
+        state === "copied" && "text-success",
+        state === "failed" && "text-heritage",
         className,
       )}
       onClick={(event) => {
