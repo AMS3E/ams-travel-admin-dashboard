@@ -115,7 +115,10 @@ export function ResourceTable({
   const markOf = useMemo(() => new Map((marks ?? []).map((mark) => [mark.listingId, mark])), [marks]);
   const approvedBy = useMemo(() => new Map((approvals ?? []).map((mark) => [mark.listingId, mark])), [approvals]);
   /* A row with a cover is recognised by it: attractions, stays, food listings and corridors lead with theirs. */
-  const thumbs = definition.fields.some((field) => field.name === "coverKey" && field.kind === "image");
+  const thumbField = definition.fields.find((field) => field.name === "coverKey" && field.kind === "image");
+  const thumbs = Boolean(thumbField);
+  /* A drawn icon sits whole on white, so its lines read in either theme. */
+  const drawnThumbs = thumbField?.drawn === true;
   const [term, setTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [onlyMine, setOnlyMine] = useState(false);
@@ -491,9 +494,9 @@ export function ResourceTable({
                     {index === 0 ? (
                       <span className="flex items-center gap-3">
                         {thumbs ? (
-                          <Link aria-hidden className="relative hidden h-9 w-12 shrink-0 overflow-hidden rounded border border-line bg-sand-deep sm:block" href={openHref} tabIndex={-1}>
+                          <Link aria-hidden className={cn("relative hidden h-9 w-12 shrink-0 overflow-hidden rounded border border-line sm:block", drawnThumbs && cover ? "bg-white" : "bg-sand-deep")} href={openHref} tabIndex={-1}>
                             {cover ? (
-                              <Image alt="" className="object-cover" fill sizes="48px" src={cover} unoptimized />
+                              <Image alt="" className={drawnThumbs ? "object-contain p-1" : "object-cover"} fill sizes="48px" src={cover} unoptimized />
                             ) : (
                               <ImageIcon className="absolute inset-0 m-auto size-3.5 text-muted" strokeWidth={1.75} />
                             )}

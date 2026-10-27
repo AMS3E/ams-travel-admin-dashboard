@@ -1880,8 +1880,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         scale: true,
         required: true,
         span: 2,
-        /* Six cards with the picture the app shows for each group. */
-        tiles: true,
         hint: "Its shelf under Explore › Interests.",
       },
       {
@@ -1922,6 +1920,11 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
       { ...name(), hint: "What a traveller browsing the region looks for, e.g. Temples." },
       nameKm(100),
       { ...description, hint: "Optional. A line on what belongs in it." },
+      {
+        ...cover("category", "Icon"),
+        drawn: true,
+        hint: "A line icon on a see-through background, as a PNG or WebP. It stands beside the category's name.",
+      },
     ],
   },
 

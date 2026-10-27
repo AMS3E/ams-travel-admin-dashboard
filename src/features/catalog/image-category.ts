@@ -32,6 +32,8 @@ export const IMAGE_CATEGORIES = [
   "province",
   /** An interest's picture, in place of its icon. */
   "interest",
+  /** A category's icon picture. */
+  "category",
   /** Partner logos. */
   "partner",
   /**

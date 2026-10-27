@@ -28,6 +28,7 @@ import { MediaGallery } from "@/features/catalog/components/media-gallery/media-
 import { listPageOf } from "@/features/catalog/all-destinations";
 import { getRecords, getReferenceOptions } from "@/features/catalog/api/catalog.server";
 import { ListChips, type ListChip } from "@/features/catalog/components/list-chips";
+import { InterestGroupCards } from "@/features/catalog/components/interest-group-cards";
 import type { InterestGroupResponse } from "@/features/catalog/api/contracts";
 import { backendRequest } from "@/lib/backend-api.server";
 
@@ -135,7 +136,7 @@ export default async function ResourceListPage(
   };
   const owners = linkField ? (references?.[linkField.ref!] ?? []) : (groupField?.options ?? []);
   const orphans = rows.filter((row) => belongsTo(row).length === 0).length;
-  /* An interest group's chip shows the picture an editor set for it. */
+  /* An interest group's card shows the picture an editor set for it. */
   const groupPictures: Readonly<Record<string, string>> = resource === "interests"
     ? Object.fromEntries(
         (await backendRequest<InterestGroupResponse[]>("/interest-groups").catch(() => []))
@@ -203,7 +204,19 @@ export default async function ResourceListPage(
         <BulkPhotoUpload definition={definition} gallery={gallery} />
       ) : null}
 
-      {chips.length ? (
+      {/* The interest groups as cards with their pictures, changed from here. */}
+      {chips.length && resource === "interests" ? (
+        <InterestGroupCards
+          active={chosen?.value ?? null}
+          allLabel={t("chips.allGroups")}
+          canChange={canManageResource(admin.roles, resource)}
+          chips={chips}
+          hint={chipHint}
+          label={t("chips.groups")}
+          path={`/${resource}`}
+          total={rows.length}
+        />
+      ) : chips.length ? (
         <ListChips
           active={chosen?.value ?? null}
           allLabel={linkField ? t("chips.allRegions") : t("chips.allGroups")}

@@ -1,13 +1,12 @@
 "use client";
 
 import {
-  BedDouble, Briefcase, Building2, Camera, Check, Compass, Gem, Globe, House, Landmark, Leaf, Map, MapPin,
-  Mountain, Route, Shapes, Ship, Soup, Sparkles, Sprout, Star, Sun, Tent, TreePalm, Trees, UtensilsCrossed,
+  Briefcase, Building2, Camera, Check, Compass, Gem, Globe, House, Landmark, Leaf, Map, MapPin,
+  Mountain, Route, Shapes, Ship, Soup, Sparkles, Sprout, Star, Sun, TreePalm, Trees, UtensilsCrossed,
   Waves, type LucideIcon, type LucideProps,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { ReferenceOption } from "@/features/catalog/resource";
-import { InterestGroupPicker } from "./interest-group-picker";
 import { cn } from "@/lib/utils";
 import type englishForms from "@locales/en/forms.json";
 
@@ -22,8 +21,6 @@ type TileHint = keyof typeof englishForms.tiles.hints;
 interface Tile {
   readonly icon: LucideIcon;
   readonly hint: TileHint;
-  /** Shown by the picture an editor uploaded for it (an interest group's), the icon standing in when it has none. */
-  readonly pictured?: boolean;
 }
 
 /** The tourism regions, which are also the attraction themes; one added since draws the default icon and its own description. */
@@ -48,17 +45,7 @@ const ZONE_TILES: Readonly<Record<string, Tile>> = {
   COAST: { icon: Waves, hint: "COAST" },
 };
 
-/** The six groups the Interests tab lists interests under; their pictures are set on the Interests page. */
-const INTEREST_GROUP_TILES: Readonly<Record<string, Tile>> = {
-  "Attraction Sites": { icon: Landmark, hint: "attractionSites", pictured: true },
-  Stays: { icon: BedDouble, hint: "stays", pictured: true },
-  Food: { icon: UtensilsCrossed, hint: "food", pictured: true },
-  Water: { icon: Waves, hint: "water", pictured: true },
-  "Activities & Experiences": { icon: Tent, hint: "activities", pictured: true },
-  "Tourism Corridors": { icon: Route, hint: "corridors", pictured: true },
-};
-
-const TILES: Readonly<Record<string, Tile>> = { ...THEME_TILES, ...ZONE_TILES, ...INTEREST_GROUP_TILES };
+const TILES: Readonly<Record<string, Tile>> = { ...THEME_TILES, ...ZONE_TILES };
 
 const tileOf = (option: ReferenceOption): Tile | undefined => TILES[option.slug ?? option.value] ?? TILES[option.value];
 
@@ -84,22 +71,6 @@ export function ChoiceTiles({ options, value, multiple = false, onChange, labell
   function toggle(option: string) {
     if (!multiple) return onChange(option);
     onChange(chosen.has(option) ? [...chosen].filter((each) => each !== option) : [...chosen, option]);
-  }
-  /* The interest groups: each card shows the group's picture, and its picture can be changed from it. */
-  if (options.length > 0 && options.every((option) => tileOf(option)?.pictured)) {
-    return (
-      <InterestGroupPicker
-        chosen={chosen}
-        describedBy={describedBy}
-        hintOf={(option) => t(`hints.${tileOf(option)!.hint}`)}
-        iconOf={(option) => tileOf(option)!.icon}
-        invalid={invalid}
-        labelledBy={labelledBy}
-        multiple={multiple}
-        onToggle={toggle}
-        options={options}
-      />
-    );
   }
   return (
     <div

@@ -1634,6 +1634,11 @@
       "nameKm": {
         "label": "Name in Khmer",
         "hint": "Typed by hand, never machine-translated. Leave it empty until it is written."
+      },
+      "coverKey": {
+        "label": "Icon",
+        "hint": "A line icon on a see-through background, as a PNG or WebP. It stands beside the category's name.",
+        "section": "Media"
       }
     }
   },

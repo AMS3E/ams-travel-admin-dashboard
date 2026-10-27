@@ -568,6 +568,7 @@ function ImageControl({
         <ImageField
           category={field.imageCategory ?? "general"}
           describedBy={describedBy}
+          drawn={field.drawn}
           id={id}
           invalid={invalid}
           onChange={(key, url) => {
