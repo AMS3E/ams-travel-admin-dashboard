@@ -2,20 +2,19 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { useLocale, useMessages, useTranslations } from "next-intl";
-import { ChevronRight, UserPen, UserPlus, type LucideIcon } from "lucide-react";
+import { ChevronRight, UserPlus } from "lucide-react";
 import { useGetUsersQuery } from "@/features/people/api/people-api";
-import { useGetCurrentUserQuery } from "@/features/auth/api/auth-api";
 import {
   BUSINESS_ROLES,
   hasPermission,
-  primaryRole,
   type BusinessRole,
 } from "@/features/auth/permissions";
 import { CustomerDirectory } from "@/features/people/components/customer-directory";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { setCompactTables } from "@/store/slices/ui-slice";
 import { byName, getResource } from "@/features/catalog/resources";
 import type { ResourceKey } from "@/features/catalog/resource";
 import { localizeWith } from "@/features/catalog/localize";
-import { resourceIcon } from "@/features/shell/nav";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Surface, SurfaceHeader } from "@/components/ui/surface";
@@ -124,91 +123,86 @@ export function RolesPage({ grants }: { readonly grants: readonly string[] }) {
 }
 
 /**
- * The badge calendar: a season sets every badge's period. Neither table has a
- * sidebar entry, so Settings is where an administrator reaches them.
+ * The tables no sidebar lists: supporting rows an administrator still manages.
+ * The last two are the gamification calendar — a season sets every badge's
+ * period, so it sits beside the badges it drives.
  */
-const tables = [
-  { key: "badge-definitions", tile: "bg-gold-soft text-gold-deep" },
-  { key: "seasons", tile: "bg-success-soft text-success" },
-] as const satisfies readonly { key: ResourceKey; tile: string }[];
-
-function IconTile({ icon: Icon, className }: { readonly icon: LucideIcon; readonly className: string }) {
-  return (
-    <span aria-hidden className={cn("grid size-9 shrink-0 place-items-center rounded-lg", className)}>
-      <Icon className="size-4.5" />
-    </span>
-  );
-}
-
+const advanced: ResourceKey[] = [
+  "stay-media",
+  "stay-rooms",
+  "food-media",
+  "food-menu-items",
+  "corridor-media",
+  "badge-definitions",
+  "seasons",
+];
 export function SettingsPage() {
   const t = useTranslations("cms.settings");
-  const roleWords = useTranslations("cms.roles");
   const messages = useMessages();
-  /* Each table's name in the reader's language, A to Z in it. */
-  const rows = useMemo(
+  /* Each table's name and line in the reader's language, A to Z in it. */
+  const tables = useMemo(
     () =>
-      tables
-        .map((table) => ({ ...table, label: localizeWith(getResource(table.key), messages).labelPlural }))
-        .sort((a, b) => byName(a.label, b.label)),
+      advanced
+        .map((key) => ({ key, definition: localizeWith(getResource(key), messages) }))
+        .sort((a, b) => byName(a.definition.labelPlural, b.definition.labelPlural)),
     [messages],
   );
-  const me = useGetCurrentUserQuery();
-  const role = me.data ? primaryRole(me.data.roles) : null;
-
+  const dispatch = useAppDispatch();
+  const compact = useAppSelector((state) => state.ui.compactTables);
   return (
-    <div className="flex max-w-3xl flex-col gap-5">
-      <Surface aria-labelledby="settings-catalogue" className="overflow-hidden">
-        <SurfaceHeader description={t("catalogue.description")} id="settings-catalogue" title={t("catalogue.title")} />
+    <div className="flex max-w-3xl flex-col gap-4">
+      <Surface>
+        <SurfaceHeader description={t("preferences.description")} title={t("preferences.title")} />
+        <label className="flex cursor-pointer items-center justify-between gap-4 px-4 py-3">
+          <span>
+            <span className="block text-sm font-medium text-ink">{t("preferences.compact")}</span>
+            <span className="block text-xs text-muted">{t("preferences.compactHint")}</span>
+          </span>
+          <span className="relative inline-flex shrink-0">
+            <input
+              checked={compact}
+              className="peer sr-only"
+              onChange={(event) => dispatch(setCompactTables(event.target.checked))}
+              role="switch"
+              type="checkbox"
+            />
+            <span aria-hidden className="h-5 w-9 rounded-full bg-line-strong transition-colors peer-checked:bg-teal peer-focus-visible:ring-3 peer-focus-visible:ring-teal/25" />
+            <span aria-hidden className="absolute top-0.5 left-0.5 size-4 rounded-full bg-white shadow-xs transition-transform peer-checked:translate-x-4" />
+          </span>
+        </label>
+      </Surface>
+
+      <Surface>
+        <SurfaceHeader
+          description={t("catalogue.description")}
+          title={t("catalogue.title")}
+        />
         <ul className="divide-y divide-line">
-          {rows.map(({ key, tile, label }) => (
+          {tables.map(({ key, definition }) => (
             <li key={key}>
-              <Link
-                className="group flex min-h-16 items-center gap-3 px-4 py-3 transition-colors hover:bg-sand focus-visible:bg-sand focus-visible:-outline-offset-2"
-                href={"/" + key}
-              >
-                <IconTile className={tile} icon={resourceIcon(key)} />
+              <Link className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-sand" href={"/" + key}>
                 <span className="min-w-0 flex-1">
-                  <span className="block font-medium text-ink">{label}</span>
-                  <span className="block text-muted">{t(`catalogue.items.${key}`)}</span>
+                  <span className="block text-sm font-medium text-ink">{definition.labelPlural}</span>
+                  <span className="block truncate text-xs text-muted">{definition.description}</span>
                 </span>
-                <ChevronRight
-                  aria-hidden
-                  className="size-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-ink-soft"
-                />
+                <ChevronRight aria-hidden className="size-4 shrink-0 text-muted" />
               </Link>
             </li>
           ))}
         </ul>
       </Surface>
 
-      <Surface aria-labelledby="settings-account" className="overflow-hidden">
-        <SurfaceHeader description={t("account.description")} id="settings-account" title={t("account.title")} />
-        <div className="flex flex-wrap items-center gap-3 px-4 py-3.5">
-          {me.data ? (
-            <>
-              <ProfileAvatar className="size-10 text-sm" name={me.data.name} src={me.data.avatarUrl ?? ""} />
-              <span className="min-w-48 flex-1">
-                <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="truncate font-medium text-ink">{me.data.name}</span>
-                  {role ? <Badge tone="info">{roleWords(`labels.${role}`)}</Badge> : null}
-                </span>
-                <span className="block truncate text-muted">{me.data.email || me.data.username}</span>
-              </span>
-            </>
-          ) : (
-            <span aria-hidden className="flex min-w-48 flex-1 items-center gap-3">
-              <span className="size-10 shrink-0 rounded-full bg-sand-deep" />
-              <span className="flex flex-1 flex-col gap-2">
-                <span className="h-3.5 w-40 max-w-full rounded-sm bg-sand-deep" />
-                <span className="h-3 w-56 max-w-full rounded-sm bg-sand-deep" />
-              </span>
-            </span>
-          )}
-          <Link className={cn(buttonVariants({ size: "sm", variant: "secondary" }), "w-full sm:w-auto")} href="/profile">
-            <UserPen aria-hidden className="size-3.5" />
-            {t("account.edit")}
-          </Link>
-        </div>
+      <Surface>
+        <SurfaceHeader
+          actions={
+            <Link className={buttonVariants({ size: "sm", variant: "secondary" })} href="/profile">
+              {t("account.edit")}
+            </Link>
+          }
+          className="border-b-0"
+          description={t("account.description")}
+          title={t("account.title")}
+        />
       </Surface>
     </div>
   );

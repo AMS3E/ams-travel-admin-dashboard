@@ -186,7 +186,7 @@ const administration: NavGroup = {
     tool("/users", "Users", Users, ["PERM_USER_MANAGE"], "Customers who registered on the public site", { key: "users" }),
     { ...tool("/roles", "Roles & Permissions", ShieldCheck, ["PERM_ROLE_ASSIGN"], "Partner, contributor, editor, BDO, and administrator accounts", { key: "roles" }), aliases: ["/people"] },
     { ...tool("/audit-logs", "Audit Logs", FileClock, ["PERM_AUDIT_VIEW"], "A record of changes across your CMS", { key: "auditLogs" }), aliases: ["/audit"] },
-    tool("/settings", "Settings", Settings, ["PERM_FULL_CONTROL"], "Manage badges, seasons and your account", { key: "settings" }),
+    tool("/settings", "Settings", Settings, ["PERM_FULL_CONTROL"], "Workspace preferences and catalog configuration", { key: "settings" }),
   ],
 };
 

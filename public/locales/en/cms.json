@@ -115,13 +115,15 @@
     "nobody": "Nobody holds this role yet."
   },
   "settings": {
+    "preferences": {
+      "title": "Workspace preferences",
+      "description": "Preferences apply to this browser session.",
+      "compact": "Compact tables",
+      "compactHint": "Fit more catalogue rows on your screen."
+    },
     "catalogue": {
-      "title": "Badges and seasons",
-      "description": "What travellers earn, and the seasons that set each badge's period.",
-      "items": {
-        "badge-definitions": "Configure traveller achievements and how each one is earned.",
-        "seasons": "Set when the high and green seasons run."
-      }
+      "title": "Catalogue configuration",
+      "description": "Stay and food photography, badges, the periods they are earned in, and the seasons that set those periods."
     },
     "account": {
       "title": "Account",

@@ -6,7 +6,7 @@ import {
   aToZ,
   newestFirst,
 } from "@/features/catalog/api/catalog.server";
-import { chipValues, shownRow, statusValueOf } from "@/features/catalog/resource";
+import { shownRow, statusValueOf } from "@/features/catalog/resource";
 import { getResource, isResourceKey } from "@/features/catalog/resources";
 import { saveRecord } from "@/features/catalog/api/record-writes.server";
 import type { SaveRecordInput } from "@/features/catalog/form-state";
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               : definition.groupBy
                 ? within === "none"
                   ? !record[definition.groupBy.field]
-                  : chipValues(definition.groupBy.chips, within).includes(String(record[definition.groupBy.field] ?? ""))
+                  : record[definition.groupBy.field] === within
                 : true)) &&
           (!search ||
             definition.searchFields.some((field) =>

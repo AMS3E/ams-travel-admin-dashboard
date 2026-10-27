@@ -1876,11 +1876,6 @@
         "hint": "Only for stamps at chosen destinations.",
         "section": "Criteria"
       }
-    },
-    "chips": {
-      "BROWSES": "Browser",
-      "REVIEWS": "Reviewer",
-      "STAMPS": "Adventurer"
     }
   },
   "badge-periods": {

@@ -2,7 +2,6 @@ import { AMENITY_ICON_OPTIONS } from "@/features/catalog/amenity-icons";
 import type { ImageCategory } from "@/features/catalog/image-category";
 import type {
   EnumOption,
-  GroupChip,
   ReferenceKey,
   ResourceDefinition,
   ResourceField,
@@ -134,12 +133,6 @@ const BADGE_CRITERIA: readonly EnumOption[] = [
   { value: "REVIEWS", label: "Reviews written" },
   { value: "STAMPS", label: "Stamps collected" },
   { value: "DESTINATION_STAMPS", label: "Stamps at chosen destinations" },
-];
-/* The three ladders the Badges page is filtered by; stamps at chosen destinations climb the Adventurer one. */
-const BADGE_LADDERS: readonly GroupChip[] = [
-  { value: "BROWSES", label: "Browser" },
-  { value: "REVIEWS", label: "Reviewer" },
-  { value: "STAMPS", label: "Adventurer", includes: ["DESTINATION_STAMPS"] },
 ];
 const BADGE_TIERS = options(["SILVER", "GOLDEN", "PLATINUM"]);
 /* The API's SeasonType. */
@@ -1887,8 +1880,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
         scale: true,
         required: true,
         span: 2,
-        /* Six cards with the picture the app shows for each group. */
-        tiles: true,
         hint: "Its shelf under Explore › Interests.",
       },
       {
@@ -2036,8 +2027,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     titleField: "name",
     searchFields: ["name", "code", "type", "level"],
     status: BADGE_STATUS,
-    /* One chip per ladder, as the amenities have one per group. */
-    groupBy: { field: "type", order: BADGE_CRITERIA.map((option) => option.value), chips: BADGE_LADDERS },
     columns: [
       { name: "name", label: "Name" },
       { name: "code", label: "Code", secondary: true },
@@ -2123,8 +2112,6 @@ const DEFINED: Readonly<Record<ResourceKey, ResourceDefinition>> = {
     titleField: "name",
     searchFields: ["name"],
     status: SEASON_STATUS,
-    /* One chip per kind of season, as the badges have one per ladder. */
-    groupBy: { field: "type", order: SEASON_TYPES.map((option) => option.value) },
     columns: [
       { name: "name", label: "Name" },
       { name: "type", label: "Kind", kind: "enum", options: SEASON_TYPES, secondary: true },

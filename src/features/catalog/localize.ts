@@ -49,7 +49,6 @@ export function localizeResource(
   const columns = branch(words, "columns");
   const status = branch(words, "status");
   const fields = branch(words, "fields");
-  const chips = branch(words, "chips");
   return {
     ...definition,
     label: word(words, "label") ?? definition.label,
@@ -67,12 +66,6 @@ export function localizeResource(
         }
       : undefined,
     fields: definition.fields.map((field) => localizeField(field, branch(fields, field.name))),
-    groupBy: definition.groupBy?.chips
-      ? {
-          ...definition.groupBy,
-          chips: definition.groupBy.chips.map((chip) => ({ ...chip, label: word(chips, chip.value) ?? chip.label })),
-        }
-      : definition.groupBy,
     validation: validation ?? definition.validation,
   };
 }

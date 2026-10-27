@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, type LucideIcon } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
@@ -8,8 +8,6 @@ interface PageHeaderProps {
   readonly eyebrow?: string;
   readonly title: string;
   readonly description?: string;
-  /** The page's sidebar icon, in a tile beside the title. */
-  readonly icon?: LucideIcon;
   /** Renders a back link above the title, in place of the eyebrow. */
   readonly backHref?: string;
   readonly backLabel?: string;
@@ -22,7 +20,6 @@ export function PageHeader({
   eyebrow,
   title,
   description,
-  icon: Icon,
   backHref,
   backLabel,
   actions,
@@ -43,20 +40,11 @@ export function PageHeader({
           <p className="mb-1 text-xs font-medium text-muted">{eyebrow}</p>
         ) : null}
 
-        <div className="flex items-center gap-3">
-          {Icon ? (
-            <span className="grid size-11 shrink-0 place-items-center rounded-lg border border-line bg-paper text-teal shadow-xs">
-              <Icon aria-hidden className="size-5" />
-            </span>
-          ) : null}
-          <div className="min-w-0">
-            <h1 className="heading text-2xl font-semibold text-ink">{title}</h1>
+        <h1 className="heading text-2xl font-semibold text-ink">{title}</h1>
 
-            {description ? (
-              <p className="mt-1 max-w-3xl text-sm text-muted">{description}</p>
-            ) : null}
-          </div>
-        </div>
+        {description ? (
+          <p className="mt-1 max-w-3xl text-sm text-muted">{description}</p>
+        ) : null}
       </div>
 
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
