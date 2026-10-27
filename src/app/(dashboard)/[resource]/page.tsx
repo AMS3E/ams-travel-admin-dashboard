@@ -15,7 +15,7 @@ import {
 import { getBackendUserId, requireAdmin } from "@/features/auth/session";
 import { BulkPhotoUpload } from "@/features/catalog/components/bulk-photo-upload";
 import { ResourceTable } from "@/features/catalog/components/resource-table";
-import { galleryOf, mediaPath } from "@/features/catalog/resource";
+import { chipValues, galleryOf, mediaPath } from "@/features/catalog/resource";
 import { isResourceKey } from "@/features/catalog/resources";
 import { localizedResource } from "@/features/catalog/localize.server";
 import { navWords } from "@/features/shell/nav-words";
@@ -68,6 +68,7 @@ export default async function ResourceListPage(
           eyebrow={words.group(group)}
           title={words.label(item.text)}
           description={words.description(item.text)}
+          icon={resource === "settings" ? item.icon : undefined}
         />
         <CmsPage key={resource} grants={admin.roles} resource={resource} userId={await getBackendUserId()} />
       </div>
@@ -134,7 +135,9 @@ export default async function ResourceListPage(
     const value = groupField ? row[groupField.name] : null;
     return typeof value === "string" && value ? [value] : [];
   };
-  const owners = linkField ? (references?.[linkField.ref!] ?? []) : (groupField?.options ?? []);
+  /* A list may name its own chips, one covering several values: the badges' Adventurer holds both kinds of stamps. */
+  const groupChips = definition.groupBy?.chips;
+  const owners = linkField ? (references?.[linkField.ref!] ?? []) : (groupChips ?? groupField?.options ?? []);
   const orphans = rows.filter((row) => belongsTo(row).length === 0).length;
   /* An interest group's card shows the picture an editor set for it. */
   const groupPictures: Readonly<Record<string, string>> = resource === "interests"
@@ -148,7 +151,7 @@ export default async function ResourceListPage(
     ...owners.map((owner) => ({
       value: owner.value,
       label: owner.label,
-      count: rows.filter((row) => belongsTo(row).includes(owner.value)).length,
+      count: rows.filter((row) => chipValues(groupChips, owner.value).some((value) => belongsTo(row).includes(value))).length,
       image: groupPictures[owner.value],
     })),
     ...(orphans ? [{ value: "none", label: linkField ? t("chips.noRegion") : t("chips.noGroup"), count: orphans }] : []),
@@ -156,11 +159,13 @@ export default async function ResourceListPage(
   const chipParam = linkField ? "region" : "group";
   const chosen = chips.find((chip) => chip.value === query[chipParam]) ?? null;
   const plural = definition.labelPlural.toLowerCase();
+  /* Only interests have a tab that lists them by group; amenities and badges are just filtered. */
+  const interests = resource === "interests";
   const chipHint = !chosen
     ? t(linkField ? "chips.chooseRegion" : "chips.chooseGroup", { plural })
     : chosen.value === "none"
-      ? t(linkField ? "chips.noRegionHint" : "chips.noGroupHint")
-      : t(linkField ? "chips.regionHint" : "chips.groupHint", { name: chosen.label, plural });
+      ? t(linkField ? "chips.noRegionHint" : interests ? "chips.noInterestGroupHint" : "chips.noGroupHint")
+      : t(linkField ? "chips.regionHint" : interests ? "chips.interestGroupHint" : "chips.groupHint", { name: chosen.label, plural });
   /* "New" from a chip starts in it. */
   const preset = chosen && chosen.value !== "none"
     ? linkField
