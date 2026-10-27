@@ -114,7 +114,7 @@
       },
       "settings": {
         "label": "Settings",
-        "description": "Workspace preferences and catalog configuration"
+        "description": "Manage badges, seasons and your account."
       },
       "drafts": {
         "label": "Drafts",
@@ -235,9 +235,11 @@
       "chooseRegion": "Choose a tourism region to see its own {plural}.",
       "chooseGroup": "Choose a group to see its own {plural}.",
       "noRegionHint": "In no tourism region yet, so no region's page offers them. Open one and choose its regions.",
-      "noGroupHint": "In no group yet, so the Interests tab does not list them. Open one and choose its group.",
+      "noGroupHint": "In no group yet. Open one and choose its group.",
+      "noInterestGroupHint": "In no group yet, so the Interests tab does not list them. Open one and choose its group.",
       "regionHint": "{name}'s own {plural} — the only ones its page and its destinations are offered.",
-      "groupHint": "The {name} group's own {plural} — the Interests tab lists them under {name}."
+      "groupHint": "Showing only {plural} in {name}.",
+      "interestGroupHint": "The {name} group's own {plural} — the Interests tab lists them under {name}."
     }
   },
   "meta": {

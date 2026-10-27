@@ -47,7 +47,6 @@ import { useDates } from "@/i18n/use-dates";
 import { cn } from "@/lib/utils";
 import { useApiErrorMessage } from "@/store/api/api-error";
 import { Pager } from "@/components/ui/pager";
-import { useAppSelector } from "@/store/hooks";
 
 interface ResourceTableProps {
   readonly definition: ResourceDefinition;
@@ -122,8 +121,10 @@ export function ResourceTable({
   const [term, setTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [onlyMine, setOnlyMine] = useState(false);
-  /* A listing with types of its own — a stay's Hotel, a food listing's Cafe — can be narrowed to one. */
-  const kinds = definition.fields.find((field) => field.name === "type" && field.options?.length)?.options ?? [];
+  /* A listing with types of its own — a stay's Hotel, a food listing's Cafe — can be narrowed to one; the page's chips do it when they group by type. */
+  const kinds = definition.groupBy?.field === "type"
+    ? []
+    : definition.fields.find((field) => field.name === "type" && field.options?.length)?.options ?? [];
   const [kindFilter, setKindFilter] = useState("all");
   const mineOnly = ownerFilter && onlyMine && userId !== null;
   /* One tourism region's own categories or tags open in that region's order. */
@@ -163,7 +164,6 @@ export function ResourceTable({
   }, [usage.data, usageColumn]);
   const [removeRecord, remove] = useDeleteRecordMutation();
   const [changeStatus, setStatus] = useSetRecordStatusMutation();
-  const compact = useAppSelector((state) => state.ui.compactTables);
   // TanStack Table 8 exposes mutable getters; keep this hook outside compiler memoization.
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
@@ -346,7 +346,7 @@ export function ResourceTable({
   const filtered = Boolean(term.trim()) || statusFilter !== "all" || mineOnly || kindFilter !== "all";
 
   return (
-    <section aria-busy={query.isFetching} className={cn("panel min-w-0 overflow-hidden", compact && "[&_td]:py-1.5")}>
+    <section aria-busy={query.isFetching} className="panel min-w-0 overflow-hidden">
       <Toolbar>
         <SearchField
           className="max-w-sm"
